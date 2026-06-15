@@ -26,6 +26,7 @@ use codex_config::ThreadConfigLoader;
 use codex_config::config_toml::ConfigLockfileToml;
 use codex_config::config_toml::ConfigToml;
 use codex_config::config_toml::DEFAULT_PROJECT_DOC_MAX_BYTES;
+use codex_config::config_toml::GoalSteeringRole;
 use codex_config::config_toml::ProjectConfig;
 use codex_config::config_toml::RealtimeAudioConfig;
 use codex_config::config_toml::RealtimeConfig;
@@ -384,6 +385,19 @@ pub enum ThreadStoreConfig {
     InMemory { id: String },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GoalsConfig {
+    pub steering_role: GoalSteeringRole,
+}
+
+impl Default for GoalsConfig {
+    fn default() -> Self {
+        Self {
+            steering_role: GoalSteeringRole::Developer,
+        }
+    }
+}
+
 /// Application configuration loaded from disk and merged with overrides.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
@@ -624,6 +638,9 @@ pub struct Config {
 
     /// Memories subsystem settings.
     pub memories: MemoriesConfig,
+
+    /// Goal runtime behavior.
+    pub goals: GoalsConfig,
 
     /// Directory containing all Codex state (defaults to `~/.codex` but can be
     /// overridden by the `CODEX_HOME` environment variable).
@@ -3043,6 +3060,13 @@ impl Config {
             agent_max_depth,
             agent_roles,
             memories: cfg.memories.unwrap_or_default().into(),
+            goals: GoalsConfig {
+                steering_role: cfg
+                    .goals
+                    .as_ref()
+                    .and_then(|goals| goals.steering_role)
+                    .unwrap_or_default(),
+            },
             agent_job_max_runtime_seconds,
             agent_interrupt_message_enabled,
             codex_home,

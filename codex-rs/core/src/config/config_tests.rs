@@ -1,5 +1,6 @@
 use crate::agents_md::DEFAULT_AGENTS_MD_FILENAME;
 use crate::agents_md::LOCAL_AGENTS_MD_FILENAME;
+use crate::config::GoalsConfig;
 use crate::config::ThreadStoreConfig;
 use crate::config::edit::ConfigEdit;
 use crate::config::edit::ConfigEditsBuilder;
@@ -12,6 +13,8 @@ use codex_config::config_toml::AgentRoleToml;
 use codex_config::config_toml::AgentsToml;
 use codex_config::config_toml::AutoReviewToml;
 use codex_config::config_toml::ConfigToml;
+use codex_config::config_toml::GoalSteeringRole;
+use codex_config::config_toml::GoalsToml;
 use codex_config::config_toml::ProjectConfig;
 use codex_config::config_toml::RealtimeAudioConfig;
 use codex_config::config_toml::RealtimeConfig;
@@ -302,6 +305,32 @@ consolidation_model = "gpt-5.2"
         memories_cfg.memories
     );
 
+    let goals_developer = r#"
+[goals]
+steering_role = "developer"
+"#;
+    let goals_developer_cfg =
+        toml::from_str::<ConfigToml>(goals_developer).expect("goals developer TOML should parse");
+    assert_eq!(
+        Some(GoalsToml {
+            steering_role: Some(GoalSteeringRole::Developer),
+        }),
+        goals_developer_cfg.goals
+    );
+
+    let goals_user = r#"
+[goals]
+steering_role = "user"
+"#;
+    let goals_user_cfg =
+        toml::from_str::<ConfigToml>(goals_user).expect("goals user TOML should parse");
+    assert_eq!(
+        Some(GoalsToml {
+            steering_role: Some(GoalSteeringRole::User),
+        }),
+        goals_user_cfg.goals
+    );
+
     let config = Config::load_from_base_config_with_overrides(
         memories_cfg,
         ConfigOverrides::default(),
@@ -325,6 +354,16 @@ consolidation_model = "gpt-5.2"
             consolidation_model: Some("gpt-5.2".to_string()),
         }
     );
+    assert_eq!(GoalsConfig::default(), config.goals);
+
+    let user_goal_config = Config::load_from_base_config_with_overrides(
+        goals_user_cfg,
+        ConfigOverrides::default(),
+        tempdir().expect("tempdir").abs(),
+    )
+    .await
+    .expect("load config from goals settings");
+    assert_eq!(GoalSteeringRole::User, user_goal_config.goals.steering_role);
 
     let legacy_memories_cfg =
         toml::from_str::<ConfigToml>("[memories]\nno_memories_if_mcp_or_web_search = true\n")
@@ -7003,6 +7042,7 @@ async fn test_precedence_fixture_with_o3_profile() -> std::io::Result<()> {
             agent_max_depth: DEFAULT_AGENT_MAX_DEPTH,
             agent_roles: BTreeMap::new(),
             memories: MemoriesConfig::default(),
+            goals: GoalsConfig::default(),
             agent_job_max_runtime_seconds: DEFAULT_AGENT_JOB_MAX_RUNTIME_SECONDS,
             agent_interrupt_message_enabled: true,
             codex_home: fixture.codex_home(),
@@ -7375,6 +7415,7 @@ async fn test_precedence_fixture_with_gpt3_profile() -> std::io::Result<()> {
         agent_max_depth: DEFAULT_AGENT_MAX_DEPTH,
         agent_roles: BTreeMap::new(),
         memories: MemoriesConfig::default(),
+        goals: GoalsConfig::default(),
         agent_job_max_runtime_seconds: DEFAULT_AGENT_JOB_MAX_RUNTIME_SECONDS,
         agent_interrupt_message_enabled: true,
         codex_home: fixture.codex_home(),
@@ -7533,6 +7574,7 @@ async fn test_precedence_fixture_with_zdr_profile() -> std::io::Result<()> {
         agent_max_depth: DEFAULT_AGENT_MAX_DEPTH,
         agent_roles: BTreeMap::new(),
         memories: MemoriesConfig::default(),
+        goals: GoalsConfig::default(),
         agent_job_max_runtime_seconds: DEFAULT_AGENT_JOB_MAX_RUNTIME_SECONDS,
         agent_interrupt_message_enabled: true,
         codex_home: fixture.codex_home(),
@@ -7676,6 +7718,7 @@ async fn test_precedence_fixture_with_gpt5_profile() -> std::io::Result<()> {
         agent_max_depth: DEFAULT_AGENT_MAX_DEPTH,
         agent_roles: BTreeMap::new(),
         memories: MemoriesConfig::default(),
+        goals: GoalsConfig::default(),
         agent_job_max_runtime_seconds: DEFAULT_AGENT_JOB_MAX_RUNTIME_SECONDS,
         agent_interrupt_message_enabled: true,
         codex_home: fixture.codex_home(),

@@ -87,6 +87,30 @@ const fn default_hide_agent_reasoning() -> Option<bool> {
     Some(false)
 }
 
+/// Delivery role for hidden goal steering prompts.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum GoalSteeringRole {
+    User,
+    #[default]
+    Developer,
+}
+
+impl GoalSteeringRole {
+    pub fn as_response_role(self) -> &'static str {
+        match self {
+            Self::User => "user",
+            Self::Developer => "developer",
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq, JsonSchema)]
+#[schemars(deny_unknown_fields)]
+pub struct GoalsToml {
+    pub steering_role: Option<GoalSteeringRole>,
+}
+
 /// Base config deserialized from ~/.codex/config.toml.
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, JsonSchema)]
 #[schemars(deny_unknown_fields)]
@@ -369,6 +393,9 @@ pub struct ConfigToml {
 
     /// Agent-related settings (thread limits, etc.).
     pub agents: Option<AgentsToml>,
+
+    /// Goal runtime behavior.
+    pub goals: Option<GoalsToml>,
 
     /// Memories subsystem settings.
     pub memories: Option<MemoriesToml>,

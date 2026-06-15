@@ -12,6 +12,7 @@ use crate::state::TurnState;
 use crate::tasks::RegularTask;
 use crate::tools::handlers::goal_spec::UPDATE_GOAL_TOOL_NAME;
 use anyhow::Context;
+use codex_config::config_toml::GoalSteeringRole;
 use codex_features::Feature;
 use codex_otel::GOAL_BUDGET_LIMITED_METRIC;
 use codex_otel::GOAL_COMPLETED_METRIC;
@@ -78,6 +79,33 @@ enum BudgetLimitSteering {
 enum TerminalMetricEmission {
     Emit,
     Suppress,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum GoalSteeringKind {
+    Continuation,
+    BudgetLimit,
+}
+
+struct GoalSteeringMessage {
+    kind: GoalSteeringKind,
+    role: GoalSteeringRole,
+    prompt: String,
+}
+
+impl GoalSteeringMessage {
+    fn into_response_input_item(self) -> ResponseInputItem {
+        let Self {
+            kind: _,
+            role,
+            prompt,
+        } = self;
+        ResponseInputItem::Message {
+            role: role.as_response_role().to_string(),
+            content: vec![ContentItem::InputText { text: prompt }],
+            phase: None,
+        }
+    }
 }
 
 /// Describes whether an external goal mutation created a new logical goal or
@@ -985,7 +1013,12 @@ impl Session {
         )
         .await;
         if should_steer_budget_limit {
-            let item = budget_limit_steering_item(&goal);
+            let item = GoalSteeringMessage {
+                kind: GoalSteeringKind::BudgetLimit,
+                role: turn_context.config.goals.steering_role,
+                prompt: budget_limit_prompt(&goal),
+            }
+            .into_response_input_item();
             if self.inject_response_items(vec![item]).await.is_err() {
                 tracing::debug!("skipping budget-limit goal steering because no turn is active");
             }
@@ -1311,15 +1344,17 @@ impl Session {
         }
         let goal_id = goal.goal_id.clone();
         let goal = protocol_goal_from_state(goal);
+        let role = self.get_config().await.goals.steering_role;
         Some(GoalContinuationCandidate {
             goal_id,
-            items: vec![ResponseInputItem::Message {
-                role: "developer".to_string(),
-                content: vec![ContentItem::InputText {
-                    text: continuation_prompt(&goal),
-                }],
-                phase: None,
-            }],
+            items: vec![
+                GoalSteeringMessage {
+                    kind: GoalSteeringKind::Continuation,
+                    role,
+                    prompt: continuation_prompt(&goal),
+                }
+                .into_response_input_item(),
+            ],
         })
     }
 }
@@ -1458,16 +1493,6 @@ fn escape_xml_text(input: &str) -> String {
         .replace('>', "&gt;")
 }
 
-fn budget_limit_steering_item(goal: &ThreadGoal) -> ResponseInputItem {
-    ResponseInputItem::Message {
-        role: "developer".to_string(),
-        content: vec![ContentItem::InputText {
-            text: budget_limit_prompt(goal),
-        }],
-        phase: None,
-    }
-}
-
 pub(crate) fn protocol_goal_from_state(goal: codex_state::ThreadGoal) -> ThreadGoal {
     ThreadGoal {
         thread_id: goal.thread_id,
@@ -1520,13 +1545,18 @@ pub(crate) fn goal_token_delta_for_usage(usage: &TokenUsage) -> i64 {
 
 #[cfg(test)]
 mod tests {
+    use super::GoalSteeringKind;
+    use super::GoalSteeringMessage;
     use super::budget_limit_prompt;
     use super::continuation_prompt;
     use super::escape_xml_text;
     use super::goal_token_delta_for_usage;
     use super::should_ignore_goal_for_mode;
+    use codex_config::config_toml::GoalSteeringRole;
     use codex_protocol::ThreadId;
     use codex_protocol::config_types::ModeKind;
+    use codex_protocol::models::ContentItem;
+    use codex_protocol::models::ResponseInputItem;
     use codex_protocol::protocol::ThreadGoal;
     use codex_protocol::protocol::ThreadGoalStatus;
     use codex_protocol::protocol::TokenUsage;
@@ -1569,6 +1599,35 @@ mod tests {
         let token_only_original = snapshot.last_accounted_at;
         snapshot.mark_accounted(/*accounted_seconds*/ 0);
         assert_eq!(token_only_original, snapshot.last_accounted_at);
+    }
+
+    #[test]
+    fn goal_steering_message_uses_configured_role() {
+        for (role, expected_response_role) in [
+            (GoalSteeringRole::Developer, "developer"),
+            (GoalSteeringRole::User, "user"),
+        ] {
+            let item = GoalSteeringMessage {
+                kind: GoalSteeringKind::Continuation,
+                role,
+                prompt: "Continue working.".to_string(),
+            }
+            .into_response_input_item();
+            let ResponseInputItem::Message {
+                role,
+                content,
+                phase,
+            } = item
+            else {
+                panic!("expected goal steering message item");
+            };
+            assert_eq!(expected_response_role, role);
+            let [ContentItem::InputText { text }] = content.as_slice() else {
+                panic!("expected one input text item, got {content:#?}");
+            };
+            assert_eq!("Continue working.", text);
+            assert_eq!(None, phase);
+        }
     }
 
     #[test]

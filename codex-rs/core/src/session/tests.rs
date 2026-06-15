@@ -77,6 +77,7 @@ use crate::turn_diff_tracker::TurnDiffTracker;
 use codex_app_server_protocol::AppInfo;
 use codex_app_server_protocol::McpElicitationSchema;
 use codex_config::config_toml::ConfigToml;
+use codex_config::config_toml::GoalSteeringRole;
 use codex_config::config_toml::ProjectConfig;
 use codex_execpolicy::Decision;
 use codex_execpolicy::NetworkRuleProtocol;
@@ -5694,6 +5695,20 @@ async fn make_goal_session_and_context_with_rx() -> (
     async_channel::Receiver<Event>,
     tempfile::TempDir,
 ) {
+    make_goal_session_and_context_with_config_and_rx(|_config| {}).await
+}
+
+async fn make_goal_session_and_context_with_config_and_rx<F>(
+    configure_config: F,
+) -> (
+    Arc<Session>,
+    Arc<TurnContext>,
+    async_channel::Receiver<Event>,
+    tempfile::TempDir,
+)
+where
+    F: FnOnce(&mut Config),
+{
     let codex_home = tempfile::tempdir().expect("create temp dir");
     let (session, turn_context, rx) = make_session_and_context_with_auth_config_home_and_rx(
         CodexAuth::from_api_key("Test API Key"),
@@ -5704,6 +5719,7 @@ async fn make_goal_session_and_context_with_rx() -> (
                 .features
                 .enable(Feature::Goals)
                 .expect("goal mode should be enableable in tests");
+            configure_config(config);
         },
     )
     .await;
@@ -7629,7 +7645,7 @@ async fn active_goal_continuation_runs_again_after_no_tool_turn() -> anyhow::Res
             .expect("goal mode should be enableable in tests");
     });
     let test = builder.build(&server).await?;
-    let _responses = mount_sse_sequence(
+    let responses = mount_sse_sequence(
         &server,
         vec![
             sse(vec![
@@ -7691,6 +7707,108 @@ async fn active_goal_continuation_runs_again_after_no_tool_turn() -> anyhow::Res
         }
     })
     .await??;
+
+    let requests = responses.requests();
+    let continuation_request = requests
+        .get(1)
+        .expect("second request should be the first goal continuation");
+    let developer_goal_contexts = continuation_request.message_input_texts("developer");
+    assert!(
+        developer_goal_contexts.iter().any(|text| text
+            .contains("Continue working toward the active thread goal.")
+            && text
+                .contains("<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>")),
+        "default goal continuation should be developer-role, got {developer_goal_contexts:?}"
+    );
+    assert!(
+        continuation_request.message_input_texts("user").is_empty(),
+        "default goal continuation should not be user-role"
+    );
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn active_goal_continuation_uses_configured_user_role() -> anyhow::Result<()> {
+    let server = start_mock_server().await;
+    let mut builder = test_codex().with_config(|config| {
+        config
+            .features
+            .enable(Feature::Goals)
+            .expect("goal mode should be enableable in tests");
+        config.goals.steering_role = GoalSteeringRole::User;
+    });
+    let test = builder.build(&server).await?;
+    let responses = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_response_created("resp-1"),
+                ev_function_call(
+                    "call-create-goal",
+                    "create_goal",
+                    r#"{"objective":"write a benchmark note"}"#,
+                ),
+                ev_completed("resp-1"),
+            ]),
+            sse(vec![
+                ev_response_created("resp-2"),
+                ev_function_call(
+                    "call-complete-goal",
+                    "update_goal",
+                    r#"{"status":"complete"}"#,
+                ),
+                ev_completed("resp-2"),
+            ]),
+            sse(vec![
+                ev_assistant_message("msg-1", "Goal complete."),
+                ev_completed("resp-3"),
+            ]),
+        ],
+    )
+    .await;
+
+    test.codex
+        .submit(Op::UserInput {
+            environments: None,
+            items: vec![UserInput::Text {
+                text: "write a benchmark note".into(),
+                text_elements: Vec::new(),
+            }],
+            final_output_json_schema: None,
+            responsesapi_client_metadata: None,
+        })
+        .await?;
+
+    tokio::time::timeout(std::time::Duration::from_secs(8), async {
+        loop {
+            let event = test.codex.next_event().await?;
+            if matches!(event.msg, EventMsg::TurnComplete(_)) {
+                return anyhow::Ok(());
+            }
+        }
+    })
+    .await??;
+
+    let requests = responses.requests();
+    let continuation_request = requests
+        .get(1)
+        .expect("second request should be the first goal continuation");
+    let user_goal_contexts = continuation_request.message_input_texts("user");
+    assert!(
+        user_goal_contexts.iter().any(|text| text
+            .contains("Continue working toward the active thread goal.")
+            && text
+                .contains("<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>")),
+        "configured user role should place goal continuation in a user message, got {user_goal_contexts:?}"
+    );
+    assert!(
+        continuation_request
+            .message_input_texts("developer")
+            .iter()
+            .all(|text| !text.contains("Continue working toward the active thread goal.")),
+        "configured user role should not place goal continuation in a developer message"
+    );
 
     Ok(())
 }
@@ -7844,7 +7962,33 @@ async fn goal_test_state_db(sess: &Session) -> anyhow::Result<crate::StateDbHand
 
 #[tokio::test]
 async fn budget_limited_accounting_steers_active_turn_without_aborting() -> anyhow::Result<()> {
-    let (sess, tc, rx, _codex_home) = make_goal_session_and_context_with_rx().await;
+    budget_limited_accounting_steers_active_turn_with_role(
+        |_config| {},
+        GoalSteeringRole::Developer,
+    )
+    .await
+}
+
+#[tokio::test]
+async fn budget_limited_accounting_uses_configured_user_role() -> anyhow::Result<()> {
+    budget_limited_accounting_steers_active_turn_with_role(
+        |config| {
+            config.goals.steering_role = GoalSteeringRole::User;
+        },
+        GoalSteeringRole::User,
+    )
+    .await
+}
+
+async fn budget_limited_accounting_steers_active_turn_with_role<F>(
+    configure_config: F,
+    expected_role: GoalSteeringRole,
+) -> anyhow::Result<()>
+where
+    F: FnOnce(&mut Config),
+{
+    let (sess, tc, rx, _codex_home) =
+        make_goal_session_and_context_with_config_and_rx(configure_config).await;
     sess.set_thread_goal(
         tc.as_ref(),
         SetGoalRequest {
@@ -7892,7 +8036,7 @@ async fn budget_limited_accounting_steers_active_turn_without_aborting() -> anyh
     let [ResponseInputItem::Message { role, content, .. }] = pending_input.as_slice() else {
         panic!("expected one budget-limit steering message, got {pending_input:#?}");
     };
-    assert_eq!("developer", role);
+    assert_eq!(expected_role.as_response_role(), role);
     let [ContentItem::InputText { text }] = content.as_slice() else {
         panic!("expected one text span in budget-limit steering message, got {content:#?}");
     };
