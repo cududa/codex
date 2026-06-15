@@ -98,6 +98,7 @@ use codex_protocol::openai_models::ReasoningEffort;
 use codex_protocol::permissions::FileSystemSandboxPolicy;
 use codex_protocol::permissions::NetworkSandboxPolicy;
 use codex_protocol::protocol::AskForApproval;
+use codex_protocol::protocol::MAX_THREAD_GOAL_OBJECTIVE_CHARS;
 use codex_protocol::protocol::SandboxPolicy;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use codex_utils_absolute_path::AbsolutePathBufGuard;
@@ -387,12 +388,14 @@ pub enum ThreadStoreConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GoalsConfig {
+    pub objective_max_chars: usize,
     pub steering_role: GoalSteeringRole,
 }
 
 impl Default for GoalsConfig {
     fn default() -> Self {
         Self {
+            objective_max_chars: MAX_THREAD_GOAL_OBJECTIVE_CHARS,
             steering_role: GoalSteeringRole::Developer,
         }
     }
@@ -3061,6 +3064,12 @@ impl Config {
             agent_roles,
             memories: cfg.memories.unwrap_or_default().into(),
             goals: GoalsConfig {
+                objective_max_chars: cfg
+                    .goals
+                    .as_ref()
+                    .and_then(|goals| goals.objective_max_chars)
+                    .filter(|value| *value > 0)
+                    .unwrap_or(MAX_THREAD_GOAL_OBJECTIVE_CHARS),
                 steering_role: cfg
                     .goals
                     .as_ref()

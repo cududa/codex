@@ -1,5 +1,4 @@
 use super::*;
-use codex_protocol::protocol::validate_thread_goal_objective;
 
 #[derive(Clone)]
 pub(crate) struct ThreadGoalRequestProcessor {
@@ -138,7 +137,8 @@ impl ThreadGoalRequestProcessor {
         let objective = params.objective.as_deref().map(str::trim);
 
         if let Some(objective) = objective {
-            validate_thread_goal_objective(objective).map_err(invalid_request)?;
+            validate_goal_objective(objective, self.config.goals.objective_max_chars)
+                .map_err(invalid_request)?;
         }
         if objective.is_some() || params.token_budget.is_some() {
             validate_goal_budget(params.token_budget.flatten()).map_err(invalid_request)?;
@@ -433,6 +433,18 @@ impl ThreadGoalRequestProcessor {
             ))
             .await;
     }
+}
+
+fn validate_goal_objective(value: &str, max_chars: usize) -> Result<(), String> {
+    if value.is_empty() {
+        return Err("goal objective must not be empty".to_string());
+    }
+    if value.chars().count() > max_chars {
+        return Err(format!(
+            "goal objective must be at most {max_chars} characters"
+        ));
+    }
+    Ok(())
 }
 
 fn validate_goal_budget(value: Option<i64>) -> Result<(), String> {

@@ -108,6 +108,9 @@ impl GoalSteeringRole {
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq, JsonSchema)]
 #[schemars(deny_unknown_fields)]
 pub struct GoalsToml {
+    /// Maximum accepted `/goal` objective length in Unicode scalar-value characters.
+    pub objective_max_chars: Option<usize>,
+
     pub steering_role: Option<GoalSteeringRole>,
 }
 

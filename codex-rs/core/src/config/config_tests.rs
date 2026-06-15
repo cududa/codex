@@ -313,6 +313,7 @@ steering_role = "developer"
         toml::from_str::<ConfigToml>(goals_developer).expect("goals developer TOML should parse");
     assert_eq!(
         Some(GoalsToml {
+            objective_max_chars: None,
             steering_role: Some(GoalSteeringRole::Developer),
         }),
         goals_developer_cfg.goals
@@ -326,9 +327,25 @@ steering_role = "user"
         toml::from_str::<ConfigToml>(goals_user).expect("goals user TOML should parse");
     assert_eq!(
         Some(GoalsToml {
+            objective_max_chars: None,
             steering_role: Some(GoalSteeringRole::User),
         }),
         goals_user_cfg.goals
+    );
+
+    let goals_objective_limit = r#"
+[goals]
+objective_max_chars = 12000
+steering_role = "developer"
+"#;
+    let goals_objective_limit_cfg = toml::from_str::<ConfigToml>(goals_objective_limit)
+        .expect("goals objective limit TOML should parse");
+    assert_eq!(
+        Some(GoalsToml {
+            objective_max_chars: Some(12_000),
+            steering_role: Some(GoalSteeringRole::Developer),
+        }),
+        goals_objective_limit_cfg.goals
     );
 
     let config = Config::load_from_base_config_with_overrides(
@@ -364,6 +381,19 @@ steering_role = "user"
     .await
     .expect("load config from goals settings");
     assert_eq!(GoalSteeringRole::User, user_goal_config.goals.steering_role);
+
+    let objective_limit_config = Config::load_from_base_config_with_overrides(
+        goals_objective_limit_cfg,
+        ConfigOverrides::default(),
+        tempdir().expect("tempdir").abs(),
+    )
+    .await
+    .expect("load config from goal objective limit settings");
+    assert_eq!(12_000, objective_limit_config.goals.objective_max_chars);
+    assert_eq!(
+        GoalSteeringRole::Developer,
+        objective_limit_config.goals.steering_role
+    );
 
     let legacy_memories_cfg =
         toml::from_str::<ConfigToml>("[memories]\nno_memories_if_mcp_or_web_search = true\n")

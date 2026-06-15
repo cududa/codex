@@ -53,6 +53,7 @@ use codex_protocol::request_permissions::PermissionGrantScope;
 use codex_protocol::request_permissions::RequestPermissionProfile;
 use tracing::Span;
 
+use crate::goals::CreateGoalRequest;
 use crate::goals::ExternalGoalPreviousStatus;
 use crate::goals::ExternalGoalSet;
 use crate::goals::GoalRuntimeEvent;
@@ -8898,6 +8899,29 @@ async fn create_goal_tool_rejects_existing_goal() {
         .expect("goal should still exist");
     assert_eq!(goal.objective, "Keep the watcher alive");
     assert_eq!(goal.token_budget, Some(123));
+}
+
+#[tokio::test]
+async fn configured_goal_objective_limit_allows_longer_goals() -> anyhow::Result<()> {
+    let (session, turn_context, _rx, _codex_home) =
+        make_goal_session_and_context_with_config_and_rx(|config| {
+            config.goals.objective_max_chars = 5_000;
+        })
+        .await;
+    let objective = "x".repeat(4_500);
+
+    let goal = session
+        .create_thread_goal(
+            turn_context.as_ref(),
+            CreateGoalRequest {
+                objective: objective.clone(),
+                token_budget: None,
+            },
+        )
+        .await?;
+
+    assert_eq!(objective, goal.objective);
+    Ok(())
 }
 
 #[tokio::test]

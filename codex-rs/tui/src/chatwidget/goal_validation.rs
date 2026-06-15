@@ -3,7 +3,6 @@
 use super::*;
 use crate::bottom_pane::ChatComposer;
 use codex_protocol::num_format::format_with_separators;
-use codex_protocol::protocol::MAX_THREAD_GOAL_OBJECTIVE_CHARS;
 
 const GOAL_TOO_LONG_FILE_HINT: &str = "Put longer instructions in a file and refer to that file in the goal, for example: /goal follow the instructions in docs/goal.md.";
 
@@ -46,11 +45,12 @@ impl ChatWidget {
         actual_chars: usize,
         source: GoalObjectiveValidationSource,
     ) -> bool {
-        if actual_chars <= MAX_THREAD_GOAL_OBJECTIVE_CHARS {
+        let max_chars = self.config.goals.objective_max_chars;
+        if actual_chars <= max_chars {
             return true;
         }
         let actual_chars = format_with_separators(actual_chars as i64);
-        let max_chars = format_with_separators(MAX_THREAD_GOAL_OBJECTIVE_CHARS as i64);
+        let max_chars = format_with_separators(max_chars as i64);
         self.add_error_message(format!(
             "Goal objective is too long: {actual_chars} characters. Limit: {max_chars} characters. {GOAL_TOO_LONG_FILE_HINT}"
         ));

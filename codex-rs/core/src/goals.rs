@@ -24,12 +24,12 @@ use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseInputItem;
 use codex_protocol::protocol::Event;
 use codex_protocol::protocol::EventMsg;
+use codex_protocol::protocol::MAX_THREAD_GOAL_OBJECTIVE_CHARS;
 use codex_protocol::protocol::ThreadGoal;
 use codex_protocol::protocol::ThreadGoalStatus;
 use codex_protocol::protocol::ThreadGoalUpdatedEvent;
 use codex_protocol::protocol::TokenUsage;
 use codex_protocol::protocol::TurnAbortReason;
-use codex_protocol::protocol::validate_thread_goal_objective;
 use codex_rollout::state_db::reconcile_rollout;
 use codex_thread_store::LocalThreadStore;
 use codex_utils_template::Template;
@@ -444,7 +444,8 @@ impl Session {
         let state_db = self.require_state_db_for_thread_goals().await?;
         let objective = objective.map(|objective| objective.trim().to_string());
         if let Some(objective) = objective.as_deref()
-            && let Err(err) = validate_thread_goal_objective(objective)
+            && let Err(err) =
+                validate_goal_objective(objective, turn_context.config.goals.objective_max_chars)
         {
             anyhow::bail!("{err}");
         }
@@ -578,7 +579,7 @@ impl Session {
         } = request;
         validate_goal_budget(token_budget)?;
         let objective = objective.trim();
-        validate_thread_goal_objective(objective).map_err(anyhow::Error::msg)?;
+        validate_goal_objective(objective, turn_context.config.goals.objective_max_chars)?;
 
         let state_db = self.require_state_db_for_thread_goals().await?;
         self.account_thread_goal_wall_clock_usage(
@@ -1613,6 +1614,21 @@ pub(crate) fn validate_goal_budget(value: Option<i64>) -> anyhow::Result<()> {
         && value <= 0
     {
         anyhow::bail!("goal budgets must be positive when provided");
+    }
+    Ok(())
+}
+
+fn validate_goal_objective(value: &str, max_chars: usize) -> anyhow::Result<()> {
+    if value.is_empty() {
+        anyhow::bail!("goal objective must not be empty");
+    }
+    let max_chars = if max_chars == 0 {
+        MAX_THREAD_GOAL_OBJECTIVE_CHARS
+    } else {
+        max_chars
+    };
+    if value.chars().count() > max_chars {
+        anyhow::bail!("goal objective must be at most {max_chars} characters");
     }
     Ok(())
 }

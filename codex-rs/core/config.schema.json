@@ -876,6 +876,29 @@
       },
       "type": "object"
     },
+    "GoalSteeringRole": {
+      "description": "Delivery role for hidden goal steering prompts.",
+      "enum": [
+        "user",
+        "developer"
+      ],
+      "type": "string"
+    },
+    "GoalsToml": {
+      "additionalProperties": false,
+      "properties": {
+        "objective_max_chars": {
+          "description": "Maximum accepted `/goal` objective length in Unicode scalar-value characters.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "steering_role": {
+          "$ref": "#/definitions/GoalSteeringRole"
+        }
+      },
+      "type": "object"
+    },
     "GranularApprovalConfig": {
       "properties": {
         "mcp_elicitations": {
@@ -4218,6 +4241,14 @@
       ],
       "default": null,
       "description": "Compatibility-only settings retained so legacy `ghost_snapshot` config still loads."
+    },
+    "goals": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/GoalsToml"
+        }
+      ],
+      "description": "Goal runtime behavior."
     },
     "hide_agent_reasoning": {
       "default": false,
