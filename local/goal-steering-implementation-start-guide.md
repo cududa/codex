@@ -22,28 +22,50 @@ That means:
 - do make steering delivery role an explicit policy
 - do keep storage, lifecycle, accounting, and app-server APIs orthogonal
 
-## Current Starting Point
+## Current `.130` Local Baseline
 
-On the current `.130`-shaped checkout:
+On the current `.130`-shaped checkout, the local goal-steering baseline already includes these
+commits:
 
-- `codex-rs/core/src/goals.rs` emits continuation steering directly as `role: "developer"`
-- `budget_limit_steering_item` also emits `role: "developer"`
-- continuation and budget templates use `<untrusted_objective>`
+- `60346ef501 Make goal steering role configurable`
+- `7bd45429d7 Fix goal steering follow-up build issues`
+- `5cfe837ca4 Add initial goal steering frame`
+
+That means:
+
+- `GoalSteeringRole` exists in `codex-rs/config/src/config_toml.rs`
+- runtime `Config.goals.steering_role` exists and defaults to `Developer`
+- `GoalSteeringMessage { kind, role, prompt }` is the shared conversion boundary for goal steering
+- `GoalSteeringKind` includes `Initial`, `Continuation`, and `BudgetLimit`
+- continuation and budget templates still use `<untrusted_objective>`
+- initial steering uses a local `.130`-style prompt built in `initial_goal_prompt`
+- first automatic delivery for a newly active/resumed goal should use `Initial`
+- later automatic goal turns should use `Continuation`
 - there is no `GoalContext`
 - there is no `<goal_context>`
 - there is no `objective_updated.md`
 - there is no `codex-rs/ext/goal`
 - goal statuses are `active`, `paused`, `budget_limited`, and `complete`
 
-Patch one should be behavior-preserving by default. It should replace hardcoded role strings with a
+Treat this as the baseline when replaying `.131`. Do not re-implement the older hardcoded
+developer-role shape, and do not collapse `Initial` back into `Continuation`.
+
+If you are starting from this current branch, do not redo Patch One or Patch Two. They are already
+implemented. Use those sections as architecture notes and compatibility checks while replaying
+`.131+`.
+
+The first local patch was behavior-preserving by default: it replaced hardcoded role strings with a
 configurable local policy boundary while continuing to emit developer-role steering unless config
 explicitly says otherwise.
 
-The first patch should also introduce the small typed steering-frame shape that later releases will
-need. Do not wait until `.131` to discover this abstraction during conflict resolution. Keep it
-private and minimal on `.130`; it does not need `<goal_context>` yet.
+The second local goal-steering patch added a `.130`-baseline `Initial` steering kind. It applies the
+same trusted runtime-owned steering-frame shape to the first automatic goal turn without making the
+raw objective privileged instructions.
 
-## Patch One
+## Patch One: Role-Aware Steering Boundary
+
+This section is the historical recipe for the first local patch. On the current branch, use it as a
+checklist for what must remain true during `.131+` integration.
 
 ### Scope
 
@@ -227,7 +249,71 @@ Why include `GoalSteeringKind` now? Because `.131+` adds objective-update steeri
 runtime steering path is being built. On `.130`, it is intentionally small and private. Do not add
 `ObjectiveUpdated` until the branch has an objective-update steering path.
 
-## Patch One Tests
+Patch Two extends this enum with `Initial`; preserve that extension in the current baseline.
+
+## Patch Two: Initial Goal Steering
+
+The current `.130` local baseline also includes a second conceptual patch: first delivery of a
+newly active/resumed goal uses the same typed, role-aware steering frame as continuation, but with
+start-from-scratch wording.
+
+This was motivated by observed `.130` behavior where interrupt/halt-then-`/goal resume` often
+produced better adherence than the first raw goal start. The working hypothesis is that the useful
+effect came from runtime-owned hidden steering, not from treating the raw objective as trusted
+instructions.
+
+Keep these invariants:
+
+- raw objective text remains escaped data inside `<untrusted_objective>`
+- the trusted part is only the runtime-owned frame: begin/continue working toward the active goal
+- default delivery role remains `Developer`
+- `[goals].steering_role = "user"` still moves the whole steering frame to user role
+- `Initial` is one-shot per newly active/resumed goal id
+- the marker is consumed only when a goal steering request is actually launched
+- `Continuation` remains the later automatic-goal-turn prompt and must not say "first turn"
+
+The implemented shape in `codex-rs/core/src/goals.rs` is:
+
+```rust
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum GoalSteeringKind {
+    Initial,
+    Continuation,
+    BudgetLimit,
+}
+
+struct GoalSteeringMessage {
+    kind: GoalSteeringKind,
+    role: GoalSteeringRole,
+    prompt: String,
+}
+```
+
+The lifecycle is:
+
+- when a goal becomes active for the first time or after pause/resume, remember its goal id in
+  `initial_steering_goal_id`
+- when building the next automatic active-goal request, choose `Initial` if that id matches
+- after the continuation launcher has confirmed the request is still reserved and about to start,
+  consume the pending initial marker
+- if the goal stops, clear the pending initial marker
+
+The prompt intentionally stays `.130`-style and does not introduce `<goal_context>`:
+
+```text
+Begin working toward the active thread goal.
+
+This is the first turn for this goal. If this goal was resumed, treat this as the first turn of the
+active run. Do not assume prior progress has been made in this active run...
+
+<untrusted_objective>
+...
+</untrusted_objective>
+```
+
+This wording keeps the useful "start from evidence" shove while staying honest for resumed goals.
+
+## Patch Tests
 
 Add config tests in `codex-rs/core/src/config/config_tests.rs`:
 
@@ -243,8 +329,10 @@ Add unit tests in `codex-rs/core/src/goals.rs`:
 
 Add or extend request-shape tests in `codex-rs/core/src/session/tests.rs`:
 
-- default active-goal continuation request puts continuation text in a developer message
-- explicit `GoalSteeringRole::User` puts the same continuation text in a user message
+- default first automatic active-goal request puts initial text in a developer message
+- explicit `GoalSteeringRole::User` puts the same initial text in a user message
+- default later active-goal continuation request puts continuation text in a developer message
+- explicit `GoalSteeringRole::User` puts continuation text in a user message
 - default budget-limit steering remains developer-role
 - explicit `GoalSteeringRole::User` makes budget-limit steering user-role
 - prompt text still contains escaped objective data and completion-audit wording
@@ -252,11 +340,11 @@ Add or extend request-shape tests in `codex-rs/core/src/session/tests.rs`:
 Use existing structured request helpers if available, such as `ResponsesRequest` helpers. Prefer
 asserting message role plus text content over raw JSON string-grep.
 
-Do not add objective-update tests in patch one; `.130` has no objective-update steering path.
+Do not add objective-update tests on `.130`; `.130` has no objective-update steering path.
 
-## Patch One Validation
+## Validation
 
-After Rust code changes in `codex-rs`, run:
+The original repo guidance asks for focused crate tests after Rust changes:
 
 ```powershell
 just fmt
@@ -264,7 +352,18 @@ cargo test -p codex-config
 cargo test -p codex-core
 ```
 
-Because `ConfigToml` changes, also run:
+For the current local branch, `just fmt` may fail on Windows if `sh` is unavailable; `cargo fmt`
+has been used successfully instead. The user also prefers fast Windows local-release validation over
+broad debug/profile builds.
+
+For commit `5cfe837ca4`, known validation was:
+
+- `cargo fmt`
+- `cargo test -p codex-core goals::tests::` passed: 8 tests
+- `cargo build -p codex-cli --bin codex --target aarch64-pc-windows-msvc --profile local-release`
+  passed and produced `codex-rs\target\aarch64-pc-windows-msvc\local-release\codex.exe`
+
+Because Patch One changed `ConfigToml`, schema generation is still the repo-normal validation:
 
 ```powershell
 just write-config-schema
@@ -299,6 +398,7 @@ Use this shape or a close local equivalent:
 
 ```rust
 enum GoalSteeringKind {
+    Initial,
     Continuation,
     BudgetLimit,
     ObjectiveUpdated,
@@ -313,6 +413,10 @@ struct GoalSteeringMessage {
 
 On `.130`, `ObjectiveUpdated` should not exist yet. Add it only when the upstream branch introduces
 objective-update steering.
+
+On `.131+`, preserve `Initial`. It is a local durability feature, not an upstream archaeology
+mistake. If upstream introduces a richer goal-context abstraction, map `Initial` into that
+abstraction rather than deleting it or silently making the first goal turn use `Continuation`.
 
 Route all steering through:
 
@@ -330,8 +434,11 @@ When replaying the `.131` goal changes:
 - preserve `<goal_context>` markers
 - do not let `GoalContext` hardcode the delivery role
 - do not let `ContextualUserFragment` imply that goal steering must be user-role
-- route continuation, budget-limit, and objective-update through the configured steering builder
+- route initial, continuation, budget-limit, and objective-update through the configured steering
+  builder
 - keep objective escaping and user-data wording intact
+- preserve one-shot initial steering semantics when goal creation/resume maps into the `.131`
+  lifecycle
 
 Role should live in runtime policy resolved from config. It should not live in `GoalContext`, goal
 state, goal DB rows, or app-server goal payloads.
@@ -361,6 +468,11 @@ Known `.131` continuation/budget prompt changes:
 - completion audit becomes stricter and more evidence-oriented
 - completion reporting drops final elapsed-time reporting language
 - `.131` adds `objective_updated.md`, which keeps `<untrusted_objective>`
+
+There may not be an upstream `.131` equivalent to local `initial_goal_prompt`. If not, do not
+substitute the `.131` continuation prompt for local initial steering by default. Keep a local
+initial prompt or build a role-neutral `GoalContext`/prompt-kind path that can render the local
+initial wording.
 
 Some of these additions may help high-churn work. Some may also interact with the user's CAD and
 geometry workflow in ways that need A/B testing. Do not bundle prompt-template adoption with the
@@ -414,6 +526,10 @@ one. The host should remain the final authority applying:
 - injection timing
 - hidden-context classification
 
+The extension or store layer may own goal state, but it should not own the local decision that first
+delivery for a newly active/resumed goal is `Initial` rather than `Continuation`. Preserve that as a
+host/runtime steering-kind decision unless a later upstream design has an explicit equivalent.
+
 ## Non-Goals
 
 Do not do these in the first implementation pass:
@@ -425,6 +541,9 @@ Do not do these in the first implementation pass:
 - do not change `event_mapping.rs` for goal context before `<goal_context>` exists
 - do not add `objective_updated.md` to `.130`
 - do not add `codex-rs/ext/goal` scaffolding to `.130`
+- do not remove local `Initial` steering while replaying `.131+`
+- do not make resumed goals use continuation wording for their first automatic active run unless
+  the user explicitly chooses that behavioral experiment
 - do not remove later statuses such as `blocked` or `usageLimited` when replaying forward
 - do not bypass `GoalStore`
 - do not alter dedicated goal DB migrations
@@ -439,6 +558,8 @@ If context is running low, leave exactly this status:
 - files changed
 - whether `GoalSteeringRole` exists in `codex-config`
 - whether runtime `Config.goals.steering_role` exists
+- whether `GoalSteeringKind::Initial` exists
+- whether first active/resumed goal delivery uses initial wording
 - whether `GoalSteeringMessage::into_response_input_item` is the only role-construction path
 - whether `<goal_context>` exists yet
 - tests added
