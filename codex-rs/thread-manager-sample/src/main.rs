@@ -25,6 +25,7 @@ use codex_core_api::EventMsg;
 use codex_core_api::ExecServerRuntimePaths;
 use codex_core_api::Features;
 use codex_core_api::GhostSnapshotConfig;
+use codex_core_api::GoalsConfig;
 use codex_core_api::History;
 use codex_core_api::MemoriesConfig;
 use codex_core_api::ModelAvailabilityNuxConfig;
@@ -222,6 +223,7 @@ fn new_config(model: Option<String>, arg0_paths: Arg0DispatchPaths) -> anyhow::R
         agent_max_depth: 1,
         agent_roles: BTreeMap::new(),
         memories: MemoriesConfig::default(),
+        goals: GoalsConfig::default(),
         sqlite_home: codex_home.to_path_buf(),
         log_dir: codex_home.join("log").to_path_buf(),
         config_lock_export_dir: None,

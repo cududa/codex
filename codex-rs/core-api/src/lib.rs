@@ -34,6 +34,7 @@ pub use codex_core::ThreadShutdownReport;
 pub use codex_core::config::Config;
 pub use codex_core::config::Constrained;
 pub use codex_core::config::GhostSnapshotConfig;
+pub use codex_core::config::GoalsConfig;
 pub use codex_core::config::MultiAgentV2Config;
 pub use codex_core::config::Permissions;
 pub use codex_core::config::TerminalResizeReflowConfig;

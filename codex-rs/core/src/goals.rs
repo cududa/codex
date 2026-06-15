@@ -95,11 +95,10 @@ struct GoalSteeringMessage {
 
 impl GoalSteeringMessage {
     fn into_response_input_item(self) -> ResponseInputItem {
-        let Self {
-            kind: _,
-            role,
-            prompt,
-        } = self;
+        let Self { kind, role, prompt } = self;
+        match kind {
+            GoalSteeringKind::Continuation | GoalSteeringKind::BudgetLimit => {}
+        }
         ResponseInputItem::Message {
             role: role.as_response_role().to_string(),
             content: vec![ContentItem::InputText { text: prompt }],
