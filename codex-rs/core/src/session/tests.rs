@@ -7709,9 +7709,26 @@ async fn active_goal_continuation_runs_again_after_no_tool_turn() -> anyhow::Res
     .await??;
 
     let requests = responses.requests();
-    let continuation_request = requests
+    let initial_request = requests
         .get(1)
-        .expect("second request should be the first goal continuation");
+        .expect("second request should be the initial goal steering turn");
+    let developer_goal_contexts = initial_request.message_input_texts("developer");
+    assert!(
+        developer_goal_contexts.iter().any(|text| text
+            .contains("Begin working toward the active thread goal.")
+            && text.contains("This is the first turn for this goal.")
+            && text
+                .contains("<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>")),
+        "default initial goal steering should be developer-role, got {developer_goal_contexts:?}"
+    );
+    assert!(
+        initial_request.message_input_texts("user").is_empty(),
+        "default initial goal steering should not be user-role"
+    );
+
+    let continuation_request = requests
+        .get(2)
+        .expect("third request should be the first goal continuation");
     let developer_goal_contexts = continuation_request.message_input_texts("developer");
     assert!(
         developer_goal_contexts.iter().any(|text| text
@@ -7791,23 +7808,24 @@ async fn active_goal_continuation_uses_configured_user_role() -> anyhow::Result<
     .await??;
 
     let requests = responses.requests();
-    let continuation_request = requests
+    let initial_request = requests
         .get(1)
-        .expect("second request should be the first goal continuation");
-    let user_goal_contexts = continuation_request.message_input_texts("user");
+        .expect("second request should be the initial goal steering turn");
+    let user_goal_contexts = initial_request.message_input_texts("user");
     assert!(
         user_goal_contexts.iter().any(|text| text
-            .contains("Continue working toward the active thread goal.")
+            .contains("Begin working toward the active thread goal.")
+            && text.contains("This is the first turn for this goal.")
             && text
                 .contains("<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>")),
-        "configured user role should place goal continuation in a user message, got {user_goal_contexts:?}"
+        "configured user role should place initial goal steering in a user message, got {user_goal_contexts:?}"
     );
     assert!(
-        continuation_request
+        initial_request
             .message_input_texts("developer")
             .iter()
-            .all(|text| !text.contains("Continue working toward the active thread goal.")),
-        "configured user role should not place goal continuation in a developer message"
+            .all(|text| !text.contains("Begin working toward the active thread goal.")),
+        "configured user role should not place initial goal steering in a developer message"
     );
 
     Ok(())
