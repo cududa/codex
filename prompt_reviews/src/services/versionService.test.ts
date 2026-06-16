@@ -39,6 +39,9 @@ const gitClient: GitClient = {
   async getCommitDiff() {
     return "";
   },
+  async getFileAtCommit() {
+    return null;
+  },
 };
 
 beforeEach(() => {

@@ -178,11 +178,54 @@ Status legend:
       `npm run db:check`, full `npm test` (42 files, 181 tests), and
       `npm run build`. Batch 3 is complete and ready for its focused commit.
 
-- [ ] Batch 4: ingestion and post-commit automation.
+- [x] Batch 4: ingestion and post-commit automation.
   - Requirements reference: lines 42-56, 925-956, 1057-1073, 1165-1178.
   - Must deliver: `populate_next_version` integration, post-commit graph refresh,
     hook install/check path, debug rerun command, automation tests.
   - Completion notes:
+    - 2026-06-16: Started Batch 4 after Batch 3 commit `6a32bfd9f2`.
+      Scope is automatic upstream ingestion detection, local post-commit graph
+      refresh/hook check, debug rerun command, and corresponding automation
+      tests. Batch 5 read/API/MCP surfacing remains separate.
+    - 2026-06-16: Split Batch 4 into two implementation milestones to preserve
+      scope while keeping ownership clear: upstream sequential ingestion
+      integration first, then local post-commit/debug automation using the same
+      detector refresh path.
+    - 2026-06-16: Milestone A upstream sequential ingestion integration landed
+      in the worktree. `populateNextVersion` now creates/reuses a
+      `version_ingestion` detector run after version rows exist; the detector
+      reads changed file content at each commit, evaluates each commit against
+      the graph state from prior commits, then grows the graph for later
+      commits. The populate response now includes deterministic detector
+      summary counts. Validation passed: focused ingestion/runner Vitest (3
+      files, 11 tests), `npm run test:structure`, `npm run typecheck`,
+      `npm test` (42 files, 182 tests), `npm run db:check`, and
+      `npm run build`. Batch 4 remains open for milestone B post-commit hook
+      and debug rerun automation.
+    - 2026-06-16: Parent review sent the modified
+      `prompt_reviews/data/prompt_reviews.sqlite` artifact back to subagent
+      `019ed2b7-4ec0-7553-b1ac-28ea602fd712` for cleanup. The subagent
+      restored only that generated data file. Parent validation then passed:
+      focused ingestion/runner Vitest (3 files, 11 tests),
+      `npm run test:structure`, `npm run typecheck`, `npm run db:check`, and
+      full `npm test` (42 files, 182 tests).
+    - 2026-06-16: Milestone B local post-commit/debug automation landed in
+      the worktree via subagent `019ed2cb-35df-7681-8c6b-07c4765e8458`.
+      Added post-commit refresh tests and hook check/install tests first,
+      then implemented `src/detector/postCommit/*`,
+      `src/automation/postCommitHook*`, `src/detector/graph/persistExpansion.ts`,
+      and detector CLI scripts under `scripts/`. Local refresh reads changed
+      file content at a commit, persists only detector-discovered graph rows
+      with upsert semantics, creates no findings by default, and documents
+      `PROMPT_REVIEWS_SKIP_POST_COMMIT_REFRESH=1`.
+    - 2026-06-16: Parent review verified Batch 4B does not call broad graph
+      replacement from the local refresh path, preserves unrelated graph/review
+      rows in focused tests, and leaves `prompt_reviews/data/prompt_reviews.sqlite`
+      untouched. Final Batch 4 gates passed locally: focused post-commit/hook
+      Vitest (2 files, 4 tests), `npm run test:structure`,
+      `npm run typecheck`, `npm run db:check`, full `npm test` (44 files,
+      186 tests), and `npm run build`. Batch 4 is complete and ready for its
+      focused commit.
 
 - [ ] Batch 5: review and MCP surfacing.
   - Requirements reference: lines 65-75, 958-1003, 1075-1081, 1180-1193.

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { versionStatuses } from "../enums.js";
 import { CountSchema, HumanActorRefSchema, IdSchema, NonEmptyTextSchema, OptionalTextSchema, UnixSecondsSchema } from "./actors.js";
+import { DetectorRunStatusSchema } from "./concernDetector/index.js";
 import { CommitDetailSchema, CommitQueueItemSchema } from "./commits.js";
 import { RemainingWorkSchema } from "./remainingWork.js";
 
@@ -49,6 +50,17 @@ export const VersionSummarySchema = z
   })
   .strict();
 
+export const PopulateNextVersionDetectorSummarySchema = z
+  .object({
+    runCount: CountSchema,
+    latestRunId: IdSchema.nullable(),
+    latestRunStatus: DetectorRunStatusSchema.nullable(),
+    findingCount: CountSchema,
+    graphNodeCount: CountSchema,
+    graphEdgeCount: CountSchema,
+  })
+  .strict();
+
 export const PopulateNextVersionResponseSchema = z
   .object({
     version: VersionSummarySchema,
@@ -57,6 +69,7 @@ export const PopulateNextVersionResponseSchema = z
     commitCount: CountSchema,
     fileCount: CountSchema,
     diffBlockCount: CountSchema,
+    detector: PopulateNextVersionDetectorSummarySchema,
     created: z.boolean(),
   })
   .strict();
@@ -103,6 +116,7 @@ export function paginatedResult<T>(data: T[], nextCursor: string | null, totalCo
 }
 
 export type PopulateNextVersionParams = z.infer<typeof PopulateNextVersionParamsSchema>;
+export type PopulateNextVersionDetectorSummary = z.infer<typeof PopulateNextVersionDetectorSummarySchema>;
 export type PopulateNextVersionResponse = z.infer<typeof PopulateNextVersionResponseSchema>;
 export type CloseVersionParams = z.infer<typeof CloseVersionParamsSchema>;
 export type VersionProgress = z.infer<typeof VersionProgressSchema>;

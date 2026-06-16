@@ -2,10 +2,12 @@ import {
   PopulateNextVersionParamsSchema,
   PopulateNextVersionResponseSchema,
   type PopulateNextVersionParams,
+  type PopulateNextVersionDetectorSummary,
   type PopulateNextVersionResponse,
   type VersionProgress,
   type VersionSummary,
 } from "../domain/schemas/index.js";
+import { runVersionIngestionDetector } from "../detector/ingestion/versionIngestionDetector.js";
 import { createCommandGitClient, type GitClient } from "../git/gitClient.js";
 import type { GitChangedFile } from "../git/changeFiles.js";
 import type { GitCommit } from "../git/commitLog.js";
@@ -20,8 +22,11 @@ import {
   findVersionByRange,
   listCommitFilesByCommit,
   listCommitsByVersion,
+  listDetectorFindingsByRun,
+  listDetectorRunsByVersion,
   listDiffBlocksByCommitFile,
   withRepositoryTransaction,
+  type DetectorRunRow,
   type CommitFileRow,
   type CommitRow,
   type VersionRow,
@@ -68,6 +73,7 @@ export async function populateNextVersion(
 
   const existing = findVersionByRange(db, { baseSha, targetSha });
   if (existing !== undefined) {
+    await ensureVersionIngestionDetectorRun(db, gitClient, existing);
     return PopulateNextVersionResponseSchema.parse({
       ...buildResponse(db, existing),
       baseSha,
@@ -146,12 +152,25 @@ export async function populateNextVersion(
     return insertedVersion;
   });
 
+  await runVersionIngestionDetector({ db, gitClient, version });
+
   return PopulateNextVersionResponseSchema.parse({
     ...buildResponse(db, version),
     baseSha,
     targetSha,
     created: true,
   });
+}
+
+async function ensureVersionIngestionDetectorRun(
+  db: PromptReviewsDatabase,
+  gitClient: GitClient,
+  version: VersionRow,
+): Promise<void> {
+  if (listDetectorRunsByVersion(db, version.id).some((run) => run.runKind === "version_ingestion")) {
+    return;
+  }
+  await runVersionIngestionDetector({ db, gitClient, version });
 }
 
 async function resolveBaseSha(
@@ -198,7 +217,53 @@ function buildResponse(db: PromptReviewsDatabase, version: VersionRow): Omit<Pop
     commitCount: commits.length,
     fileCount: files.length,
     diffBlockCount,
+    detector: buildDetectorSummary(db, version.id),
   };
+}
+
+function buildDetectorSummary(db: PromptReviewsDatabase, versionId: string): PopulateNextVersionDetectorSummary {
+  const runs = listDetectorRunsByVersion(db, versionId);
+  const latestRun = runs[0];
+  if (latestRun === undefined) {
+    return {
+      runCount: 0,
+      latestRunId: null,
+      latestRunStatus: null,
+      findingCount: 0,
+      graphNodeCount: 0,
+      graphEdgeCount: 0,
+    };
+  }
+
+  const summary = parseDetectorRunSummary(latestRun);
+  return {
+    runCount: runs.length,
+    latestRunId: latestRun.id,
+    latestRunStatus: latestRun.status,
+    findingCount: listDetectorFindingsByRun(db, latestRun.id).length,
+    graphNodeCount: summary.graphNodes,
+    graphEdgeCount: summary.graphEdges,
+  };
+}
+
+function parseDetectorRunSummary(run: DetectorRunRow): { graphNodes: number; graphEdges: number } {
+  try {
+    const parsed = JSON.parse(run.summaryJson);
+    if (typeof parsed !== "object" || parsed === null) {
+      return { graphNodes: 0, graphEdges: 0 };
+    }
+    return {
+      graphNodes: countFromSummary(parsed, "graphNodes"),
+      graphEdges: countFromSummary(parsed, "graphEdges"),
+    };
+  } catch {
+    return { graphNodes: 0, graphEdges: 0 };
+  }
+}
+
+function countFromSummary(summary: object, key: "graphNodes" | "graphEdges"): number {
+  const value = (summary as Record<string, unknown>)[key];
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0;
 }
 
 function toVersionSummary(version: VersionRow, commits: readonly CommitRow[], files: readonly CommitFileRow[]): VersionSummary {

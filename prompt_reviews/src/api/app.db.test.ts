@@ -481,4 +481,5 @@ const fakeGitClient: GitClient = {
   listCommits: async () => [],
   listChangedFiles: async () => [],
   getCommitDiff: async () => "",
+  getFileAtCommit: async () => null,
 };

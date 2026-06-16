@@ -11,6 +11,7 @@ import type {
   ConcernGraphNodeInsert,
   ConcernGraphNodeRow,
   DetectorFindingRow,
+  DetectorFindingInsert,
   DetectorRunInsert,
   DetectorRunRow,
 } from "../../repositories/detectorRepository.js";
@@ -42,6 +43,7 @@ export type RunDetectorInput = {
   run: DetectorRunRequest;
   graph: ConcernGraphBuildResult;
   commits: DetectorCommitInput[];
+  findings?: DetectorFindingInsert[];
   graphReplacementScopes?: GraphReplacementScope[];
 };
 
@@ -81,10 +83,11 @@ function runDetectorInRepository(input: RunDetectorInput, markFailedOnError: boo
     const graphNodes = persistGraphNodes(input.db, input.graph.nodes, graphReplacementScopes);
     const graphEdges = persistGraphEdges(input.db, input.graph, graphNodes, graphReplacementScopes);
     const graphNodeIdsByKey = new Map(graphNodes.map((node) => [node.nodeKey, node.id]));
+    const builtFindings = input.findings ?? buildDetectorFindings({ runId: run.id, graph: input.graph, commits: input.commits });
     const findings = replaceDetectorFindingsForRun(
       input.db,
       run.id,
-      buildDetectorFindings({ runId: run.id, graph: input.graph, commits: input.commits }).map((finding) => ({
+      builtFindings.map((finding) => ({
         ...finding,
         graphNodeId: graphNodeIdsByKey.get(finding.graphNodeKey ?? "") ?? null,
       })),

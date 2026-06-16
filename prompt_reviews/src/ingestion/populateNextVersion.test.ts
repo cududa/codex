@@ -9,8 +9,13 @@ import type { GitCommit } from "../git/commitLog.js";
 import type { GitClient } from "../git/gitClient.js";
 import {
   createVersion,
+  listCommitFilesMissingActiveDecision,
   listCommitFilesByCommit,
+  listCommitsMissingActiveDecision,
   listCommitsByVersion,
+  listConcernGraphNodes,
+  listDetectorFindingsByRun,
+  listDetectorRunsByVersion,
   listDiffBlocksByCommitFile,
 } from "../repositories/index.js";
 import { createTempPromptReviewsDatabase, type TempPromptReviewsDatabase } from "../test-support/db.js";
@@ -172,6 +177,61 @@ describe("populateNextVersion", () => {
     expect(database.db.select().from(comments).all()).toEqual([]);
   });
 
+  it("runs concern detection during ingestion with sequential graph growth", async () => {
+    const gitClient = makeSequentialDetectorGitClient();
+
+    const response = await populateNextVersion(
+      database.db,
+      {
+        repositoryId: "codex",
+        baseRefOrSha: "feature-base",
+        targetRef: "origin/feature",
+        label: "sequential-detector",
+      },
+      { gitClient, repositoryPath },
+    );
+
+    expect(response.detector).toMatchObject({
+      runCount: 1,
+      latestRunStatus: "succeeded",
+    });
+    expect(response.detector.findingCount).toBeGreaterThan(0);
+    expect(response.version.progress).toMatchObject({
+      totalCommits: 2,
+      reviewedCommits: 0,
+      totalFiles: 2,
+      reviewedFiles: 0,
+      remainingWorkCount: 4,
+    });
+
+    const commits = listCommitsByVersion(database.db, response.version.id);
+    const runs = listDetectorRunsByVersion(database.db, response.version.id);
+    const findings = listDetectorFindingsByRun(database.db, runs[0]?.id ?? "");
+    const touchedCommitIds = new Set(findings.map((finding) => finding.commitId));
+
+    expect(runs).toHaveLength(1);
+    expect(findings).toHaveLength(response.detector.findingCount);
+    expect(touchedCommitIds).toEqual(new Set([commits[1]?.id]));
+    expect(findings.every((finding) => finding.targetType === "diff_block")).toBe(true);
+    expect(findings.every((finding) => finding.path === "docs/goal-template.md")).toBe(true);
+    expect(findings.every((finding) => finding.confidence === "high")).toBe(true);
+    expect(findings.some((finding) => finding.marker === "create_goal")).toBe(true);
+    expect(
+      listConcernGraphNodes(database.db, { sourceKind: "text_scanner" }).some(
+        (node) => node.path === "docs/goal-template.md" && node.marker === "create_goal",
+      ),
+    ).toBe(true);
+    expect(listCommitsMissingActiveDecision(database.db, { versionId: response.version.id }).map((row) => row.id)).toEqual(
+      commits.map((commit) => commit.id),
+    );
+
+    const secondCommit = commits[1];
+    if (secondCommit === undefined) {
+      throw new Error("Expected second ingested commit.");
+    }
+    expect(listCommitFilesMissingActiveDecision(database.db, { commitId: secondCommit.id })).toHaveLength(1);
+  });
+
   it("returns the existing version on rerun instead of duplicating rows", async () => {
     const gitClient = makeGitClient();
     const params = {
@@ -191,9 +251,11 @@ describe("populateNextVersion", () => {
       commitCount: first.commitCount,
       fileCount: first.fileCount,
       diffBlockCount: first.diffBlockCount,
+      detector: first.detector,
       created: false,
     });
     expect(listCommitsByVersion(database.db, first.version.id).length).toBe(2);
+    expect(listDetectorRunsByVersion(database.db, first.version.id)).toHaveLength(1);
     expect(gitClient.listCommitCalls).toBe(1);
   });
 });
@@ -215,7 +277,7 @@ type FakeGitClient = GitClient & {
   listCommitCalls: number;
 };
 
-function makeGitClient(options: { commits?: GitCommit[] } = {}): FakeGitClient {
+function makeGitClient(options: { commits?: GitCommit[]; fileContents?: Map<string, string | null> } = {}): FakeGitClient {
   const resolvedRefs: string[] = [];
   const state = { listCommitCalls: 0 };
   const commits = options.commits ?? [
@@ -266,6 +328,7 @@ function makeGitClient(options: { commits?: GitCommit[] } = {}): FakeGitClient {
     [firstCommitSha, firstCommitDiff()],
     [secondCommitSha, secondCommitDiff()],
   ]);
+  const fileContents = options.fileContents ?? new Map<string, string | null>();
 
   return {
     resolvedRefs,
@@ -285,6 +348,60 @@ function makeGitClient(options: { commits?: GitCommit[] } = {}): FakeGitClient {
     },
     async getCommitDiff(commitSha) {
       return diffsByCommit.get(commitSha) ?? "";
+    },
+    async getFileAtCommit(commitSha, filePath) {
+      return fileContents.get(`${commitSha}:${filePath}`) ?? null;
+    },
+  };
+}
+
+function makeSequentialDetectorGitClient(): FakeGitClient {
+  const fileContents = new Map<string, string | null>([
+    [`${firstCommitSha}:docs/goal-template.md`, "create_goal /goal template\n"],
+    [`${secondCommitSha}:docs/goal-template.md`, "create_goal /goal template adjusted\n"],
+  ]);
+  const gitClient = makeGitClient({
+    commits: [
+      {
+        sha: firstCommitSha,
+        parentSha: explicitBaseSha,
+        subject: "Add goal template",
+        body: null,
+        authorName: "Alice",
+        authorEmail: "alice@example.test",
+        committedAt: 1000,
+      },
+      {
+        sha: secondCommitSha,
+        parentSha: firstCommitSha,
+        subject: "Edit goal template",
+        body: null,
+        authorName: "Bob",
+        authorEmail: "bob@example.test",
+        committedAt: 1100,
+      },
+    ],
+    fileContents,
+  });
+
+  return {
+    ...gitClient,
+    async listChangedFiles(commitSha) {
+      if (commitSha === firstCommitSha) {
+        return [{ oldPath: null, newPath: "docs/goal-template.md", changeType: "added", additions: 1, deletions: 0 }];
+      }
+      return [
+        {
+          oldPath: "docs/goal-template.md",
+          newPath: "docs/goal-template.md",
+          changeType: "modified",
+          additions: 1,
+          deletions: 1,
+        },
+      ];
+    },
+    async getCommitDiff(commitSha) {
+      return commitSha === firstCommitSha ? firstSequentialDetectorDiff() : secondSequentialDetectorDiff();
     },
   };
 }
@@ -339,6 +456,28 @@ function secondCommitDiff(): string {
     "diff --git a/scripts/run.sh b/scripts/run.sh",
     "old mode 100644",
     "new mode 100755",
+  ].join("\n");
+}
+
+function firstSequentialDetectorDiff(): string {
+  return [
+    "diff --git a/docs/goal-template.md b/docs/goal-template.md",
+    "new file mode 100644",
+    "--- /dev/null",
+    "+++ b/docs/goal-template.md",
+    "@@ -0,0 +1 @@",
+    "+create_goal /goal template",
+  ].join("\n");
+}
+
+function secondSequentialDetectorDiff(): string {
+  return [
+    "diff --git a/docs/goal-template.md b/docs/goal-template.md",
+    "--- a/docs/goal-template.md",
+    "+++ b/docs/goal-template.md",
+    "@@ -1 +1 @@",
+    "-create_goal /goal template",
+    "+create_goal /goal template adjusted",
   ].join("\n");
 }
 

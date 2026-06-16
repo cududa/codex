@@ -403,7 +403,23 @@ function createFakeContext(options: { populateCalls?: unknown[]; planState?: { c
     versions: {
       async populateNextVersion(params) {
         options.populateCalls?.push(params);
-        return { version, baseSha: "b".repeat(40), targetSha: "c".repeat(40), commitCount: 1, fileCount: 1, diffBlockCount: 1, created: true };
+        return {
+          version,
+          baseSha: "b".repeat(40),
+          targetSha: "c".repeat(40),
+          commitCount: 1,
+          fileCount: 1,
+          diffBlockCount: 1,
+          detector: {
+            runCount: 1,
+            latestRunId: "drun-mcp",
+            latestRunStatus: "succeeded",
+            findingCount: 1,
+            graphNodeCount: 2,
+            graphEdgeCount: 1,
+          },
+          created: true,
+        };
       },
       listVersions: () => [version],
       getVersionDetail: () => ({ ...version, commits: [commit], selectedCommit: undefined, remainingWork: [] }),

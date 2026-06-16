@@ -453,6 +453,14 @@ function createFakeContext(): PromptReviewsApiContext {
           commitCount: 1,
           fileCount: 1,
           diffBlockCount: 1,
+          detector: {
+            runCount: 1,
+            latestRunId: "drun-api",
+            latestRunStatus: "succeeded",
+            findingCount: 1,
+            graphNodeCount: 2,
+            graphEdgeCount: 1,
+          },
           created: true,
         };
       },

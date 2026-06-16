@@ -28,6 +28,9 @@ describe("createIngestionService", () => {
       async getCommitDiff() {
         return "";
       },
+      async getFileAtCommit() {
+        return null;
+      },
     };
     const service = createIngestionService({ db: database.db, gitClient });
 

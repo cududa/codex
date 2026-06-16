@@ -10,6 +10,7 @@ export type GitClient = {
   listCommits: (baseSha: string, targetSha: string) => Promise<GitCommit[]>;
   listChangedFiles: (commitSha: string) => Promise<GitChangedFile[]>;
   getCommitDiff: (commitSha: string) => Promise<string>;
+  getFileAtCommit: (commitSha: string, filePath: string) => Promise<string | null>;
 };
 
 export function createCommandGitClient(repositoryPath: string): GitClient {
@@ -38,6 +39,16 @@ export function createCommandGitClient(repositoryPath: string): GitClient {
     },
     getCommitDiff: async (commitSha) =>
       runGit(repositoryPath, ["show", "--format=", "--find-renames", "--find-copies", "--patch", commitSha]),
+    getFileAtCommit: async (commitSha, filePath) => {
+      try {
+        return await runGit(repositoryPath, ["show", `${commitSha}:${filePath}`]);
+      } catch (error) {
+        if (isMissingPathAtCommit(error)) {
+          return null;
+        }
+        throw error;
+      }
+    },
   };
 }
 
@@ -47,4 +58,12 @@ async function runGit(repositoryPath: string, args: readonly string[]): Promise<
     maxBuffer: 64 * 1024 * 1024,
   });
   return stdout;
+}
+
+function isMissingPathAtCommit(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("code" in error) || error.code !== 128) {
+    return false;
+  }
+  const stderr = "stderr" in error && typeof error.stderr === "string" ? error.stderr : "";
+  return stderr.includes("exists on disk, but not in") || stderr.includes("does not exist in");
 }
