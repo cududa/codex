@@ -43,6 +43,10 @@ export function listCommitsByVersion(db: RepositoryDatabase, versionId: string):
   return db.select().from(commits).where(eq(commits.versionId, versionId)).orderBy(asc(commits.ordinal)).all();
 }
 
+export function findCommitById(db: RepositoryDatabase, id: string): CommitRow | undefined {
+  return db.select().from(commits).where(eq(commits.id, id)).get();
+}
+
 export function listRemainingCommitsByVersion(
   db: RepositoryDatabase,
   versionId: string,

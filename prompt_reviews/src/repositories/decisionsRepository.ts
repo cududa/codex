@@ -64,6 +64,29 @@ export function findActiveDecisionByTarget(
     .get();
 }
 
+export function listDecisionsByTarget(
+  db: RepositoryDatabase,
+  target: DecisionTarget,
+  statuses?: readonly DecisionStatus[],
+): DecisionRow[] {
+  if (statuses !== undefined && statuses.length === 0) {
+    return [];
+  }
+
+  return db
+    .select()
+    .from(decisions)
+    .where(
+      and(
+        eq(decisions.scope, target.scope),
+        decisionTargetCondition(target),
+        statuses === undefined ? undefined : inArray(decisions.status, statuses),
+      ),
+    )
+    .orderBy(asc(decisions.createdAt), asc(decisions.id))
+    .all();
+}
+
 export function listVersionsMissingActiveDecision(
   db: RepositoryDatabase,
   params: { repositoryId: string; statuses?: readonly DecisionStatus[] },

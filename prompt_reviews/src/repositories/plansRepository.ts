@@ -62,6 +62,25 @@ export function listPlans(
     .all();
 }
 
+export function listPlansByTarget(
+  db: RepositoryDatabase,
+  target: PlanTarget,
+  filter: { status?: PlanStatus } = {},
+): PlanRow[] {
+  return db
+    .select()
+    .from(plans)
+    .where(
+      and(
+        eq(plans.scope, target.scope),
+        planTargetCondition(target),
+        filter.status === undefined ? undefined : eq(plans.status, filter.status),
+      ),
+    )
+    .orderBy(asc(plans.createdAt), asc(plans.id))
+    .all();
+}
+
 export function createPlanItem(db: RepositoryDatabase, values: PlanItemInsert): PlanItemRow {
   return db.insert(planItems).values(values).returning().get();
 }
