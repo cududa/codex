@@ -34,10 +34,11 @@ export function ClassificationPanel({
   const target = file ?? commit;
   const taggings = file?.review.taggings ?? commit?.taggings ?? [];
   const currentPrimary = taggings.find((tagging) => tagging.kind === "primary")?.tag.slug ?? "";
-  const currentSecondary = useMemo(
-    () => new Set(taggings.filter((tagging) => tagging.kind === "secondary").map((tagging) => tagging.tag.slug)),
+  const currentSecondarySlugs = useMemo(
+    () => taggings.filter((tagging) => tagging.kind === "secondary").map((tagging) => tagging.tag.slug).sort(),
     [taggings],
   );
+  const currentSecondaryKey = currentSecondarySlugs.join("\0");
 
   const [primaryTagSlug, setPrimaryTagSlug] = useState("");
   const [secondaryTagSlugs, setSecondaryTagSlugs] = useState<Set<string>>(new Set());
@@ -47,8 +48,8 @@ export function ClassificationPanel({
 
   useEffect(() => {
     setPrimaryTagSlug(currentPrimary);
-    setSecondaryTagSlugs(new Set(currentSecondary));
-  }, [currentPrimary, currentSecondary]);
+    setSecondaryTagSlugs(new Set(currentSecondarySlugs));
+  }, [currentPrimary, currentSecondaryKey]);
 
   const canSubmit = target !== undefined && primaryTagSlug.length > 0 && !isSubmitting;
 

@@ -8,23 +8,23 @@ import type {
   CommitFileDetail,
   ReviewEntityScope,
   SourceAnchor,
-  SourceRangeDraft,
   VersionSummary,
 } from "@/entities/review/types";
 import { Button } from "@/shared/ui/Button";
 import { TextArea } from "@/shared/ui/TextArea";
+import type { ReviewCommentTarget } from "../model/commentTargets";
+import { targetLabel, targetToCommentInput } from "../model/commentTargets";
 
 type CommentsPanelProps = {
   version: VersionSummary | undefined;
   commit: CommitDetail | undefined;
   file: CommitFileDetail | undefined;
   versionComments: CommentDetail[];
-  selectedDiffBlockId: string | null;
-  sourceRange: SourceRangeDraft | null;
+  commentTarget: ReviewCommentTarget | null;
   isSubmitting: boolean;
   actionError?: string;
   onAddComment: (input: { scope: ReviewEntityScope; anchor: SourceAnchor; body: string }) => Promise<unknown>;
-  onLocateComment: (location: CommentLocation) => void;
+  onLocateComment: (comment: CommentDetail) => void;
   onResolve: (commentId: string, resolution: string) => Promise<unknown>;
   onReopen: (commentId: string, reason: string) => Promise<unknown>;
 };
@@ -37,8 +37,7 @@ export function CommentsPanel({
   commit,
   file,
   versionComments,
-  selectedDiffBlockId,
-  sourceRange,
+  commentTarget,
   isSubmitting,
   actionError,
   onAddComment,
@@ -53,21 +52,21 @@ export function CommentsPanel({
     () => uniqueComments([...(file?.review.comments ?? []), ...(commit?.comments ?? []), ...versionComments]),
     [commit?.comments, file?.review.comments, versionComments],
   );
-  const target = commentTarget({ versionId: version?.id, commitId: commit?.id, fileId: file?.id, selectedDiffBlockId, sourceRange });
-  const canSubmit = target !== null && body.trim().length > 0 && !isSubmitting;
-  const selectionLabel =
-    selectedDiffBlockId !== null ? "Block" : file !== undefined ? "File" : commit !== undefined ? "Commit" : "Version";
+  const broadTarget = broadCommentTarget({ versionId: version?.id, commitId: commit?.id, fileId: file?.id });
+  const submissionTarget = broadTarget === null ? null : targetToCommentInput(broadTarget);
+  const canSubmit = submissionTarget !== null && body.trim().length > 0 && !isSubmitting;
+  const selectionLabel = commentTarget === null ? focusLabel({ version, commit, file }) : targetLabel(commentTarget);
   const selectionComments = useMemo(
     () =>
       comments.filter((comment) =>
         isInSelectedContext(comment, {
           commitId: commit?.id,
+          commentTarget,
           fileId: file?.id,
-          selectedDiffBlockId,
           versionId: version?.id,
         }),
       ),
-    [comments, commit?.id, file?.id, selectedDiffBlockId, version?.id],
+    [comments, commit?.id, commentTarget, file?.id, version?.id],
   );
   const visibleComments = filter === "selection" ? selectionComments : comments;
 
@@ -80,11 +79,7 @@ export function CommentsPanel({
         </p>
       </div>
       <div className="grid grid-cols-2 rounded-md border border-slate-200 bg-slate-50 p-0.5 text-xs font-medium">
-        <button
-          className={filterButtonClass(filter === "selection")}
-          onClick={() => setFilter("selection")}
-          type="button"
-        >
+        <button className={filterButtonClass(filter === "selection")} onClick={() => setFilter("selection")} type="button">
           {selectionLabel} ({selectionComments.length})
         </button>
         <button className={filterButtonClass(filter === "version")} onClick={() => setFilter("version")} type="button">
@@ -95,19 +90,19 @@ export function CommentsPanel({
         className="grid gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!canSubmit || target === null) {
+          if (!canSubmit || submissionTarget === null) {
             return;
           }
-          void onAddComment({ ...target, body: body.trim() }).then(() => setBody(""));
+          void onAddComment({ ...submissionTarget, body: body.trim() }).then(() => setBody(""));
         }}
       >
         <div className="rounded-md border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600">
-          Anchor: {anchorLabel(target)}
+          {broadTarget === null ? "Select a version, commit, or file" : `Add ${targetLabel(broadTarget).toLowerCase()}`}
         </div>
         <TextArea
           className="min-h-20"
           onChange={(event) => setBody(event.target.value)}
-          placeholder="Add a structured comment"
+          placeholder="Add a general comment"
           value={body}
         />
         <Button disabled={!canSubmit} type="submit">
@@ -135,11 +130,7 @@ export function CommentsPanel({
               <button
                 className="grid w-full gap-2 border-b border-slate-100 px-3 py-2 text-left hover:bg-slate-50 disabled:cursor-default disabled:hover:bg-white"
                 disabled={comment.location === undefined}
-                onClick={() => {
-                  if (comment.location !== undefined) {
-                    onLocateComment(comment.location);
-                  }
-                }}
+                onClick={() => onLocateComment(comment as CommentDetail)}
                 type="button"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -150,9 +141,7 @@ export function CommentsPanel({
                       )}
                       <span className="truncate">{commentTitle(comment)}</span>
                     </div>
-                    <div className="mt-1 grid gap-1 text-[11px] text-slate-500">
-                      {commentLocationRows(comment)}
-                    </div>
+                    <div className="mt-1 grid gap-1 text-[11px] text-slate-500">{commentLocationRows(comment)}</div>
                   </div>
                   <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
                     {comment.status.replaceAll("_", " ")}
@@ -192,40 +181,19 @@ export function CommentsPanel({
   );
 }
 
-function commentTarget(input: {
+function broadCommentTarget(input: {
   versionId: string | undefined;
   commitId: string | undefined;
   fileId: string | undefined;
-  selectedDiffBlockId: string | null;
-  sourceRange: SourceRangeDraft | null;
-}): { scope: ReviewEntityScope; anchor: SourceAnchor } | null {
-  if (input.fileId !== undefined && input.sourceRange !== null) {
-    return {
-      scope: { type: "commit_file", commitFileId: input.fileId },
-      anchor: {
-        kind: "range",
-        commitFileId: input.fileId,
-        side: input.sourceRange.side,
-        startLine: input.sourceRange.startLine,
-        endLine: input.sourceRange.endLine,
-        selectedText: input.sourceRange.selectedText || undefined,
-      },
-    };
-  }
-  if (input.selectedDiffBlockId !== null) {
-    return {
-      scope: { type: "diff_block", diffBlockId: input.selectedDiffBlockId },
-      anchor: { kind: "block", diffBlockId: input.selectedDiffBlockId },
-    };
-  }
+}): ReviewCommentTarget | null {
   if (input.fileId !== undefined) {
-    return { scope: { type: "commit_file", commitFileId: input.fileId }, anchor: { kind: "scope" } };
+    return { kind: "file", commitFileId: input.fileId };
   }
   if (input.commitId !== undefined) {
-    return { scope: { type: "commit", commitId: input.commitId }, anchor: { kind: "scope" } };
+    return { kind: "commit", commitId: input.commitId };
   }
   if (input.versionId !== undefined) {
-    return { scope: { type: "version", versionId: input.versionId }, anchor: { kind: "scope" } };
+    return { kind: "version", versionId: input.versionId };
   }
   return null;
 }
@@ -252,13 +220,26 @@ function isInSelectedContext(
     versionId: string | undefined;
     commitId: string | undefined;
     fileId: string | undefined;
-    selectedDiffBlockId: string | null;
+    commentTarget: ReviewCommentTarget | null;
   },
 ): boolean {
-  if (selection.selectedDiffBlockId !== null) {
+  if (selection.commentTarget?.kind === "block") {
     return (
-      comment.location?.diffBlock?.id === selection.selectedDiffBlockId ||
-      (comment.scope.type === "diff_block" && comment.scope.diffBlockId === selection.selectedDiffBlockId)
+      comment.location?.diffBlock?.id === selection.commentTarget.diffBlockId ||
+      (comment.scope.type === "diff_block" && comment.scope.diffBlockId === selection.commentTarget.diffBlockId)
+    );
+  }
+  if (selection.commentTarget?.kind === "line" || selection.commentTarget?.kind === "range") {
+    if (comment.anchor?.kind !== "range") {
+      return false;
+    }
+    const targetStart = selection.commentTarget.kind === "line" ? selection.commentTarget.line : selection.commentTarget.startLine;
+    const targetEnd = selection.commentTarget.kind === "line" ? selection.commentTarget.line : selection.commentTarget.endLine;
+    return (
+      comment.anchor.commitFileId === selection.commentTarget.commitFileId &&
+      comment.anchor.side === selection.commentTarget.side &&
+      comment.anchor.startLine <= targetEnd &&
+      comment.anchor.endLine >= targetStart
     );
   }
   if (selection.fileId !== undefined) {
@@ -317,11 +298,33 @@ function commentLocationRows(comment: CommentDisplay) {
           </span>
         </span>
       )}
+      {comment.anchor?.kind === "range" ? (
+        <span>
+          {comment.anchor.side === "old" ? "Old" : "New"} lines {comment.anchor.startLine}-{comment.anchor.endLine}
+        </span>
+      ) : null}
     </>
   );
 }
 
-function scopeLabel(scope: ReviewEntityScope): string {
+function focusLabel(input: {
+  version: VersionSummary | undefined;
+  commit: CommitDetail | undefined;
+  file: CommitFileDetail | undefined;
+}): string {
+  if (input.file !== undefined) {
+    return "File";
+  }
+  if (input.commit !== undefined) {
+    return "Commit";
+  }
+  if (input.version !== undefined) {
+    return "Version";
+  }
+  return "Selection";
+}
+
+function scopeLabel(scope: CommentDisplay["scope"]): string {
   return scope.type.replaceAll("_", " ");
 }
 
@@ -334,17 +337,4 @@ function lineRange(start: number | undefined, end: number | undefined, prefix: s
     return `${prefix}?`;
   }
   return start === end ? `${prefix}${start}` : `${prefix}${start}-${end}`;
-}
-
-function anchorLabel(target: { anchor: SourceAnchor } | null): string {
-  if (target === null) {
-    return "select a version, commit, or file";
-  }
-  if (target.anchor.kind === "range") {
-    return `${target.anchor.side} lines ${target.anchor.startLine}-${target.anchor.endLine}`;
-  }
-  if (target.anchor.kind === "block") {
-    return "selected diff block";
-  }
-  return "selected scope";
 }

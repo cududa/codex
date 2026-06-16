@@ -15,6 +15,7 @@ import {
   listCommitsByVersion,
   listDiffBlocksByCommitFile,
   type CommentRow,
+  type DiffBlockRow,
 } from "../../repositories/index.js";
 import { validationFailed } from "../errors.js";
 import type { ServiceContext } from "../serviceContext.js";
@@ -96,7 +97,8 @@ function commentLocation(context: ServiceContext, row: CommentRow): CommentLocat
   }
 
   const commit = findCommitById(context.db, file.commitId);
-  const diffBlock = row.diffBlockId === null ? undefined : findDiffBlockById(context.db, row.diffBlockId);
+  const diffBlock =
+    row.diffBlockId === null ? findContainingRangeDiffBlock(context, row, file.id) : findDiffBlockById(context.db, row.diffBlockId);
   return {
     commit: commit === undefined ? undefined : { id: commit.id, sha: commit.sha, title: commit.title },
     file: {
@@ -116,6 +118,41 @@ function commentLocation(context: ServiceContext, row: CommentRow): CommentLocat
             newEndLine: diffBlock.newEndLine ?? undefined,
           },
   };
+}
+
+function findContainingRangeDiffBlock(
+  context: ServiceContext,
+  row: CommentRow,
+  commitFileId: string,
+): DiffBlockRow | undefined {
+  if (
+    row.anchorKind !== "range" ||
+    row.anchorCommitFileId !== commitFileId ||
+    row.anchorSide === null ||
+    row.startLine === null ||
+    row.endLine === null
+  ) {
+    return undefined;
+  }
+
+  const side = row.anchorSide;
+  const startLine = row.startLine;
+  const endLine = row.endLine;
+  const matches = listDiffBlocksByCommitFile(context.db, commitFileId).filter((block) =>
+    side === "old"
+      ? containsRange(block.oldStartLine, block.oldEndLine, startLine, endLine)
+      : containsRange(block.newStartLine, block.newEndLine, startLine, endLine),
+  );
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+function containsRange(
+  blockStartLine: number | null,
+  blockEndLine: number | null,
+  startLine: number,
+  endLine: number,
+): boolean {
+  return blockStartLine !== null && blockEndLine !== null && blockStartLine <= startLine && blockEndLine >= endLine;
 }
 
 function findFileForDiffBlock(context: ServiceContext, diffBlockId: string) {

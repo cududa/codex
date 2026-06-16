@@ -1,27 +1,29 @@
 import { MousePointerSquareDashed } from "lucide-react";
-import type { CommitFileDetail, SourceRangeDraft } from "@/entities/review/types";
+import type { CommitFileDetail, ReviewEntityScope, SourceAnchor } from "@/entities/review/types";
 import { Button } from "@/shared/ui/Button";
 import { DiffBlockViewer } from "./DiffBlockViewer";
-import { SourceRangeSelector } from "./SourceRangeSelector";
+import type { ReviewCommentTarget } from "../model/commentTargets";
 
 type FileReviewPaneProps = {
   file: CommitFileDetail | undefined;
-  selectedDiffBlockId: string | null;
-  sourceRange: SourceRangeDraft | null;
+  commentTarget: ReviewCommentTarget | null;
   isLoading: boolean;
+  isSubmittingComment: boolean;
   error?: string;
-  onSelectDiffBlock: (diffBlockId: string | null) => void;
-  onSourceRangeChange: (range: SourceRangeDraft | null) => void;
+  actionError?: string;
+  onAddComment: (input: { scope: ReviewEntityScope; anchor: SourceAnchor; body: string }) => Promise<unknown>;
+  onCommentTargetChange: (target: ReviewCommentTarget | null) => void;
 };
 
 export function FileReviewPane({
   file,
-  selectedDiffBlockId,
-  sourceRange,
+  commentTarget,
   isLoading,
+  isSubmittingComment,
   error,
-  onSelectDiffBlock,
-  onSourceRangeChange,
+  actionError,
+  onAddComment,
+  onCommentTargetChange,
 }: FileReviewPaneProps) {
   return (
     <section className="flex min-h-0 flex-col bg-white">
@@ -35,24 +37,15 @@ export function FileReviewPane({
           </p>
         </div>
         <Button
-          disabled={selectedDiffBlockId === null && sourceRange === null}
-          onClick={() => {
-            onSelectDiffBlock(null);
-            onSourceRangeChange(null);
-          }}
+          disabled={commentTarget === null}
+          onClick={() => onCommentTargetChange(null)}
           type="button"
           variant="secondary"
         >
           <MousePointerSquareDashed className="size-4" aria-hidden="true" />
-          Clear anchor
+          Clear selection
         </Button>
       </header>
-
-      <SourceRangeSelector
-        disabled={file === undefined}
-        sourceRange={sourceRange}
-        onChange={onSourceRangeChange}
-      />
 
       <div className="min-h-0 flex-1 overflow-auto bg-slate-50 p-4">
         {isLoading ? <div className="text-sm text-slate-500">Loading diff blocks...</div> : null}
@@ -64,9 +57,12 @@ export function FileReviewPane({
         ) : null}
         {file === undefined ? null : (
           <DiffBlockViewer
+            actionError={actionError}
+            commentTarget={commentTarget}
             file={file}
-            selectedDiffBlockId={selectedDiffBlockId}
-            onSelectDiffBlock={onSelectDiffBlock}
+            isSubmitting={isSubmittingComment}
+            onAddComment={onAddComment}
+            onCommentTargetChange={onCommentTargetChange}
           />
         )}
       </div>

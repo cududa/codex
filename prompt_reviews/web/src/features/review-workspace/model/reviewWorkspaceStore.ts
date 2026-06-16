@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { SourceRangeDraft } from "@/entities/review/types";
+import type { ReviewCommentTarget } from "./commentTargets";
 
 export type ReviewFocus = "commit" | "file";
 
@@ -7,54 +7,89 @@ type ReviewWorkspaceState = {
   selectedVersionId: string | null;
   selectedCommitId: string | null;
   selectedFileId: string | null;
-  selectedDiffBlockId: string | null;
+  commentTarget: ReviewCommentTarget | null;
   reviewFocus: ReviewFocus;
-  sourceRange: SourceRangeDraft | null;
   setSelectedVersionId: (versionId: string) => void;
   setSelectedCommitId: (commitId: string) => void;
   setSelectedFileId: (fileId: string, options?: { focus?: boolean }) => void;
-  setSelectedDiffBlockId: (diffBlockId: string | null) => void;
+  setCommentTarget: (commentTarget: ReviewCommentTarget | null) => void;
   setReviewFocus: (reviewFocus: ReviewFocus) => void;
-  setSourceRange: (sourceRange: SourceRangeDraft | null) => void;
 };
 
 export const useReviewWorkspaceStore = create<ReviewWorkspaceState>((set) => ({
   selectedVersionId: null,
   selectedCommitId: null,
   selectedFileId: null,
-  selectedDiffBlockId: null,
+  commentTarget: null,
   reviewFocus: "commit",
-  sourceRange: null,
   setSelectedVersionId: (selectedVersionId) =>
     set({
       selectedVersionId,
       selectedCommitId: null,
       selectedFileId: null,
-      selectedDiffBlockId: null,
+      commentTarget: null,
       reviewFocus: "commit",
-      sourceRange: null,
     }),
   setSelectedCommitId: (selectedCommitId) =>
     set({
       selectedCommitId,
       selectedFileId: null,
-      selectedDiffBlockId: null,
+      commentTarget: null,
       reviewFocus: "commit",
-      sourceRange: null,
     }),
   setSelectedFileId: (selectedFileId, options = {}) =>
     set((state) => ({
       selectedFileId,
-      selectedDiffBlockId: null,
+      commentTarget: null,
       reviewFocus: options.focus === false ? state.reviewFocus : "file",
-      sourceRange: null,
     })),
-  setSelectedDiffBlockId: (selectedDiffBlockId) => set({ selectedDiffBlockId, sourceRange: null }),
+  setCommentTarget: (commentTarget) =>
+    set((state) => (sameCommentTarget(state.commentTarget, commentTarget) ? state : { commentTarget })),
   setReviewFocus: (reviewFocus) =>
     set((state) => ({
       reviewFocus,
-      selectedDiffBlockId: reviewFocus === "commit" ? null : state.selectedDiffBlockId,
-      sourceRange: null,
+      commentTarget: reviewFocus === "commit" ? null : state.commentTarget,
     })),
-  setSourceRange: (sourceRange) => set({ sourceRange }),
 }));
+
+function sameCommentTarget(left: ReviewCommentTarget | null, right: ReviewCommentTarget | null): boolean {
+  if (left === null || right === null) {
+    return left === right;
+  }
+  if (left.kind !== right.kind) {
+    return false;
+  }
+  switch (left.kind) {
+    case "version":
+      return right.kind === "version" && left.versionId === right.versionId;
+    case "commit":
+      return right.kind === "commit" && left.commitId === right.commitId;
+    case "file":
+      return right.kind === "file" && left.commitFileId === right.commitFileId;
+    case "block":
+      return right.kind === "block" && left.diffBlockId === right.diffBlockId;
+    case "line":
+      if (right.kind !== "line") {
+        return false;
+      }
+      return (
+        left.commitFileId === right.commitFileId &&
+        left.side === right.side &&
+        left.line === right.line &&
+        left.text === right.text
+      );
+    case "range":
+      if (right.kind !== "range") {
+        return false;
+      }
+      return (
+        left.commitFileId === right.commitFileId &&
+        left.side === right.side &&
+        left.startLine === right.startLine &&
+        left.endLine === right.endLine &&
+        left.startColumn === right.startColumn &&
+        left.endColumn === right.endColumn &&
+        left.selectedText === right.selectedText
+      );
+  }
+}

@@ -9,7 +9,7 @@ import { FileReviewPane } from "./components/FileReviewPane";
 import { PlansPanel } from "./components/PlansPanel";
 import { VersionHeader } from "./components/VersionHeader";
 import { VersionRail } from "./components/VersionRail";
-import type { CommentLocation, CommitDetail, CommitFileDetail, CommitQueueItem } from "@/entities/review/types";
+import type { CommentDetail, CommentLocation, CommitDetail, CommitFileDetail, CommitQueueItem } from "@/entities/review/types";
 import { cn } from "@/shared/lib/cn";
 import {
   scopeForSelection,
@@ -37,20 +37,19 @@ import {
 } from "./hooks/reviewQueries";
 import { useReviewWorkspaceStore } from "./model/reviewWorkspaceStore";
 import type { ReviewFocus } from "./model/reviewWorkspaceStore";
+import type { ReviewCommentTarget } from "./model/commentTargets";
 
 export function ReviewWorkspacePage() {
   const selectedVersionId = useReviewWorkspaceStore((state) => state.selectedVersionId);
   const selectedCommitId = useReviewWorkspaceStore((state) => state.selectedCommitId);
   const selectedFileId = useReviewWorkspaceStore((state) => state.selectedFileId);
-  const selectedDiffBlockId = useReviewWorkspaceStore((state) => state.selectedDiffBlockId);
+  const commentTarget = useReviewWorkspaceStore((state) => state.commentTarget);
   const reviewFocus = useReviewWorkspaceStore((state) => state.reviewFocus);
-  const sourceRange = useReviewWorkspaceStore((state) => state.sourceRange);
   const setSelectedVersionId = useReviewWorkspaceStore((state) => state.setSelectedVersionId);
   const setSelectedCommitId = useReviewWorkspaceStore((state) => state.setSelectedCommitId);
   const setSelectedFileId = useReviewWorkspaceStore((state) => state.setSelectedFileId);
-  const setSelectedDiffBlockId = useReviewWorkspaceStore((state) => state.setSelectedDiffBlockId);
+  const setCommentTarget = useReviewWorkspaceStore((state) => state.setCommentTarget);
   const setReviewFocus = useReviewWorkspaceStore((state) => state.setReviewFocus);
-  const setSourceRange = useReviewWorkspaceStore((state) => state.setSourceRange);
 
   const versionsQuery = useVersionsQuery();
   const commitsQuery = useVersionCommitsQuery(selectedVersionId);
@@ -120,23 +119,31 @@ export function ReviewWorkspacePage() {
     [commitQuery.data, commitsQuery.data?.data],
   );
   const focusedFile = reviewFocus === "file" ? fileQuery.data : undefined;
-  const focusedDiffBlockId = reviewFocus === "file" ? selectedDiffBlockId : null;
-  const focusedSourceRange = reviewFocus === "file" ? sourceRange : null;
+  const focusedCommentTarget = reviewFocus === "file" ? commentTarget : null;
   const currentScope = scopeForSelection({
     versionId: selectedVersionId,
     commitId: selectedCommitId,
     fileId: reviewFocus === "file" ? selectedFileId : null,
   });
-  const locateComment = (location: CommentLocation) => {
+  const locateComment = (comment: CommentDetail) => {
+    const location = comment.location;
+    if (location === undefined) {
+      return;
+    }
     if (location.commit !== undefined) {
       setSelectedCommitId(location.commit.id);
     }
     if (location.file !== undefined) {
       setSelectedFileId(location.file.id);
     }
-    setSelectedDiffBlockId(location.diffBlock?.id ?? null);
     setReviewFocus(location.file === undefined ? "commit" : "file");
-    setSourceRange(null);
+    setCommentTarget(commentToTarget(comment, location));
+  };
+  const setFileCommentTarget = (target: ReviewCommentTarget | null) => {
+    setCommentTarget(target);
+    if (target !== null) {
+      setReviewFocus("file");
+    }
   };
 
   return (
@@ -173,13 +180,18 @@ export function ReviewWorkspacePage() {
             selectedFileId={selectedFileId}
           />
           <FileReviewPane
+            actionError={
+              addCommentMutation.error?.message ??
+              resolveCommentMutation.error?.message ??
+              reopenCommentMutation.error?.message
+            }
+            commentTarget={commentTarget}
             error={fileQuery.error?.message}
             file={fileQuery.data}
             isLoading={fileQuery.isLoading}
-            onSelectDiffBlock={setSelectedDiffBlockId}
-            onSourceRangeChange={setSourceRange}
-            selectedDiffBlockId={selectedDiffBlockId}
-            sourceRange={sourceRange}
+            isSubmittingComment={addCommentMutation.isPending}
+            onAddComment={(input) => addCommentMutation.mutateAsync(input)}
+            onCommentTargetChange={setFileCommentTarget}
           />
         </div>
       </section>
@@ -214,8 +226,7 @@ export function ReviewWorkspacePage() {
           onLocateComment={locateComment}
           onReopen={(commentId, reason) => reopenCommentMutation.mutateAsync({ commentId, reason })}
           onResolve={(commentId, resolution) => resolveCommentMutation.mutateAsync({ commentId, resolution })}
-          selectedDiffBlockId={focusedDiffBlockId}
-          sourceRange={focusedSourceRange}
+          commentTarget={focusedCommentTarget}
           version={selectedVersion}
           versionComments={commentsQuery.data ?? []}
         />
@@ -256,6 +267,31 @@ export function ReviewWorkspacePage() {
       </aside>
     </main>
   );
+}
+
+function commentToTarget(comment: CommentDetail, location: CommentLocation): ReviewCommentTarget | null {
+  if (comment.anchor.kind === "range") {
+    return {
+      kind: "range",
+      commitFileId: comment.anchor.commitFileId,
+      side: comment.anchor.side,
+      startLine: comment.anchor.startLine,
+      endLine: comment.anchor.endLine,
+      startColumn: comment.anchor.startColumn ?? 1,
+      endColumn: comment.anchor.endColumn ?? 1,
+      selectedText: comment.anchor.selectedText ?? "",
+    };
+  }
+  if (comment.anchor.kind === "block") {
+    return { kind: "block", diffBlockId: comment.anchor.diffBlockId };
+  }
+  if (location.file !== undefined) {
+    return { kind: "file", commitFileId: location.file.id };
+  }
+  if (location.commit !== undefined) {
+    return { kind: "commit", commitId: location.commit.id };
+  }
+  return null;
 }
 
 type ReviewFocusHeaderProps = {

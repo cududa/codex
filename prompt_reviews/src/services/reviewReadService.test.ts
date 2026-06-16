@@ -288,6 +288,36 @@ describe("review read service", () => {
     expect(() => service.listComments({ versionId, commitId: commit.id })).toThrow(PromptReviewServiceError);
   });
 
+  it("enriches range comments with the containing diff block", () => {
+    const { file, block } = seedReviewGraph("range_comment_location");
+    addComment(database.db, {
+      id: "com_range",
+      scope: "commit_file",
+      commitFileId: file.id,
+      anchorKind: "range",
+      anchorCommitFileId: file.id,
+      anchorSide: "new",
+      startLine: 6,
+      endLine: 7,
+      startColumn: 1,
+      endColumn: 4,
+      selectedText: "new",
+      body: "Range note.",
+      status: "open",
+      authorActorType: "human",
+      createdAt: 407,
+    });
+
+    const [comment] = createReviewReadService(context).listComments({ commitFileId: file.id });
+
+    expect(comment).toMatchObject({
+      id: "com_range",
+      location: {
+        diffBlock: { id: block.id },
+      },
+    });
+  });
+
   it("lists missing decisions for commit and file targets", () => {
     const { versionId, commit, file } = seedReviewGraph("missing_decisions");
     const [decidedCommit] = bulkInsertCommits(database.db, [
