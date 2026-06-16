@@ -502,10 +502,10 @@ function createFakeContext(): PromptReviewsApiContext {
     },
     queue: {
       listRemainingCommits() {
-        return { data: [commit], nextCursor: "next-commit" };
+        return { data: [commit], nextCursor: "next-commit", returnedCount: 1, totalCount: 2, hasMore: true };
       },
       listRemainingFiles() {
-        return { data: [file], nextCursor: null };
+        return { data: [file], nextCursor: null, returnedCount: 1, totalCount: 1, hasMore: false };
       },
       listMissingDecisions() {
         return [file];
@@ -593,7 +593,7 @@ function createFakeContext(): PromptReviewsApiContext {
         return commitDetail;
       },
       listCommitFiles() {
-        return { data: [file], nextCursor: null };
+        return { data: [file], nextCursor: null, returnedCount: 1, totalCount: 1, hasMore: false };
       },
       getCommitFileDetail() {
         return fileDetail;

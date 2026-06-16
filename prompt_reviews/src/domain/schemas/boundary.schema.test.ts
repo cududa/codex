@@ -373,7 +373,7 @@ describe("boundary view and response schemas", () => {
       [PlanDetailSchema, planDetail],
       [PlanItemDetailSchema, planItem],
       [RemainingWorkSchema, remainingWork],
-      [PaginatedResponseSchema, { data: [commitQueueItem], nextCursor: null }],
+      [PaginatedResponseSchema, { data: [commitQueueItem], nextCursor: null, returnedCount: 1, totalCount: 1, hasMore: false }],
       [NextActionHintSchema, nextAction],
     ] as const;
 

@@ -72,6 +72,9 @@ export const PaginatedResponseSchema = z
   .object({
     data: z.array(z.unknown()),
     nextCursor: IdSchema.nullable(),
+    returnedCount: CountSchema,
+    totalCount: CountSchema,
+    hasMore: z.boolean(),
   })
   .strict();
 
@@ -79,6 +82,24 @@ export function paginatedResponseSchema<T extends z.ZodType>(itemSchema: T) {
   return PaginatedResponseSchema.extend({
     data: z.array(itemSchema),
   });
+}
+
+export type PaginatedResult<T> = {
+  data: T[];
+  nextCursor: string | null;
+  returnedCount: number;
+  totalCount: number;
+  hasMore: boolean;
+};
+
+export function paginatedResult<T>(data: T[], nextCursor: string | null, totalCount: number): PaginatedResult<T> {
+  return {
+    data,
+    nextCursor,
+    returnedCount: data.length,
+    totalCount,
+    hasMore: nextCursor !== null,
+  };
 }
 
 export type PopulateNextVersionParams = z.infer<typeof PopulateNextVersionParamsSchema>;

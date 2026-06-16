@@ -3,11 +3,6 @@ import type { PromptReviewsDatabase } from "../db/client.js";
 export type PromptReviewsTransaction = Parameters<Parameters<PromptReviewsDatabase["transaction"]>[0]>[0];
 export type RepositoryDatabase = PromptReviewsDatabase | PromptReviewsTransaction;
 
-export type Page<T> = {
-  items: T[];
-  nextCursor: string | null;
-};
-
 export type CursorLimit = {
   cursor?: string | null;
   limit?: number;

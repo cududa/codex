@@ -4,6 +4,7 @@ import type {
   ClassifyCommitParams,
   ClassifyFileParams,
   CommentDetail,
+  CommentLocation,
   CommentSummary,
   CommitDetail,
   CommitFileDetail,
@@ -15,6 +16,7 @@ import type {
   FinalizeDecisionParams,
   PlanDetail,
   PlanItemDetail,
+  PaginatedResult,
   RemainingWork,
   ReviewEntityScope,
   SourceAnchor,
@@ -28,6 +30,7 @@ export type {
   ClassifyCommitParams,
   ClassifyFileParams,
   CommentDetail,
+  CommentLocation,
   CommentSummary,
   CommitDetail,
   CommitFileDetail,
@@ -39,16 +42,12 @@ export type {
   FinalizeDecisionParams,
   PlanDetail,
   PlanItemDetail,
+  PaginatedResult,
   RemainingWork,
   ReviewEntityScope,
   SourceAnchor,
   VersionDetail,
   VersionSummary,
-};
-
-export type Page<T> = {
-  data: T[];
-  nextCursor: string | null;
 };
 
 export type MissingDecisionTarget = "commit" | "file";

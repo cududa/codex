@@ -168,6 +168,44 @@ describe("review read service", () => {
     });
   });
 
+  it("lists commit files through the canonical paginated contract", () => {
+    const { commit, file } = seedReviewGraph("file_page");
+    const [secondFile] = bulkInsertCommitFiles(database.db, [
+      {
+        id: "file_file_page_second",
+        commitId: commit.id,
+        oldPath: "src/file_page_second.ts",
+        newPath: "src/file_page_second.ts",
+        changeType: "modified",
+        createdAt: file.createdAt + 1,
+      },
+    ]);
+    const service = createReviewReadService(context);
+
+    const firstPage = service.listCommitFiles({ commitId: commit.id, remaining: true, limit: 1 });
+
+    expect(firstPage).toMatchObject({
+      data: [expect.objectContaining({ id: file.id })],
+      returnedCount: 1,
+      totalCount: 2,
+      hasMore: true,
+    });
+    expect(service.listCommitFiles({ commitId: commit.id, remaining: true, cursor: firstPage.nextCursor, limit: 1 })).toMatchObject({
+      data: [expect.objectContaining({ id: secondFile.id })],
+      nextCursor: null,
+      returnedCount: 1,
+      totalCount: 2,
+      hasMore: false,
+    });
+    expect(service.listCommitFiles({ commitId: commit.id, remaining: false })).toMatchObject({
+      data: [expect.objectContaining({ id: file.id }), expect.objectContaining({ id: secondFile.id })],
+      nextCursor: null,
+      returnedCount: 2,
+      totalCount: 2,
+      hasMore: false,
+    });
+  });
+
   it("lists active concern tags in tree order as boundary views", () => {
     const tags = createReviewReadService(context).listConcernTags();
 

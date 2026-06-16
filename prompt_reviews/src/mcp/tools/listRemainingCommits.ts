@@ -18,7 +18,8 @@ export const ListRemainingCommitsToolOutputSchema = paginatedResponseSchema(Comm
 export const listRemainingCommitsTool = {
   name: "list_remaining_commits",
   title: "List remaining commits",
-  description: "Return the remaining commit review queue for a version.",
+  description:
+    "Return the remaining commit review queue for a version. Responses include returnedCount, totalCount, hasMore, and nextCursor.",
   inputSchema: ListRemainingCommitsInputSchema,
   outputSchema: ListRemainingCommitsToolOutputSchema,
   handler(context, input) {
@@ -31,7 +32,9 @@ export const listRemainingCommitsTool = {
         description:
           firstCommit === undefined
             ? "Check whether tagged work is waiting for human decisions."
-            : "List remaining files for the next commit in the queue.",
+            : page.hasMore
+              ? "List files for the first returned commit now; call list_remaining_commits again with nextCursor when this page is reviewed."
+              : "List remaining files for the next commit in the queue.",
       },
     };
   },

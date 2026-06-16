@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { classifyFile, getCommitFileDetail, listActiveVersions, listVersions } from "./api";
+import { classifyFile, getCommitFileDetail, listActiveVersions, listCommitFiles, listVersionCommits, listVersions } from "./api";
 
 describe("structured review api client", () => {
   afterEach(() => {
@@ -87,6 +87,38 @@ describe("structured review api client", () => {
     expect(detail.diffBlocks[0]?.patch).toContain("@@");
   });
 
+  it("parses paginated commit lists with canonical metadata", async () => {
+    const fetchMock = mockJsonResponse(pagePayload([commitQueueItem("commit-1")], "next-page", 272));
+
+    await expect(listVersionCommits("version-1", true, { cursor: "cursor-1", limit: 25 })).resolves.toMatchObject({
+      data: [{ id: "commit-1" }],
+      nextCursor: "next-page",
+      returnedCount: 1,
+      totalCount: 272,
+      hasMore: true,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/versions/version-1/commits?remaining=true&cursor=cursor-1&limit=25",
+      expect.any(Object),
+    );
+  });
+
+  it("parses paginated commit-file lists with canonical metadata", async () => {
+    const fetchMock = mockJsonResponse(pagePayload([commitFileQueueItem("file-1")], null, 1));
+
+    await expect(listCommitFiles("commit-1", true, { cursor: "cursor-1", limit: 10 })).resolves.toMatchObject({
+      data: [{ id: "file-1" }],
+      nextCursor: null,
+      returnedCount: 1,
+      totalCount: 1,
+      hasMore: false,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/commits/commit-1/files?remaining=true&cursor=cursor-1&limit=10",
+      expect.any(Object),
+    );
+  });
+
   it("sends classification as a structured command", async () => {
     const fetchMock = mockJsonResponse({
       scope: { type: "commit_file", commitFileId: "file-1" },
@@ -144,5 +176,38 @@ function versionSummary(id: string, status: "open" | "reviewing" | "ready" | "cl
       incompletePlans: 0,
       remainingWorkCount: 0,
     },
+  };
+}
+
+function commitQueueItem(id: string) {
+  return {
+    id,
+    versionId: "version-1",
+    sha: `sha-${id}`,
+    title: id,
+    status: "unreviewed",
+    secondaryTagSlugs: [],
+    fileCount: 1,
+  };
+}
+
+function commitFileQueueItem(id: string) {
+  return {
+    id,
+    commitId: "commit-1",
+    path: `src/${id}.ts`,
+    changeType: "modified",
+    status: "unreviewed",
+    secondaryTagSlugs: [],
+  };
+}
+
+function pagePayload<T>(data: T[], nextCursor: string | null, totalCount: number) {
+  return {
+    data,
+    nextCursor,
+    returnedCount: data.length,
+    totalCount,
+    hasMore: nextCursor !== null,
   };
 }

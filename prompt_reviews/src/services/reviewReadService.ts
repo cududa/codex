@@ -11,6 +11,9 @@ import {
   type CommitFileQueueItem,
   type CommitQueueItem,
   type ConcernTagView,
+  paginatedResult,
+  type PaginatedResult,
+  type RemainingWork,
   type ReviewEntityScope,
   type TaggingView,
   type VersionDetail,
@@ -37,10 +40,10 @@ import {
   type VersionRow,
 } from "../repositories/index.js";
 import { invariantFailed, notFound, validationFailed } from "./errors.js";
-import { toCommitDetail, toCommitQueueItem } from "./reviewRead/commitViews.js";
+import { toCommitDetail, toCommitQueueItems } from "./reviewRead/commitViews.js";
 import { collectCommentRows, toCommentDetail, type ListCommentsFilter } from "./reviewRead/commentViews.js";
 import { hasAcceptedHumanDecision } from "./reviewRead/decisionViews.js";
-import { toCommitFileDetail, toCommitFileQueueItem } from "./reviewRead/fileViews.js";
+import { toCommitFileDetail, toCommitFileQueueItems } from "./reviewRead/fileViews.js";
 import {
   findRequiredCommit,
   findRequiredCommitFile,
@@ -58,11 +61,6 @@ import { createReviewQueueService } from "./reviewQueueService.js";
 import { type RootServiceContext, type ServiceContext, withServiceTransaction } from "./serviceContext.js";
 import { recomputeCommitStatus, recomputeFileStatus, recomputeVersionStatus } from "./statusService.js";
 
-export type ReviewReadPage<T> = {
-  data: T[];
-  nextCursor: string | null;
-};
-
 export type VersionListStatus = "open" | "closed" | "all";
 export type MissingDecisionTarget = "commit" | "file";
 export type { ListCommentsFilter } from "./reviewRead/commentViews.js";
@@ -70,8 +68,14 @@ export type { ListCommentsFilter } from "./reviewRead/commentViews.js";
 export type ReviewReadService = {
   listVersions: (params?: { status?: VersionListStatus }) => VersionSummary[];
   getVersionDetail: (versionId: string) => VersionDetail;
+  listCommits: (params: { versionId: string }) => PaginatedResult<CommitQueueItem>;
   getCommitDetail: (commitId: string) => CommitDetail;
-  listCommitFiles: (params: { commitId: string; remaining?: boolean }) => ReviewReadPage<CommitFileQueueItem>;
+  listCommitFiles: (params: {
+    commitId: string;
+    remaining?: boolean;
+    cursor?: string | null;
+    limit?: number;
+  }) => PaginatedResult<CommitFileQueueItem>;
   getCommitFileDetail: (commitFileId: string) => CommitFileDetail;
   listConcernTags: () => ConcernTagView[];
   listComments: (filter?: ListCommentsFilter) => CommentDetail[];
@@ -96,6 +100,7 @@ export function createReviewReadService(context: RootServiceContext): ReviewRead
   return {
     listVersions: (params = {}) => listVersions(context, params),
     getVersionDetail: (versionId) => getVersionDetail(context, versionId),
+    listCommits: (params) => listCommits(context, params),
     getCommitDetail: (commitId) => getCommitDetail(context, commitId),
     listCommitFiles: (params) => listCommitFiles(context, params),
     getCommitFileDetail: (commitFileId) => getCommitFileDetail(context, commitFileId),
@@ -115,12 +120,14 @@ function listVersions(context: RootServiceContext, params: { status?: VersionLis
 
 function getVersionDetail(context: RootServiceContext, versionId: string): VersionDetail {
   const version = findRequiredVersion(context, versionId);
+  const remainingWork = createReviewQueueService(context).getRemainingWork({ versionId: version.id });
+  const commits = listCommitsByVersion(context.db, version.id);
   return VersionDetailSchema.parse({
-    ...toVersionSummary(context, version),
+    ...toVersionSummary(context, version, remainingWork),
     description: version.description ?? undefined,
-    commits: listCommitsByVersion(context.db, version.id).map((commit) => toCommitQueueItem(context, commit)),
+    commits: toCommitQueueItems(context, commits),
     selectedCommit: undefined,
-    remainingWork: createReviewQueueService(context).getRemainingWork({ versionId: version.id }),
+    remainingWork,
   });
 }
 
@@ -128,22 +135,32 @@ function getCommitDetail(context: ServiceContext, commitId: string): CommitDetai
   return toCommitDetail(context, findRequiredCommit(context, commitId));
 }
 
+function listCommits(context: ServiceContext, params: { versionId: string }): PaginatedResult<CommitQueueItem> {
+  findRequiredVersion(context, params.versionId);
+  const rows = listCommitsByVersion(context.db, params.versionId);
+  return paginatedResult(toCommitQueueItems(context, rows), null, rows.length);
+}
+
 function listCommitFiles(
   context: ServiceContext,
-  params: { commitId: string; remaining?: boolean },
-): ReviewReadPage<CommitFileQueueItem> {
+  params: { commitId: string; remaining?: boolean; cursor?: string | null; limit?: number },
+): PaginatedResult<CommitFileQueueItem> {
   findRequiredCommit(context, params.commitId);
   if (params.remaining === true) {
-    const page = listRemainingCommitFilesByCommit(context.db, params.commitId);
+    const page = listRemainingCommitFilesByCommit(context.db, params.commitId, {
+      cursor: params.cursor,
+      limit: params.limit,
+    });
     return {
-      data: page.items.map((file) => toCommitFileQueueItem(context, file)),
+      data: toCommitFileQueueItems(context, page.data),
       nextCursor: page.nextCursor,
+      returnedCount: page.returnedCount,
+      totalCount: page.totalCount,
+      hasMore: page.hasMore,
     };
   }
-  return {
-    data: listCommitFilesByCommit(context.db, params.commitId).map((file) => toCommitFileQueueItem(context, file)),
-    nextCursor: null,
-  };
+  const rows = listCommitFilesByCommit(context.db, params.commitId);
+  return paginatedResult(toCommitFileQueueItems(context, rows), null, rows.length);
 }
 
 function getCommitFileDetail(context: ServiceContext, commitFileId: string): CommitFileDetail {
@@ -158,7 +175,7 @@ function listComments(context: ServiceContext, filter: ListCommentsFilter = {}):
   const command = parseParams(ListCommentsFilterSchema, filter, "Invalid list comments filter.");
   return collectCommentRows(context, command)
     .sort((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id))
-    .map(toCommentDetail);
+    .map((comment) => toCommentDetail(context, comment));
 }
 
 function listMissingDecisions(
@@ -167,20 +184,17 @@ function listMissingDecisions(
 ): { target: MissingDecisionTarget; data: CommitQueueItem[] | CommitFileQueueItem[] } {
   findRequiredVersion(context, params.versionId);
   if (params.target === "commit") {
-    return {
-      target: "commit",
-      data: listCommitsByVersion(context.db, params.versionId)
-        .filter((commit) => hasAnyTag(context, { targetType: "commit", targetId: commit.id }))
-        .filter((commit) => !hasAcceptedHumanDecision(context, { scope: "commit", targetId: commit.id }))
-        .map((commit) => toCommitQueueItem(context, commit)),
-    };
+    const rows = listCommitsByVersion(context.db, params.versionId)
+      .filter((commit) => hasAnyTag(context, { targetType: "commit", targetId: commit.id }))
+      .filter((commit) => !hasAcceptedHumanDecision(context, { scope: "commit", targetId: commit.id }));
+    return { target: "commit", data: toCommitQueueItems(context, rows) };
   }
+  const rows = listCommitFilesByVersion(context.db, params.versionId)
+    .filter((file) => hasAnyTag(context, { targetType: "commit_file", targetId: file.id }))
+    .filter((file) => !hasAcceptedHumanDecision(context, { scope: "commit_file", targetId: file.id }));
   return {
     target: "file",
-    data: listCommitFilesByVersion(context.db, params.versionId)
-      .filter((file) => hasAnyTag(context, { targetType: "commit_file", targetId: file.id }))
-      .filter((file) => !hasAcceptedHumanDecision(context, { scope: "commit_file", targetId: file.id }))
-      .map((file) => toCommitFileQueueItem(context, file)),
+    data: toCommitFileQueueItems(context, rows),
   };
 }
 
@@ -233,7 +247,7 @@ function deleteTagging(context: RootServiceContext, params: unknown): TaggingVie
   });
 }
 
-function toVersionSummary(context: RootServiceContext, row: VersionRow): VersionSummary {
+function toVersionSummary(context: RootServiceContext, row: VersionRow, remainingWork?: RemainingWork[]): VersionSummary {
   return VersionSummarySchema.parse({
     id: row.id,
     label: row.label,
@@ -241,23 +255,24 @@ function toVersionSummary(context: RootServiceContext, row: VersionRow): Version
     createdAt: row.createdAt,
     updatedAt: row.updatedAt ?? undefined,
     closedAt: row.closedAt ?? undefined,
-    progress: versionProgress(context, row.id),
+    progress: versionProgress(context, row.id, remainingWork),
   });
 }
 
-function versionProgress(context: RootServiceContext, versionId: string): VersionProgress {
+function versionProgress(context: RootServiceContext, versionId: string, remainingWorkInput?: RemainingWork[]): VersionProgress {
   const commits = listCommitsByVersion(context.db, versionId);
-  const files = commits.flatMap((commit) => listCommitFilesByCommit(context.db, commit.id));
-  const queue = createReviewQueueService(context);
-  const remainingWork = queue.getRemainingWork({ versionId }).filter((work) => work.kind !== "version_closure");
+  const files = listCommitFilesByVersion(context.db, versionId);
+  const remainingWork = (remainingWorkInput ?? createReviewQueueService(context).getRemainingWork({ versionId })).filter(
+    (work) => work.kind !== "version_closure",
+  );
   return {
     totalCommits: commits.length,
     reviewedCommits: commits.filter((commit) => isReviewedStatus(commit.reviewStatus)).length,
     totalFiles: files.length,
     reviewedFiles: files.filter((file) => isReviewedStatus(file.reviewStatus)).length,
-    unresolvedComments: queue.listOpenComments({ versionId }).length,
-    pendingDecisions: queue.listMissingDecisions({ versionId }).length,
-    incompletePlans: queue.listOpenPlans({ versionId }).length,
+    unresolvedComments: remainingWork.find((work) => work.kind === "comment")?.count ?? 0,
+    pendingDecisions: remainingWork.find((work) => work.kind === "decision")?.count ?? 0,
+    incompletePlans: remainingWork.find((work) => work.kind === "plan")?.count ?? 0,
     remainingWorkCount: remainingWork.reduce((total, work) => total + work.count, 0),
   };
 }

@@ -320,7 +320,10 @@ function resolveBlock(
 
   const selectedText = anchor?.selectedText?.trim();
   if (selectedText !== undefined && selectedText.length > 0) {
-    const diffMatches = located.diffBlocks.filter((block) => block.patch.includes(selectedText));
+    const selectedTextCandidates = legacySelectedTextCandidates(selectedText);
+    const diffMatches = located.diffBlocks.filter((block) =>
+      selectedTextCandidates.some((candidate) => block.patch.includes(candidate)),
+    );
     if (diffMatches.length === 1) {
       return { row: diffMatches[0], warnings };
     }
@@ -344,6 +347,14 @@ function resolveBlock(
     }),
   );
   return { warnings };
+}
+
+function legacySelectedTextCandidates(selectedText: string): string[] {
+  const candidates = [selectedText];
+  if (/^[+-] /.test(selectedText)) {
+    candidates.push(selectedText.replace(/^([+-]) /, "$1"));
+  }
+  return Array.from(new Set(candidates));
 }
 
 function findLegacyBlockMatches(blocks: LegacyMarkdownBlock[], anchor: LegacyAnchorInput | undefined): LegacyMarkdownBlock[] {

@@ -125,6 +125,7 @@ export const commitFiles = sqliteTable(
       .on(table.commitId, table.oldPath)
       .where(sql`${table.oldPath} is not null and ${table.newPath} is null`),
     index("commit_files_commit_status_idx").on(table.commitId, table.reviewStatus),
+    index("commit_files_commit_created_idx").on(table.commitId, table.createdAt, table.id),
     index("commit_files_new_path_idx").on(table.newPath),
     index("commit_files_old_path_idx").on(table.oldPath),
     check("commit_files_path_present_check", sql`${table.oldPath} is not null or ${table.newPath} is not null`),
@@ -265,6 +266,14 @@ export const comments = sqliteTable(
   (table) => [
     index("comments_status_idx").on(table.status),
     index("comments_scope_status_idx").on(table.scope, table.status),
+    index("comments_scope_target_status_idx").on(
+      table.scope,
+      table.versionId,
+      table.commitId,
+      table.commitFileId,
+      table.diffBlockId,
+      table.status,
+    ),
     index("comments_version_idx").on(table.versionId),
     index("comments_commit_idx").on(table.commitId),
     index("comments_commit_file_idx").on(table.commitFileId),
@@ -300,6 +309,7 @@ export const decisions = sqliteTable(
     index("decisions_version_idx").on(table.versionId),
     index("decisions_commit_idx").on(table.commitId),
     index("decisions_commit_file_idx").on(table.commitFileId),
+    index("decisions_file_status_finalizer_idx").on(table.commitFileId, table.status, table.finalizedByActorType),
     index("decisions_outcome_idx").on(table.outcome),
   ],
 );
@@ -352,6 +362,7 @@ export const planItems = sqliteTable(
   (table) => [
     uniqueIndex("plan_items_plan_ordinal_unique").on(table.planId, table.ordinal),
     index("plan_items_plan_status_idx").on(table.planId, table.status),
+    index("plan_items_status_plan_idx").on(table.status, table.planId),
     index("plan_items_commit_file_idx").on(table.commitFileId),
     index("plan_items_decision_idx").on(table.decisionId),
   ],

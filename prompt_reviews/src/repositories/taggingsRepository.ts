@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { ReviewEntityScopeType } from "../domain/enums.js";
-import { classificationMetadata, taggings } from "../db/schema.js";
+import { classificationMetadata, concernTags, taggings } from "../db/schema.js";
 import type { RepositoryDatabase } from "./database.js";
 
 export type TaggingRow = typeof taggings.$inferSelect;
@@ -70,6 +70,49 @@ export function listTaggingsByTarget(db: RepositoryDatabase, target: TaggingTarg
     .from(taggings)
     .where(and(eq(taggings.targetType, target.targetType), eq(taggings.targetId, target.targetId)))
     .all();
+}
+
+export type TargetTagSlugs = {
+  primary: string | undefined;
+  secondary: string[];
+};
+
+export function listTagSlugsByTargets(
+  db: RepositoryDatabase,
+  targetType: ReviewEntityScopeType,
+  targetIds: readonly string[],
+): Map<string, TargetTagSlugs> {
+  const slugsByTarget = new Map<string, TargetTagSlugs>(
+    targetIds.map((targetId) => [targetId, { primary: undefined, secondary: [] }]),
+  );
+  if (targetIds.length === 0) {
+    return slugsByTarget;
+  }
+
+  const rows = db
+    .select({
+      targetId: taggings.targetId,
+      kind: taggings.kind,
+      slug: concernTags.slug,
+    })
+    .from(taggings)
+    .innerJoin(concernTags, eq(concernTags.id, taggings.tagId))
+    .where(and(eq(taggings.targetType, targetType), inArray(taggings.targetId, targetIds)))
+    .all();
+
+  for (const row of rows) {
+    const entry = slugsByTarget.get(row.targetId);
+    if (entry === undefined) {
+      continue;
+    }
+    if (row.kind === "primary") {
+      entry.primary = row.slug;
+    } else {
+      entry.secondary.push(row.slug);
+    }
+  }
+
+  return slugsByTarget;
 }
 
 export function listPrimaryTaggingsByTarget(db: RepositoryDatabase, target: TaggingTarget): TaggingRow[] {

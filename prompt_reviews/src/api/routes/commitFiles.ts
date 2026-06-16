@@ -8,7 +8,7 @@ import {
   IdSchema,
   paginatedResponseSchema,
 } from "../../domain/schemas/index.js";
-import { booleanQueryParam, validateInput, validateResponse } from "../validation.js";
+import { booleanQueryParam, numericQueryParam, validateInput, validateResponse } from "../validation.js";
 
 const CommitIdParamsSchema = z.object({ commitId: IdSchema }).strict();
 const CommitFileIdParamsSchema = z.object({ commitFileId: IdSchema }).strict();
@@ -16,6 +16,8 @@ const CommitFileIdParamsSchema = z.object({ commitFileId: IdSchema }).strict();
 const CommitFilesQuerySchema = z
   .object({
     remaining: booleanQueryParam(false),
+    limit: numericQueryParam(),
+    cursor: IdSchema.optional(),
   })
   .strict();
 
@@ -28,6 +30,8 @@ export async function registerCommitFilesRoutes(app: FastifyInstance): Promise<v
     const response = app.promptReviews.read.listCommitFiles({
       commitId: params.commitId,
       remaining: query.remaining,
+      cursor: query.cursor,
+      limit: query.limit,
     });
     return reply.send(validateResponse(CommitFilesResponseSchema, response));
   });

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { commentResolutionStatuses, commentStatuses } from "../enums.js";
-import { ActorRefSchema, IdSchema, NonEmptyTextSchema, OptionalTextSchema, UnixSecondsSchema } from "./actors.js";
+import { ActorRefSchema, IdSchema, NonEmptyTextSchema, OptionalTextSchema, PositiveLineNumberSchema, UnixSecondsSchema } from "./actors.js";
 import { ReviewEntityScopeSchema, SourceAnchorSchema } from "./scopes.js";
 
 export const CommentStatusSchema = z.enum(commentStatuses);
@@ -71,8 +71,41 @@ export const CommentSummarySchema = z
   })
   .strict();
 
+export const CommentLocationSchema = z
+  .object({
+    commit: z
+      .object({
+        id: IdSchema,
+        sha: NonEmptyTextSchema,
+        title: NonEmptyTextSchema,
+      })
+      .strict()
+      .optional(),
+    file: z
+      .object({
+        id: IdSchema,
+        path: NonEmptyTextSchema,
+        oldPath: OptionalTextSchema,
+      })
+      .strict()
+      .optional(),
+    diffBlock: z
+      .object({
+        id: IdSchema,
+        heading: OptionalTextSchema,
+        oldStartLine: PositiveLineNumberSchema.optional(),
+        oldEndLine: PositiveLineNumberSchema.optional(),
+        newStartLine: PositiveLineNumberSchema.optional(),
+        newEndLine: PositiveLineNumberSchema.optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
 export const CommentDetailSchema = CommentSummarySchema.extend({
   anchor: SourceAnchorSchema,
+  location: CommentLocationSchema.optional(),
   updatedAt: UnixSecondsSchema.optional(),
   resolvedBy: ActorRefSchema.optional(),
   resolution: OptionalTextSchema,
@@ -82,4 +115,5 @@ export type AddCommentParams = z.infer<typeof AddCommentParamsSchema>;
 export type ResolveCommentParams = z.infer<typeof ResolveCommentParamsSchema>;
 export type ReopenCommentParams = z.infer<typeof ReopenCommentParamsSchema>;
 export type CommentSummary = z.infer<typeof CommentSummarySchema>;
+export type CommentLocation = z.infer<typeof CommentLocationSchema>;
 export type CommentDetail = z.infer<typeof CommentDetailSchema>;

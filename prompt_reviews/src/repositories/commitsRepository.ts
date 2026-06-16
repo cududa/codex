@@ -1,5 +1,6 @@
-import { and, asc, eq, gt, inArray, or } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, or } from "drizzle-orm";
 import type { ReviewStatus } from "../domain/enums.js";
+import { paginatedResult, type PaginatedResult } from "../domain/schemas/index.js";
 import { commits } from "../db/schema.js";
 import { unixSecondsNow } from "../db/timestamps.js";
 import {
@@ -7,7 +8,6 @@ import {
   encodeCursor,
   normalizeLimit,
   type CursorLimit,
-  type Page,
   type RepositoryDatabase,
 } from "./database.js";
 
@@ -51,13 +51,14 @@ export function listRemainingCommitsByVersion(
   db: RepositoryDatabase,
   versionId: string,
   options: CommitQueueOptions = {},
-): Page<CommitRow> {
+): PaginatedResult<CommitRow> {
   const cursor = decodeCursor<CommitQueueCursor>(options.cursor);
   const limit = normalizeLimit(options.limit);
   const statuses = options.statuses ?? defaultRemainingStatuses;
   if (statuses.length === 0) {
-    return { items: [], nextCursor: null };
+    return paginatedResult([], null, 0);
   }
+  const totalCount = countRemainingCommitsByVersion(db, versionId, { statuses });
 
   const rows = db
     .select()
@@ -75,7 +76,23 @@ export function listRemainingCommitsByVersion(
     .limit(limit + 1)
     .all();
 
-  return pageFromCommitRows(rows, limit);
+  return pageFromCommitRows(rows, limit, totalCount);
+}
+
+export function countRemainingCommitsByVersion(
+  db: RepositoryDatabase,
+  versionId: string,
+  options: { statuses?: readonly ReviewStatus[] } = {},
+): number {
+  const statuses = options.statuses ?? defaultRemainingStatuses;
+  if (statuses.length === 0) {
+    return 0;
+  }
+  return db
+    .select({ value: count() })
+    .from(commits)
+    .where(and(eq(commits.versionId, versionId), inArray(commits.reviewStatus, statuses)))
+    .get()?.value ?? 0;
 }
 
 export type CommitReviewUpdate = {
@@ -121,11 +138,10 @@ export function updateCommitStatusOverride(
     .get();
 }
 
-function pageFromCommitRows(rows: CommitRow[], limit: number): Page<CommitRow> {
-  const items = rows.slice(0, limit);
-  const last = items.at(-1);
-  return {
-    items,
-    nextCursor: rows.length > limit && last !== undefined ? encodeCursor({ ordinal: last.ordinal, id: last.id }) : null,
-  };
+function pageFromCommitRows(rows: CommitRow[], limit: number, totalCount: number): PaginatedResult<CommitRow> {
+  const data = rows.slice(0, limit);
+  const last = data.at(-1);
+  const nextCursor =
+    rows.length > limit && last !== undefined ? encodeCursor({ ordinal: last.ordinal, id: last.id }) : null;
+  return paginatedResult(data, nextCursor, totalCount);
 }

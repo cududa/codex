@@ -236,7 +236,16 @@ describe("prompt review MCP tools", () => {
         input: { repositoryId: "repo-1", baseRefOrSha: "main~1", targetRef: "main" },
         schema: PopulateNextVersionResponseSchema.extend({ nextAction: z.object({ description: z.string() }).passthrough() }),
       },
-      { name: "list_remaining_commits", input: { versionId: version.id }, schema: paginatedResponseSchema(CommitQueueItemSchema).passthrough() },
+      {
+        name: "list_remaining_commits",
+        input: { versionId: version.id },
+        schema: paginatedResponseSchema(CommitQueueItemSchema).passthrough(),
+      },
+      {
+        name: "list_commit_files",
+        input: { commitId: commit.id, remaining: true, limit: 1 },
+        schema: paginatedResponseSchema(CommitFileQueueItemSchema).passthrough(),
+      },
       { name: "get_file_review", input: { commitFileId: file.id }, schema: z.object({ file: CommitFileDetailSchema }).passthrough() },
       {
         name: "add_comment",
@@ -276,7 +285,13 @@ describe("prompt review MCP tools", () => {
   it("returns queue-shaped remaining commits and structured diff blocks", async () => {
     const context = createFakeContext();
     const queue = await executePromptReviewMcpTool(context, tool("list_remaining_commits"), { versionId: version.id });
-    expect(queue.structuredContent).toMatchObject({ data: [commit], nextCursor: null });
+    expect(queue.structuredContent).toMatchObject({
+      data: [commit],
+      nextCursor: null,
+      returnedCount: 1,
+      totalCount: 1,
+      hasMore: false,
+    });
 
     const review = await executePromptReviewMcpTool(context, tool("get_file_review"), { commitFileId: file.id });
     expect(review.structuredContent).toMatchObject({
@@ -411,8 +426,8 @@ function createFakeContext(options: { populateCalls?: unknown[]; planState?: { c
       },
     },
     queue: {
-      listRemainingCommits: () => ({ data: [commit], nextCursor: null }),
-      listRemainingFiles: () => ({ data: [file], nextCursor: null }),
+      listRemainingCommits: () => ({ data: [commit], nextCursor: null, returnedCount: 1, totalCount: 1, hasMore: false }),
+      listRemainingFiles: () => ({ data: [file], nextCursor: null, returnedCount: 1, totalCount: 1, hasMore: false }),
       listMissingDecisions: () => [file],
       listOpenComments: () => [comment],
       listOpenPlans: () => [plan],
@@ -474,7 +489,7 @@ function createFakeContext(options: { populateCalls?: unknown[]; planState?: { c
         decisions: [decisionSummary],
         plans: [planSummary],
       }),
-      listCommitFiles: () => ({ data: [file], nextCursor: null }),
+      listCommitFiles: () => ({ data: [file], nextCursor: null, returnedCount: 1, totalCount: 1, hasMore: false }),
       getCommitFileDetail: () => fileDetail,
       listConcernTags: () => [tag],
       listComments: () => [comment],

@@ -8,17 +8,32 @@ import {
 } from "../../domain/schemas/index.js";
 import {
   listDiffBlocksByCommitFile,
+  listTagSlugsByTargets,
   type CommitFileRow,
   type DiffBlockRow,
+  type TargetTagSlugs,
 } from "../../repositories/index.js";
 import type { ServiceContext } from "../serviceContext.js";
 import { targetComments, toCommentSummary } from "./commentViews.js";
 import { targetDecisions, toDecisionSummary } from "./decisionViews.js";
 import { targetPlans, toPlanSummary } from "./planViews.js";
-import { targetTaggings, targetTagSlugs } from "./tagViews.js";
+import { targetTaggings } from "./tagViews.js";
 
 export function toCommitFileQueueItem(context: ServiceContext, row: CommitFileRow): CommitFileQueueItem {
-  const tagSlugs = targetTagSlugs(context, { targetType: "commit_file", targetId: row.id });
+  const [item] = toCommitFileQueueItems(context, [row]);
+  if (item === undefined) {
+    throw new Error("Expected commit file queue item.");
+  }
+  return item;
+}
+
+export function toCommitFileQueueItems(context: ServiceContext, rows: readonly CommitFileRow[]): CommitFileQueueItem[] {
+  const fileIds = rows.map((row) => row.id);
+  const tagSlugsByTarget = listTagSlugsByTargets(context.db, "commit_file", fileIds);
+  return rows.map((row) => toCommitFileQueueItemWithSummary(row, tagSlugsByTarget.get(row.id)));
+}
+
+function toCommitFileQueueItemWithSummary(row: CommitFileRow, tagSlugs: TargetTagSlugs | undefined): CommitFileQueueItem {
   return CommitFileQueueItemSchema.parse({
     id: row.id,
     commitId: row.commitId,
@@ -26,8 +41,8 @@ export function toCommitFileQueueItem(context: ServiceContext, row: CommitFileRo
     oldPath: row.oldPath ?? undefined,
     changeType: row.changeType,
     status: row.reviewStatus,
-    primaryTagSlug: tagSlugs.primary,
-    secondaryTagSlugs: tagSlugs.secondary,
+    primaryTagSlug: tagSlugs?.primary,
+    secondaryTagSlugs: tagSlugs?.secondary ?? [],
   });
 }
 

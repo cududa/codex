@@ -2,10 +2,14 @@ import {
   CommentDetailSchema,
   CommentSummarySchema,
   type CommentDetail,
+  type CommentLocation,
   type CommentSummary,
 } from "../../domain/schemas/index.js";
 import type { CommentStatus } from "../../domain/enums.js";
 import {
+  findCommitById,
+  findCommitFileById,
+  findDiffBlockById,
   listCommentsByScopeStatus,
   listCommitFilesByCommit,
   listCommitsByVersion,
@@ -54,10 +58,11 @@ export function collectCommentRows(context: ServiceContext, filter: ListComments
   );
 }
 
-export function toCommentDetail(row: CommentRow): CommentDetail {
+export function toCommentDetail(context: ServiceContext, row: CommentRow): CommentDetail {
   return CommentDetailSchema.parse({
     ...toCommentSummary(row),
     anchor: commentAnchor(row),
+    location: commentLocation(context, row),
     updatedAt: row.updatedAt ?? undefined,
     resolvedBy:
       row.resolvedByActorType === null
@@ -65,6 +70,57 @@ export function toCommentDetail(row: CommentRow): CommentDetail {
         : actorRef(row.resolvedByActorType, row.resolvedByActorId, row.resolvedByDisplayName),
     resolution: row.resolution ?? undefined,
   });
+}
+
+function commentLocation(context: ServiceContext, row: CommentRow): CommentLocation | undefined {
+  if (row.scope === "version") {
+    return undefined;
+  }
+
+  if (row.scope === "commit" && row.commitId !== null) {
+    const commit = findCommitById(context.db, row.commitId);
+    if (commit === undefined) {
+      return undefined;
+    }
+    return { commit: { id: commit.id, sha: commit.sha, title: commit.title } };
+  }
+
+  const file =
+    row.scope === "commit_file" && row.commitFileId !== null
+      ? findCommitFileById(context.db, row.commitFileId)
+      : row.scope === "diff_block" && row.diffBlockId !== null
+        ? findFileForDiffBlock(context, row.diffBlockId)
+        : undefined;
+  if (file === undefined) {
+    return undefined;
+  }
+
+  const commit = findCommitById(context.db, file.commitId);
+  const diffBlock = row.diffBlockId === null ? undefined : findDiffBlockById(context.db, row.diffBlockId);
+  return {
+    commit: commit === undefined ? undefined : { id: commit.id, sha: commit.sha, title: commit.title },
+    file: {
+      id: file.id,
+      path: file.newPath ?? file.oldPath ?? file.id,
+      oldPath: file.oldPath ?? undefined,
+    },
+    diffBlock:
+      diffBlock === undefined
+        ? undefined
+        : {
+            id: diffBlock.id,
+            heading: diffBlock.heading ?? undefined,
+            oldStartLine: diffBlock.oldStartLine ?? undefined,
+            oldEndLine: diffBlock.oldEndLine ?? undefined,
+            newStartLine: diffBlock.newStartLine ?? undefined,
+            newEndLine: diffBlock.newEndLine ?? undefined,
+          },
+  };
+}
+
+function findFileForDiffBlock(context: ServiceContext, diffBlockId: string) {
+  const block = findDiffBlockById(context.db, diffBlockId);
+  return block === undefined ? undefined : findCommitFileById(context.db, block.commitFileId);
 }
 
 export function toCommentSummary(row: CommentRow): CommentSummary {

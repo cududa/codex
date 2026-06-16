@@ -57,7 +57,12 @@ describe("repository query helpers", () => {
       "file_two",
       "file_done",
     ]);
-    expect(listRemainingCommitFilesByVersion(database.db, version.id, { limit: 1 }).items).toEqual([files[0]]);
+    expect(listRemainingCommitFilesByVersion(database.db, version.id, { limit: 1 })).toMatchObject({
+      data: [files[0]],
+      returnedCount: 1,
+      totalCount: 2,
+      hasMore: true,
+    });
   });
 
   it("lists decisions and plans by exact workflow target", () => {

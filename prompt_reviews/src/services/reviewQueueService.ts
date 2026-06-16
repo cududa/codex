@@ -9,37 +9,32 @@ import {
   type CommitQueueItem,
   type CommentSummary,
   type DecisionSummary,
+  type PaginatedResult,
   type PlanSummary,
   type RemainingWork,
   type ReviewEntityScope,
 } from "../domain/schemas/index.js";
 import {
-  findConcernTagById,
   findVersionById,
-  listCommentsByScopeStatus,
-  listCommitFilesByCommit,
+  countCommitFilesByCommitIds,
   listCommitFilesByVersion,
-  listCommitsByVersion,
-  listDecisionsByTarget,
-  listDiffBlocksByCommitFile,
+  listIncompleteAcceptedPlansByVersion,
   listPlanItems,
-  listPlansByTarget,
+  listOpenCommentsByVersion,
   listRemainingCommitFilesByCommit,
   listRemainingCommitFilesByVersion,
   listRemainingCommitsByVersion,
-  listTaggingsByTarget,
+  listTagSlugsByTargets,
+  listTaggedCommitFilesMissingHumanAcceptedDecisionByVersion,
+  listUntaggedCommitFilesByVersion,
   type CommentRow,
   type CommitFileRow,
   type CommitRow,
   type PlanRow,
+  type TargetTagSlugs,
 } from "../repositories/index.js";
 import { invariantFailed, notFound, validationFailed } from "./errors.js";
 import type { ServiceContext } from "./serviceContext.js";
-
-type Page<T> = {
-  data: T[];
-  nextCursor: string | null;
-};
 
 export type ListRemainingCommitsParams = {
   versionId: string;
@@ -59,8 +54,8 @@ export type VersionScopedParams = {
 };
 
 export type ReviewQueueService = {
-  listRemainingCommits: (params: ListRemainingCommitsParams) => Page<CommitQueueItem>;
-  listRemainingFiles: (params: ListRemainingFilesParams) => Page<CommitFileQueueItem>;
+  listRemainingCommits: (params: ListRemainingCommitsParams) => PaginatedResult<CommitQueueItem>;
+  listRemainingFiles: (params: ListRemainingFilesParams) => PaginatedResult<CommitFileQueueItem>;
   listMissingDecisions: (params: VersionScopedParams) => CommitFileQueueItem[];
   listOpenComments: (params: VersionScopedParams) => CommentSummary[];
   listOpenPlans: (params: VersionScopedParams) => PlanSummary[];
@@ -81,18 +76,24 @@ export function createReviewQueueService(context: ServiceContext): ReviewQueueSe
 export function listRemainingCommits(
   context: ServiceContext,
   params: ListRemainingCommitsParams,
-): Page<CommitQueueItem> {
+): PaginatedResult<CommitQueueItem> {
   const page = listRemainingCommitsByVersion(context.db, params.versionId, {
     cursor: params.cursor,
     limit: params.limit,
   });
   return {
-    data: page.items.map((commit) => toCommitQueueItem(context, commit)),
+    data: toCommitQueueItems(context, page.data),
     nextCursor: page.nextCursor,
+    returnedCount: page.returnedCount,
+    totalCount: page.totalCount,
+    hasMore: page.hasMore,
   };
 }
 
-export function listRemainingFiles(context: ServiceContext, params: ListRemainingFilesParams): Page<CommitFileQueueItem> {
+export function listRemainingFiles(
+  context: ServiceContext,
+  params: ListRemainingFilesParams,
+): PaginatedResult<CommitFileQueueItem> {
   if ((params.versionId === undefined) === (params.commitId === undefined)) {
     throw validationFailed("Exactly one of versionId or commitId is required.");
   }
@@ -109,8 +110,11 @@ export function listRemainingFiles(context: ServiceContext, params: ListRemainin
         });
 
   return {
-    data: page.items.map((file) => toCommitFileQueueItem(context, file)),
+    data: toCommitFileQueueItems(context, page.data),
     nextCursor: page.nextCursor,
+    returnedCount: page.returnedCount,
+    totalCount: page.totalCount,
+    hasMore: page.hasMore,
   };
 }
 
@@ -122,21 +126,26 @@ function requireVersionId(params: ListRemainingFilesParams): string {
 }
 
 export function listMissingDecisions(context: ServiceContext, params: VersionScopedParams): CommitFileQueueItem[] {
-  return listCommitFilesByVersion(context.db, params.versionId)
-    .filter((file) => hasAnyTag(context, file) && !hasAcceptedHumanDecision(context, file))
-    .map((file) => toCommitFileQueueItem(context, file));
+  return toCommitFileQueueItems(
+    context,
+    listTaggedCommitFilesMissingHumanAcceptedDecisionByVersion(context.db, params.versionId),
+  );
 }
 
 export function listOpenComments(context: ServiceContext, params: VersionScopedParams): CommentSummary[] {
-  return collectOpenComments(context, params.versionId).map((comment) => CommentSummarySchema.parse(toCommentSummary(comment)));
+  return listOpenCommentsByVersion(context.db, params.versionId).map((comment) =>
+    CommentSummarySchema.parse(toCommentSummary(comment)),
+  );
 }
 
 export function listOpenPlans(context: ServiceContext, params: VersionScopedParams): PlanSummary[] {
-  return collectIncompleteAcceptedPlans(context, params.versionId).map((plan) => PlanSummarySchema.parse(toPlanSummary(plan)));
+  return listIncompleteAcceptedPlansByVersion(context.db, params.versionId).map((plan) =>
+    PlanSummarySchema.parse(toPlanSummary(plan)),
+  );
 }
 
 export function getRemainingWork(context: ServiceContext, params: VersionScopedParams): RemainingWork[] {
-  const unclassifiedFiles = listCommitFilesByVersion(context.db, params.versionId).filter((file) => !hasAnyTag(context, file));
+  const unclassifiedFiles = listUntaggedCommitFilesByVersion(context.db, params.versionId);
   const missingDecisions = listMissingDecisions(context, params);
   const openComments = listOpenComments(context, params);
   const incompletePlans = listOpenPlans(context, params);
@@ -242,8 +251,14 @@ export function getRemainingWork(context: ServiceContext, params: VersionScopedP
   return remainingWork;
 }
 
-function toCommitQueueItem(context: ServiceContext, row: CommitRow): CommitQueueItem {
-  const tagSlugs = getTargetTagSlugs(context, "commit", row.id);
+function toCommitQueueItems(context: ServiceContext, rows: readonly CommitRow[]): CommitQueueItem[] {
+  const commitIds = rows.map((row) => row.id);
+  const fileCounts = countCommitFilesByCommitIds(context.db, commitIds);
+  const tagSlugsByTarget = listTagSlugsByTargets(context.db, "commit", commitIds);
+  return rows.map((row) => toCommitQueueItem(row, fileCounts.get(row.id) ?? 0, tagSlugsByTarget.get(row.id)));
+}
+
+function toCommitQueueItem(row: CommitRow, fileCount: number, tagSlugs: TargetTagSlugs | undefined): CommitQueueItem {
   return CommitQueueItemSchema.parse({
     id: row.id,
     versionId: row.versionId,
@@ -252,14 +267,19 @@ function toCommitQueueItem(context: ServiceContext, row: CommitRow): CommitQueue
     authorName: row.authorName ?? undefined,
     committedAt: row.committedAt ?? undefined,
     status: row.reviewStatus,
-    primaryTagSlug: tagSlugs.primary,
-    secondaryTagSlugs: tagSlugs.secondary,
-    fileCount: listCommitFilesByCommit(context.db, row.id).length,
+    primaryTagSlug: tagSlugs?.primary,
+    secondaryTagSlugs: tagSlugs?.secondary ?? [],
+    fileCount,
   });
 }
 
-function toCommitFileQueueItem(context: ServiceContext, row: CommitFileRow): CommitFileQueueItem {
-  const tagSlugs = getTargetTagSlugs(context, "commit_file", row.id);
+function toCommitFileQueueItems(context: ServiceContext, rows: readonly CommitFileRow[]): CommitFileQueueItem[] {
+  const fileIds = rows.map((row) => row.id);
+  const tagSlugsByTarget = listTagSlugsByTargets(context.db, "commit_file", fileIds);
+  return rows.map((row) => toCommitFileQueueItem(row, tagSlugsByTarget.get(row.id)));
+}
+
+function toCommitFileQueueItem(row: CommitFileRow, tagSlugs: TargetTagSlugs | undefined): CommitFileQueueItem {
   return CommitFileQueueItemSchema.parse({
     id: row.id,
     commitId: row.commitId,
@@ -267,8 +287,8 @@ function toCommitFileQueueItem(context: ServiceContext, row: CommitFileRow): Com
     oldPath: row.oldPath ?? undefined,
     changeType: row.changeType,
     status: row.reviewStatus,
-    primaryTagSlug: tagSlugs.primary,
-    secondaryTagSlugs: tagSlugs.secondary,
+    primaryTagSlug: tagSlugs?.primary,
+    secondaryTagSlugs: tagSlugs?.secondary ?? [],
   });
 }
 
@@ -297,44 +317,6 @@ function toPlanSummary(row: PlanRow): PlanSummary {
   };
 }
 
-function collectOpenComments(context: ServiceContext, versionId: string): CommentRow[] {
-  const comments = [...listCommentsByScopeStatus(context.db, { scope: "version", status: "open", targetId: versionId })];
-  for (const commit of listCommitsByVersion(context.db, versionId)) {
-    comments.push(...listCommentsByScopeStatus(context.db, { scope: "commit", status: "open", targetId: commit.id }));
-    for (const file of listCommitFilesByCommit(context.db, commit.id)) {
-      comments.push(...listCommentsByScopeStatus(context.db, { scope: "commit_file", status: "open", targetId: file.id }));
-      for (const block of listDiffBlocksByCommitFile(context.db, file.id)) {
-        comments.push(...listCommentsByScopeStatus(context.db, { scope: "diff_block", status: "open", targetId: block.id }));
-      }
-    }
-  }
-  return comments;
-}
-
-function collectIncompleteAcceptedPlans(context: ServiceContext, versionId: string): PlanRow[] {
-  const plans = new Map<string, PlanRow>();
-  addIncompletePlans(context, plans, { scope: "version", targetId: versionId });
-  for (const commit of listCommitsByVersion(context.db, versionId)) {
-    addIncompletePlans(context, plans, { scope: "commit", targetId: commit.id });
-    for (const file of listCommitFilesByCommit(context.db, commit.id)) {
-      addIncompletePlans(context, plans, { scope: "commit_file", targetId: file.id });
-    }
-  }
-  return [...plans.values()];
-}
-
-function addIncompletePlans(
-  context: ServiceContext,
-  plans: Map<string, PlanRow>,
-  target: { scope: "version" | "commit" | "commit_file"; targetId: string },
-): void {
-  for (const plan of listPlansByTarget(context.db, target, { status: "accepted" })) {
-    if (hasIncompletePlanItems(context, plan.id)) {
-      plans.set(plan.id, plan);
-    }
-  }
-}
-
 function collectIncompletePlanItemActions(context: ServiceContext, plans: PlanSummary[]) {
   return plans.flatMap((plan) =>
     listPlanItems(context.db, plan.id)
@@ -346,39 +328,6 @@ function collectIncompletePlanItemActions(context: ServiceContext, plans: PlanSu
         reason: item.blockingReason ?? undefined,
       })),
   );
-}
-
-function hasIncompletePlanItems(context: ServiceContext, planId: string): boolean {
-  return listPlanItems(context.db, planId).some(
-    (item) => item.status === "todo" || item.status === "in_progress" || item.status === "blocked",
-  );
-}
-
-function hasAnyTag(context: ServiceContext, file: CommitFileRow): boolean {
-  return listTaggingsByTarget(context.db, { targetType: "commit_file", targetId: file.id }).length > 0;
-}
-
-function hasAcceptedHumanDecision(context: ServiceContext, file: CommitFileRow): boolean {
-  return listDecisionsByTarget(context.db, { scope: "commit_file", targetId: file.id }, ["accepted"]).some(
-    (decision) => decision.finalizedByActorType === "human",
-  );
-}
-
-function getTargetTagSlugs(context: ServiceContext, targetType: "commit" | "commit_file", targetId: string) {
-  const primary: string[] = [];
-  const secondary: string[] = [];
-  for (const tagging of listTaggingsByTarget(context.db, { targetType, targetId })) {
-    const tag = findConcernTagById(context.db, tagging.tagId);
-    if (tag === undefined) {
-      throw invariantFailed("Tagging points at a missing concern tag.", { taggingId: tagging.id, tagId: tagging.tagId });
-    }
-    if (tagging.kind === "primary") {
-      primary.push(tag.slug);
-    } else {
-      secondary.push(tag.slug);
-    }
-  }
-  return { primary: primary[0], secondary };
 }
 
 function commentScope(row: CommentRow): ReviewEntityScope {

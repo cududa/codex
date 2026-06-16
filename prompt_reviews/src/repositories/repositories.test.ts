@@ -110,7 +110,7 @@ describe("commit and file repositories", () => {
     const commits = insertCommits(version.id, 3);
 
     expect(listCommitsByVersion(database.db, version.id)).toEqual(commits);
-    expect(listRemainingCommitsByVersion(database.db, version.id, { limit: 10 }).items).toEqual(commits);
+    expect(listRemainingCommitsByVersion(database.db, version.id, { limit: 10 }).data).toEqual(commits);
 
     const updated = updateCommitReviewFields(database.db, commits[0].id, {
       reviewStatus: "accepted",
@@ -118,7 +118,7 @@ describe("commit and file repositories", () => {
     });
 
     expect(updated).toMatchObject({ id: commits[0].id, reviewStatus: "accepted", updatedAt: 300 });
-    expect(listRemainingCommitsByVersion(database.db, version.id).items.map((row) => row.id)).toEqual([
+    expect(listRemainingCommitsByVersion(database.db, version.id).data.map((row) => row.id)).toEqual([
       commits[1].id,
       commits[2].id,
     ]);
@@ -157,9 +157,15 @@ describe("commit and file repositories", () => {
       limit: 2,
     });
 
-    expect(firstPage.items.map((row) => row.id)).toEqual([commits[0].id, commits[1].id]);
-    expect(secondPage.items.map((row) => row.id)).toEqual([commits[2].id, commits[3].id]);
-    expect(thirdPage.items.map((row) => row.id)).toEqual([commits[4].id]);
+    expect(firstPage).toMatchObject({
+      data: [commits[0], commits[1]],
+      returnedCount: 2,
+      totalCount: 5,
+      hasMore: true,
+    });
+    expect(secondPage.data.map((row) => row.id)).toEqual([commits[2].id, commits[3].id]);
+    expect(thirdPage.data.map((row) => row.id)).toEqual([commits[4].id]);
+    expect(thirdPage).toMatchObject({ returnedCount: 1, totalCount: 6, hasMore: false });
     expect(thirdPage.nextCursor).toBeNull();
   });
 
@@ -171,7 +177,7 @@ describe("commit and file repositories", () => {
     ]);
 
     expect(listCommitFilesByCommit(database.db, commit.id)).toEqual(files);
-    expect(listRemainingCommitFilesByCommit(database.db, commit.id, { limit: 10 }).items).toEqual(files);
+    expect(listRemainingCommitFilesByCommit(database.db, commit.id, { limit: 10 }).data).toEqual(files);
 
     const updated = updateCommitFileReviewFields(database.db, files[0].id, {
       reviewStatus: "needs_decision",
@@ -220,9 +226,15 @@ describe("commit and file repositories", () => {
       limit: 2,
     });
 
-    expect(firstPage.items.map((row) => row.id)).toEqual([files[0].id, files[1].id]);
-    expect(secondPage.items.map((row) => row.id)).toEqual([files[2].id, files[3].id]);
-    expect(thirdPage.items.map((row) => row.id)).toEqual([files[4].id]);
+    expect(firstPage).toMatchObject({
+      data: [files[0], files[1]],
+      returnedCount: 2,
+      totalCount: 5,
+      hasMore: true,
+    });
+    expect(secondPage.data.map((row) => row.id)).toEqual([files[2].id, files[3].id]);
+    expect(thirdPage.data.map((row) => row.id)).toEqual([files[4].id]);
+    expect(thirdPage).toMatchObject({ returnedCount: 1, totalCount: 6, hasMore: false });
     expect(thirdPage.nextCursor).toBeNull();
   });
 });

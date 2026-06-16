@@ -108,10 +108,7 @@ export async function registerVersionsRoutes(app: FastifyInstance): Promise<void
             cursor: query.cursor,
             limit: query.limit,
           })
-        : {
-            data: app.promptReviews.versions.getVersionDetail(params).commits,
-            nextCursor: null,
-          };
+        : app.promptReviews.read.listCommits(params);
     return reply.send(validateResponse(VersionCommitsResponseSchema, response));
   });
 

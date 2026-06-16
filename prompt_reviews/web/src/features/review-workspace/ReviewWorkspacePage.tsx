@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { FileCode2, GitCommit } from "lucide-react";
 import { ClassificationPanel } from "./components/ClassificationPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { CommitQueue } from "./components/CommitQueue";
@@ -8,6 +9,8 @@ import { FileReviewPane } from "./components/FileReviewPane";
 import { PlansPanel } from "./components/PlansPanel";
 import { VersionHeader } from "./components/VersionHeader";
 import { VersionRail } from "./components/VersionRail";
+import type { CommentLocation, CommitDetail, CommitFileDetail, CommitQueueItem } from "@/entities/review/types";
+import { cn } from "@/shared/lib/cn";
 import {
   scopeForSelection,
   useAddCommentMutation,
@@ -30,25 +33,26 @@ import {
   useUpdatePlanMutation,
   useVersionCommentsQuery,
   useVersionCommitsQuery,
-  useVersionDetailQuery,
   useVersionsQuery,
 } from "./hooks/reviewQueries";
 import { useReviewWorkspaceStore } from "./model/reviewWorkspaceStore";
+import type { ReviewFocus } from "./model/reviewWorkspaceStore";
 
 export function ReviewWorkspacePage() {
   const selectedVersionId = useReviewWorkspaceStore((state) => state.selectedVersionId);
   const selectedCommitId = useReviewWorkspaceStore((state) => state.selectedCommitId);
   const selectedFileId = useReviewWorkspaceStore((state) => state.selectedFileId);
   const selectedDiffBlockId = useReviewWorkspaceStore((state) => state.selectedDiffBlockId);
+  const reviewFocus = useReviewWorkspaceStore((state) => state.reviewFocus);
   const sourceRange = useReviewWorkspaceStore((state) => state.sourceRange);
   const setSelectedVersionId = useReviewWorkspaceStore((state) => state.setSelectedVersionId);
   const setSelectedCommitId = useReviewWorkspaceStore((state) => state.setSelectedCommitId);
   const setSelectedFileId = useReviewWorkspaceStore((state) => state.setSelectedFileId);
   const setSelectedDiffBlockId = useReviewWorkspaceStore((state) => state.setSelectedDiffBlockId);
+  const setReviewFocus = useReviewWorkspaceStore((state) => state.setReviewFocus);
   const setSourceRange = useReviewWorkspaceStore((state) => state.setSourceRange);
 
   const versionsQuery = useVersionsQuery();
-  const versionQuery = useVersionDetailQuery(selectedVersionId);
   const commitsQuery = useVersionCommitsQuery(selectedVersionId);
   const commitQuery = useCommitDetailQuery(selectedCommitId);
   const filesQuery = useCommitFilesQuery(selectedCommitId);
@@ -98,11 +102,11 @@ export function ReviewWorkspacePage() {
     }
     const firstFile = filesQuery.data.data[0];
     if (firstFile !== undefined) {
-      setSelectedFileId(firstFile.id);
+      setSelectedFileId(firstFile.id, { focus: false });
     }
   }, [filesQuery.data, selectedFileId, setSelectedFileId]);
 
-  const selectedVersion = versionQuery.data ?? versionsQuery.data?.find((version) => version.id === selectedVersionId);
+  const selectedVersion = versionsQuery.data?.find((version) => version.id === selectedVersionId);
   const missingCommitIds = useMemo(
     () => new Set(missingCommitDecisionsQuery.data?.target === "commit" ? missingCommitDecisionsQuery.data.data.map((commit) => commit.id) : []),
     [missingCommitDecisionsQuery.data],
@@ -111,11 +115,29 @@ export function ReviewWorkspacePage() {
     () => new Set(missingFileDecisionsQuery.data?.target === "file" ? missingFileDecisionsQuery.data.data.map((file) => file.id) : []),
     [missingFileDecisionsQuery.data],
   );
+  const visibleCommits = useMemo(
+    () => ensureSelectedCommitVisible(commitsQuery.data?.data ?? [], commitQuery.data),
+    [commitQuery.data, commitsQuery.data?.data],
+  );
+  const focusedFile = reviewFocus === "file" ? fileQuery.data : undefined;
+  const focusedDiffBlockId = reviewFocus === "file" ? selectedDiffBlockId : null;
+  const focusedSourceRange = reviewFocus === "file" ? sourceRange : null;
   const currentScope = scopeForSelection({
     versionId: selectedVersionId,
     commitId: selectedCommitId,
-    fileId: selectedFileId,
+    fileId: reviewFocus === "file" ? selectedFileId : null,
   });
+  const locateComment = (location: CommentLocation) => {
+    if (location.commit !== undefined) {
+      setSelectedCommitId(location.commit.id);
+    }
+    if (location.file !== undefined) {
+      setSelectedFileId(location.file.id);
+    }
+    setSelectedDiffBlockId(location.diffBlock?.id ?? null);
+    setReviewFocus(location.file === undefined ? "commit" : "file");
+    setSourceRange(null);
+  };
 
   return (
     <main className="grid h-screen min-h-[760px] grid-cols-[300px_minmax(0,1fr)_390px] bg-slate-100 text-slate-950">
@@ -124,7 +146,7 @@ export function ReviewWorkspacePage() {
         isLoading={versionsQuery.isLoading}
         onRefresh={() => void versionsQuery.refetch()}
         onSelect={setSelectedVersionId}
-        remainingWork={remainingWorkQuery.data ?? versionQuery.data?.remainingWork ?? []}
+        remainingWork={remainingWorkQuery.data ?? []}
         selectedVersionId={selectedVersionId}
         versions={versionsQuery.data ?? []}
       />
@@ -133,7 +155,7 @@ export function ReviewWorkspacePage() {
         <VersionHeader commit={commitQuery.data} version={selectedVersion} />
         <div className="grid min-h-0 grid-cols-[280px_300px_minmax(0,1fr)]">
           <CommitQueue
-            commits={commitsQuery.data?.data ?? versionQuery.data?.commits ?? []}
+            commits={visibleCommits}
             error={commitsQuery.error?.message}
             isLoading={commitsQuery.isLoading}
             missingDecisionIds={missingCommitIds}
@@ -163,10 +185,17 @@ export function ReviewWorkspacePage() {
       </section>
 
       <aside className="min-h-0 overflow-y-auto border-l border-slate-200 bg-white">
+        <ReviewFocusHeader
+          commit={commitQuery.data}
+          file={fileQuery.data}
+          focus={reviewFocus}
+          onFocusCommit={() => setReviewFocus("commit")}
+          onFocusFile={() => setReviewFocus("file")}
+        />
         <ClassificationPanel
           commit={commitQuery.data}
           error={classifyCommitMutation.error?.message ?? classifyFileMutation.error?.message}
-          file={fileQuery.data}
+          file={focusedFile}
           isSubmitting={classifyCommitMutation.isPending || classifyFileMutation.isPending}
           onClassifyCommit={(input) => classifyCommitMutation.mutateAsync(input)}
           onClassifyFile={(input) => classifyFileMutation.mutateAsync(input)}
@@ -179,20 +208,21 @@ export function ReviewWorkspacePage() {
             reopenCommentMutation.error?.message
           }
           commit={commitQuery.data}
-          file={fileQuery.data}
+          file={focusedFile}
           isSubmitting={addCommentMutation.isPending}
           onAddComment={(input) => addCommentMutation.mutateAsync(input)}
+          onLocateComment={locateComment}
           onReopen={(commentId, reason) => reopenCommentMutation.mutateAsync({ commentId, reason })}
           onResolve={(commentId, resolution) => resolveCommentMutation.mutateAsync({ commentId, resolution })}
-          selectedDiffBlockId={selectedDiffBlockId}
-          sourceRange={sourceRange}
+          selectedDiffBlockId={focusedDiffBlockId}
+          sourceRange={focusedSourceRange}
           version={selectedVersion}
           versionComments={commentsQuery.data ?? []}
         />
         <DecisionPanel
           commit={commitQuery.data}
           error={proposeDecisionMutation.error?.message ?? finalizeDecisionMutation.error?.message}
-          file={fileQuery.data}
+          file={focusedFile}
           isSubmitting={proposeDecisionMutation.isPending || finalizeDecisionMutation.isPending}
           onFinalize={(input) => finalizeDecisionMutation.mutateAsync(input)}
           onPropose={(input) => proposeDecisionMutation.mutateAsync(input)}
@@ -207,7 +237,7 @@ export function ReviewWorkspacePage() {
             updatePlanItemMutation.error?.message ??
             completePlanMutation.error?.message
           }
-          file={fileQuery.data}
+          file={focusedFile}
           isSubmitting={
             createPlanMutation.isPending ||
             updatePlanMutation.isPending ||
@@ -226,4 +256,90 @@ export function ReviewWorkspacePage() {
       </aside>
     </main>
   );
+}
+
+type ReviewFocusHeaderProps = {
+  commit: CommitDetail | undefined;
+  file: CommitFileDetail | undefined;
+  focus: ReviewFocus;
+  onFocusCommit: () => void;
+  onFocusFile: () => void;
+};
+
+function ReviewFocusHeader({ commit, file, focus, onFocusCommit, onFocusFile }: ReviewFocusHeaderProps) {
+  const effectiveFocus = focus === "file" && file !== undefined ? "file" : "commit";
+
+  return (
+    <section className="grid gap-3 border-b border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Review focus</h2>
+        <div className="grid grid-cols-2 rounded-md border border-slate-200 bg-white p-0.5 text-xs font-medium">
+          <button
+            className={focusButtonClass(effectiveFocus === "commit")}
+            disabled={commit === undefined}
+            onClick={onFocusCommit}
+            type="button"
+          >
+            <GitCommit className="size-3.5" aria-hidden="true" />
+            Commit
+          </button>
+          <button
+            className={focusButtonClass(effectiveFocus === "file")}
+            disabled={file === undefined}
+            onClick={onFocusFile}
+            type="button"
+          >
+            <FileCode2 className="size-3.5" aria-hidden="true" />
+            File
+          </button>
+        </div>
+      </div>
+      <div className="grid gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-950">
+          {effectiveFocus === "file" ? (
+            <FileCode2 className="size-4 shrink-0 text-slate-500" aria-hidden="true" />
+          ) : (
+            <GitCommit className="size-4 shrink-0 text-slate-500" aria-hidden="true" />
+          )}
+          <span className="truncate">{focusTitle(effectiveFocus, commit, file)}</span>
+        </div>
+        <div className="truncate text-xs text-slate-500">{focusSubtitle(effectiveFocus, commit, file)}</div>
+      </div>
+    </section>
+  );
+}
+
+function focusButtonClass(selected: boolean): string {
+  return cn(
+    "inline-flex h-7 items-center justify-center gap-1.5 rounded px-2 transition disabled:pointer-events-none disabled:opacity-40",
+    selected ? "bg-slate-950 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100",
+  );
+}
+
+function focusTitle(focus: ReviewFocus, commit: CommitDetail | undefined, file: CommitFileDetail | undefined): string {
+  if (focus === "file") {
+    return file?.path ?? "No file selected";
+  }
+  return commit === undefined ? "No commit selected" : shortSha(commit.sha);
+}
+
+function focusSubtitle(focus: ReviewFocus, commit: CommitDetail | undefined, file: CommitFileDetail | undefined): string {
+  if (focus === "file") {
+    return commit === undefined ? "File actions" : `${shortSha(commit.sha)} · file actions`;
+  }
+  return commit?.title ?? "Commit actions";
+}
+
+function shortSha(sha: string): string {
+  return sha.slice(0, 8);
+}
+
+function ensureSelectedCommitVisible(
+  commits: CommitQueueItem[],
+  selectedCommit: CommitDetail | undefined,
+): CommitQueueItem[] {
+  if (selectedCommit === undefined || commits.some((commit) => commit.id === selectedCommit.id)) {
+    return commits;
+  }
+  return [selectedCommit, ...commits];
 }

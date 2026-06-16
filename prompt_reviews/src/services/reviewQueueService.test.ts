@@ -34,26 +34,49 @@ describe("review queue service", () => {
     const { versionId, commit, allFiles } = seedQueue();
     const service = createReviewQueueService(context);
 
-    expect(service.listRemainingCommits({ versionId }).data).toEqual([
-      {
-        id: commit.id,
-        versionId,
-        sha: commit.sha,
-        title: commit.title,
-        authorName: undefined,
-        committedAt: undefined,
-        status: "unreviewed",
-        primaryTagSlug: undefined,
-        secondaryTagSlugs: [],
-        fileCount: allFiles.length,
-      },
-    ]);
-    expect(service.listRemainingFiles({ versionId }).data.map((file) => file.id)).toEqual(
-      allFiles.map((file) => file.id),
-    );
-    expect(service.listRemainingFiles({ commitId: commit.id, limit: 1 }).data.map((file) => file.id)).toEqual([
-      allFiles[0].id,
-    ]);
+    expect(service.listRemainingCommits({ versionId })).toEqual({
+      data: [
+        {
+          id: commit.id,
+          versionId,
+          sha: commit.sha,
+          title: commit.title,
+          authorName: undefined,
+          committedAt: undefined,
+          status: "unreviewed",
+          primaryTagSlug: undefined,
+          secondaryTagSlugs: [],
+          fileCount: allFiles.length,
+        },
+      ],
+      nextCursor: null,
+      returnedCount: 1,
+      totalCount: 1,
+      hasMore: false,
+    });
+    expect(service.listRemainingFiles({ versionId })).toMatchObject({
+      data: allFiles.map((file) => expect.objectContaining({ id: file.id })),
+      nextCursor: null,
+      returnedCount: allFiles.length,
+      totalCount: allFiles.length,
+      hasMore: false,
+    });
+
+    const firstFilePage = service.listRemainingFiles({ commitId: commit.id, limit: 1 });
+    expect(firstFilePage).toMatchObject({
+      data: [expect.objectContaining({ id: allFiles[0].id })],
+      returnedCount: 1,
+      totalCount: allFiles.length,
+      hasMore: true,
+    });
+
+    const secondFilePage = service.listRemainingFiles({ commitId: commit.id, cursor: firstFilePage.nextCursor, limit: 1 });
+    expect(secondFilePage).toMatchObject({
+      data: [expect.objectContaining({ id: allFiles[1].id })],
+      returnedCount: 1,
+      totalCount: allFiles.length,
+      hasMore: true,
+    });
   });
 
   it("reports missing decisions, open comments, open plans, and remaining-work groups", () => {

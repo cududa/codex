@@ -18,7 +18,7 @@ import {
 import { createServiceContext, type RootServiceContext } from "../services/serviceContext.js";
 import { importLegacyCommentsJson } from "./commentsJsonImport.js";
 import { exportMarkdownReport } from "./exportMarkdownReport.js";
-import { parseLegacyMarkdownReview, summarizeLegacyMarkdownReview } from "./markdownImport.js";
+import { parseLegacyMarkdownReview, resolveLegacyCommentTarget, summarizeLegacyMarkdownReview } from "./markdownImport.js";
 
 let database: TempPromptReviewsDatabase;
 let context: RootServiceContext;
@@ -121,6 +121,28 @@ describe("legacy import", () => {
 
     const unmatched = summarizeLegacyMarkdownReview(database.db, { ...markdown, commit: "missing-sha" });
     expect(unmatched.warnings.map((item) => item.code)).toEqual(["legacy_markdown_missing_commit"]);
+  });
+
+  it("matches legacy displayed diff markers to raw git patch markers", () => {
+    const markdown = parseLegacyMarkdownReview(markdownPath, readFixtureMarkdown());
+    const [block] = listDiffBlocksByCommitFile(database.db, target.file.id);
+    database.sqlite
+      .prepare("update diff_blocks set patch = ? where id = ?")
+      .run("-old objective wrapper\n+new objective wrapper", block.id);
+
+    const resolved = resolveLegacyCommentTarget(database.db, { ...markdown, blocks: [] }, {
+      selectedText: "+ new objective wrapper",
+    });
+
+    expect(resolved).toEqual({
+      scope: { type: "diff_block", diffBlockId: block.id },
+      anchor: { kind: "block", diffBlockId: block.id },
+      warnings: [],
+      matchedVersionId: target.version.id,
+      matchedCommitId: target.commit.id,
+      matchedCommitFileId: target.file.id,
+      matchedDiffBlockId: block.id,
+    });
   });
 
   it("does not require legacy schema columns", () => {

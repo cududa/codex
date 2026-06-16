@@ -75,14 +75,25 @@ describe("prompt reviews API with a temp database", () => {
     });
 
     const firstPage = await injectJson("GET", `/api/versions/${seeded.versionId}/commits?remaining=true&limit=1`);
-    expect(firstPage.data.map((commit: { id: string }) => commit.id)).toEqual([seeded.firstCommitId]);
+    expect(firstPage).toMatchObject({
+      data: [expect.objectContaining({ id: seeded.firstCommitId })],
+      returnedCount: 1,
+      totalCount: 2,
+      hasMore: true,
+    });
     expect(firstPage.nextCursor).toEqual(expect.any(String));
 
     const secondPage = await injectJson(
       "GET",
       `/api/versions/${seeded.versionId}/commits?remaining=true&limit=1&cursor=${encodeURIComponent(firstPage.nextCursor)}`,
     );
-    expect(secondPage.data.map((commit: { id: string }) => commit.id)).toEqual([seeded.secondCommitId]);
+    expect(secondPage).toMatchObject({
+      data: [expect.objectContaining({ id: seeded.secondCommitId })],
+      nextCursor: null,
+      returnedCount: 1,
+      totalCount: 2,
+      hasMore: false,
+    });
 
     const files = await injectJson("GET", `/api/commits/${seeded.firstCommitId}/files?remaining=true`);
     expect(files).toMatchObject({
@@ -95,6 +106,9 @@ describe("prompt reviews API with a temp database", () => {
         },
       ],
       nextCursor: null,
+      returnedCount: 1,
+      totalCount: 1,
+      hasMore: false,
     });
 
     await classifyCommit(seeded.firstCommitId);

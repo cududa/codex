@@ -7,6 +7,8 @@ export const ListCommitFilesInputSchema = z
   .object({
     commitId: IdSchema,
     remaining: z.boolean().optional().default(true),
+    cursor: IdSchema.nullable().optional(),
+    limit: z.number().int().positive().optional(),
   })
   .strict();
 
@@ -17,7 +19,8 @@ export const ListCommitFilesToolOutputSchema = paginatedResponseSchema(CommitFil
 export const listCommitFilesTool = {
   name: "list_commit_files",
   title: "List commit files",
-  description: "List structured file queue entries for a commit.",
+  description:
+    "List structured file queue entries for a commit. Responses include returnedCount, totalCount, hasMore, and nextCursor.",
   inputSchema: ListCommitFilesInputSchema,
   outputSchema: ListCommitFilesToolOutputSchema,
   handler(context, input) {
@@ -30,7 +33,9 @@ export const listCommitFilesTool = {
         description:
           firstFile === undefined
             ? "Classify the commit after its file queue is reviewed."
-            : "Open the structured file review, including diff blocks.",
+            : page.hasMore
+              ? "Open the first returned file now; call list_commit_files again with nextCursor when this page is reviewed."
+              : "Open the structured file review, including diff blocks.",
       },
     };
   },

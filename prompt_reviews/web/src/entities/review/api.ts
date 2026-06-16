@@ -31,7 +31,7 @@ import type {
   DecisionScope,
   FinalizeDecisionParams,
   MissingDecisionsResponse,
-  Page,
+  PaginatedResult,
   PlanDetail,
   PlanItemDetail,
   RemainingWork,
@@ -84,8 +84,18 @@ export async function getVersionDetail(versionId: string): Promise<VersionDetail
   return VersionDetailSchema.parse(payload);
 }
 
-export async function listVersionCommits(versionId: string, remaining = true): Promise<Page<CommitQueueItem>> {
+export async function listVersionCommits(
+  versionId: string,
+  remaining = true,
+  options: { cursor?: string | null; limit?: number } = {},
+): Promise<PaginatedResult<CommitQueueItem>> {
   const query = new URLSearchParams({ remaining: String(remaining) });
+  if (options.cursor !== undefined && options.cursor !== null) {
+    query.set("cursor", options.cursor);
+  }
+  if (options.limit !== undefined) {
+    query.set("limit", String(options.limit));
+  }
   const payload = await requestJson<unknown>(`/api/versions/${encodeURIComponent(versionId)}/commits?${query}`);
   return CommitPageSchema.parse(payload);
 }
@@ -95,8 +105,18 @@ export async function getCommitDetail(commitId: string): Promise<CommitDetail> {
   return CommitDetailSchema.parse(payload);
 }
 
-export async function listCommitFiles(commitId: string, remaining = false): Promise<Page<CommitFileQueueItem>> {
+export async function listCommitFiles(
+  commitId: string,
+  remaining = false,
+  options: { cursor?: string | null; limit?: number } = {},
+): Promise<PaginatedResult<CommitFileQueueItem>> {
   const query = new URLSearchParams({ remaining: String(remaining) });
+  if (options.cursor !== undefined && options.cursor !== null) {
+    query.set("cursor", options.cursor);
+  }
+  if (options.limit !== undefined) {
+    query.set("limit", String(options.limit));
+  }
   const payload = await requestJson<unknown>(`/api/commits/${encodeURIComponent(commitId)}/files?${query}`);
   return FilePageSchema.parse(payload);
 }

@@ -4,16 +4,40 @@ import {
   type CommitDetail,
   type CommitQueueItem,
 } from "../../domain/schemas/index.js";
-import { listCommitFilesByCommit, type CommitRow } from "../../repositories/index.js";
+import {
+  countCommitFilesByCommitIds,
+  listCommitFilesByCommit,
+  listTagSlugsByTargets,
+  type CommitRow,
+  type TargetTagSlugs,
+} from "../../repositories/index.js";
 import type { ServiceContext } from "../serviceContext.js";
 import { targetComments, toCommentSummary } from "./commentViews.js";
 import { targetDecisions, toDecisionSummary } from "./decisionViews.js";
 import { toCommitFileDetail, toCommitFileQueueItem } from "./fileViews.js";
 import { targetPlans, toPlanSummary } from "./planViews.js";
-import { targetTaggings, targetTagSlugs } from "./tagViews.js";
+import { targetTaggings } from "./tagViews.js";
 
 export function toCommitQueueItem(context: ServiceContext, row: CommitRow): CommitQueueItem {
-  const tagSlugs = targetTagSlugs(context, { targetType: "commit", targetId: row.id });
+  const [item] = toCommitQueueItems(context, [row]);
+  if (item === undefined) {
+    throw new Error("Expected commit queue item.");
+  }
+  return item;
+}
+
+export function toCommitQueueItems(context: ServiceContext, rows: readonly CommitRow[]): CommitQueueItem[] {
+  const commitIds = rows.map((row) => row.id);
+  const fileCounts = countCommitFilesByCommitIds(context.db, commitIds);
+  const tagSlugsByTarget = listTagSlugsByTargets(context.db, "commit", commitIds);
+  return rows.map((row) => toCommitQueueItemWithSummary(row, fileCounts.get(row.id) ?? 0, tagSlugsByTarget.get(row.id)));
+}
+
+function toCommitQueueItemWithSummary(
+  row: CommitRow,
+  fileCount: number,
+  tagSlugs: TargetTagSlugs | undefined,
+): CommitQueueItem {
   return CommitQueueItemSchema.parse({
     id: row.id,
     versionId: row.versionId,
@@ -22,9 +46,9 @@ export function toCommitQueueItem(context: ServiceContext, row: CommitRow): Comm
     authorName: row.authorName ?? undefined,
     committedAt: row.committedAt ?? undefined,
     status: row.reviewStatus,
-    primaryTagSlug: tagSlugs.primary,
-    secondaryTagSlugs: tagSlugs.secondary,
-    fileCount: listCommitFilesByCommit(context.db, row.id).length,
+    primaryTagSlug: tagSlugs?.primary,
+    secondaryTagSlugs: tagSlugs?.secondary ?? [],
+    fileCount,
   });
 }
 

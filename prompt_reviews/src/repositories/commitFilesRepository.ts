@@ -1,13 +1,13 @@
-import { and, asc, eq, gt, inArray, or } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import type { ReviewStatus } from "../domain/enums.js";
-import { commitFiles, commits } from "../db/schema.js";
+import { paginatedResult, type PaginatedResult } from "../domain/schemas/index.js";
+import { commitFiles, commits, decisions, taggings } from "../db/schema.js";
 import { unixSecondsNow } from "../db/timestamps.js";
 import {
   decodeCursor,
   encodeCursor,
   normalizeLimit,
   type CursorLimit,
-  type Page,
   type RepositoryDatabase,
 } from "./database.js";
 
@@ -69,17 +69,111 @@ export function listCommitFilesByVersion(db: RepositoryDatabase, versionId: stri
     .map((row) => row.file);
 }
 
+export function countCommitFilesByCommitIds(db: RepositoryDatabase, commitIds: readonly string[]): Map<string, number> {
+  const counts = new Map(commitIds.map((commitId) => [commitId, 0]));
+  if (commitIds.length === 0) {
+    return counts;
+  }
+
+  for (const row of db
+    .select({ commitId: commitFiles.commitId, fileCount: count() })
+    .from(commitFiles)
+    .where(inArray(commitFiles.commitId, commitIds))
+    .groupBy(commitFiles.commitId)
+    .all()) {
+    counts.set(row.commitId, row.fileCount);
+  }
+  return counts;
+}
+
+export function countRemainingCommitFilesByCommit(
+  db: RepositoryDatabase,
+  commitId: string,
+  options: { statuses?: readonly ReviewStatus[] } = {},
+): number {
+  const statuses = options.statuses ?? defaultRemainingStatuses;
+  if (statuses.length === 0) {
+    return 0;
+  }
+  return db
+    .select({ value: count() })
+    .from(commitFiles)
+    .where(and(eq(commitFiles.commitId, commitId), inArray(commitFiles.reviewStatus, statuses)))
+    .get()?.value ?? 0;
+}
+
+export function countRemainingCommitFilesByVersion(
+  db: RepositoryDatabase,
+  versionId: string,
+  options: { statuses?: readonly ReviewStatus[] } = {},
+): number {
+  const statuses = options.statuses ?? defaultRemainingStatuses;
+  if (statuses.length === 0) {
+    return 0;
+  }
+  return db
+    .select({ value: count() })
+    .from(commitFiles)
+    .innerJoin(commits, eq(commits.id, commitFiles.commitId))
+    .where(and(eq(commits.versionId, versionId), inArray(commitFiles.reviewStatus, statuses)))
+    .get()?.value ?? 0;
+}
+
+export function listUntaggedCommitFilesByVersion(db: RepositoryDatabase, versionId: string): CommitFileRow[] {
+  return db
+    .select({ file: commitFiles })
+    .from(commitFiles)
+    .innerJoin(commits, eq(commits.id, commitFiles.commitId))
+    .leftJoin(
+      taggings,
+      and(eq(taggings.targetType, "commit_file"), eq(taggings.targetId, commitFiles.id)),
+    )
+    .where(and(eq(commits.versionId, versionId), isNull(taggings.id)))
+    .orderBy(asc(commits.ordinal), asc(commitFiles.createdAt), asc(commitFiles.id))
+    .all()
+    .map((row) => row.file);
+}
+
+export function listTaggedCommitFilesMissingHumanAcceptedDecisionByVersion(
+  db: RepositoryDatabase,
+  versionId: string,
+): CommitFileRow[] {
+  const rows = db
+    .select({ file: commitFiles })
+    .from(commitFiles)
+    .innerJoin(commits, eq(commits.id, commitFiles.commitId))
+    .innerJoin(
+      taggings,
+      and(eq(taggings.targetType, "commit_file"), eq(taggings.targetId, commitFiles.id)),
+    )
+    .leftJoin(
+      decisions,
+      and(
+        eq(decisions.scope, "commit_file"),
+        eq(decisions.commitFileId, commitFiles.id),
+        eq(decisions.status, "accepted"),
+        eq(decisions.finalizedByActorType, "human"),
+      ),
+    )
+    .where(and(eq(commits.versionId, versionId), isNull(decisions.id)))
+    .orderBy(asc(commits.ordinal), asc(commitFiles.createdAt), asc(commitFiles.id))
+    .all();
+
+  return uniqueFiles(rows.map((row) => row.file));
+}
+
 export function listRemainingCommitFilesByCommit(
   db: RepositoryDatabase,
   commitId: string,
   options: CommitFileQueueOptions = {},
-): Page<CommitFileRow> {
+): PaginatedResult<CommitFileRow> {
   const cursor = decodeCursor<CommitFileQueueCursor>(options.cursor);
   const limit = normalizeLimit(options.limit);
   const statuses = options.statuses ?? defaultRemainingStatuses;
   if (statuses.length === 0) {
-    return { items: [], nextCursor: null };
+    return paginatedResult([], null, 0);
   }
+  const totalCount = countRemainingCommitFilesByCommit(db, commitId, { statuses });
 
   const rows = db
     .select()
@@ -100,20 +194,21 @@ export function listRemainingCommitFilesByCommit(
     .limit(limit + 1)
     .all();
 
-  return pageFromCommitFileRows(rows, limit);
+  return pageFromCommitFileRows(rows, limit, totalCount);
 }
 
 export function listRemainingCommitFilesByVersion(
   db: RepositoryDatabase,
   versionId: string,
   options: CommitFileQueueOptions = {},
-): Page<CommitFileRow> {
+): PaginatedResult<CommitFileRow> {
   const cursor = decodeCursor<CommitFileVersionQueueCursor>(options.cursor);
   const limit = normalizeLimit(options.limit);
   const statuses = options.statuses ?? defaultRemainingStatuses;
   if (statuses.length === 0) {
-    return { items: [], nextCursor: null };
+    return paginatedResult([], null, 0);
   }
+  const totalCount = countRemainingCommitFilesByVersion(db, versionId, { statuses });
 
   const rows = db
     .select({ file: commitFiles, ordinal: commits.ordinal })
@@ -141,7 +236,7 @@ export function listRemainingCommitFilesByVersion(
     .limit(limit + 1)
     .all();
 
-  return pageFromCommitFileVersionRows(rows, limit);
+  return pageFromCommitFileVersionRows(rows, limit, totalCount);
 }
 
 export type CommitFileReviewUpdate = {
@@ -187,27 +282,40 @@ export function updateCommitFileStatusOverride(
     .get();
 }
 
-function pageFromCommitFileRows(rows: CommitFileRow[], limit: number): Page<CommitFileRow> {
-  const items = rows.slice(0, limit);
-  const last = items.at(-1);
-  return {
-    items,
-    nextCursor:
-      rows.length > limit && last !== undefined ? encodeCursor({ createdAt: last.createdAt, id: last.id }) : null,
-  };
+function pageFromCommitFileRows(
+  rows: CommitFileRow[],
+  limit: number,
+  totalCount: number,
+): PaginatedResult<CommitFileRow> {
+  const data = rows.slice(0, limit);
+  const last = data.at(-1);
+  const nextCursor =
+    rows.length > limit && last !== undefined ? encodeCursor({ createdAt: last.createdAt, id: last.id }) : null;
+  return paginatedResult(data, nextCursor, totalCount);
+}
+
+function uniqueFiles(rows: CommitFileRow[]): CommitFileRow[] {
+  const unique = new Map<string, CommitFileRow>();
+  for (const row of rows) {
+    unique.set(row.id, row);
+  }
+  return [...unique.values()];
 }
 
 function pageFromCommitFileVersionRows(
   rows: { file: CommitFileRow; ordinal: number }[],
   limit: number,
-): Page<CommitFileRow> {
-  const items = rows.slice(0, limit);
-  const last = items.at(-1);
-  return {
-    items: items.map((row) => row.file),
-    nextCursor:
-      rows.length > limit && last !== undefined
-        ? encodeCursor({ ordinal: last.ordinal, createdAt: last.file.createdAt, id: last.file.id })
-        : null,
-  };
+  totalCount: number,
+): PaginatedResult<CommitFileRow> {
+  const data = rows.slice(0, limit);
+  const last = data.at(-1);
+  const nextCursor =
+    rows.length > limit && last !== undefined
+      ? encodeCursor({ ordinal: last.ordinal, createdAt: last.file.createdAt, id: last.file.id })
+      : null;
+  return paginatedResult(
+    data.map((row) => row.file),
+    nextCursor,
+    totalCount,
+  );
 }

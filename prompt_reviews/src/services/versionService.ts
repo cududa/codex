@@ -1,24 +1,21 @@
 import { z } from "zod";
 import {
   CloseVersionParamsSchema,
-  CommitQueueItemSchema,
   PopulateNextVersionParamsSchema,
   VersionDetailSchema,
   VersionSummarySchema,
   type CloseVersionParams,
-  type CommitQueueItem,
   type PopulateNextVersionResponse,
+  type RemainingWork,
   type VersionDetail,
   type VersionProgress,
   type VersionSummary,
 } from "../domain/schemas/index.js";
 import type { GitClient } from "../git/gitClient.js";
 import {
-  findConcernTagById,
   findVersionById,
-  listCommitFilesByCommit,
+  listCommitFilesByVersion,
   listCommitsByVersion,
-  listTaggingsByTarget,
   listVersions as listVersionRows,
   updateVersionStatus,
   type CommitRow,
@@ -26,6 +23,7 @@ import {
 } from "../repositories/index.js";
 import { createIngestionService } from "./ingestionService.js";
 import { invariantFailed, notFound, validationFailed } from "./errors.js";
+import { toCommitQueueItems } from "./reviewRead/commitViews.js";
 import { createReviewQueueService } from "./reviewQueueService.js";
 import { type RootServiceContext } from "./serviceContext.js";
 import { recomputeVersionStatus } from "./statusService.js";
@@ -84,14 +82,15 @@ export function listVersions(context: RootServiceContext, params: ListVersionsPa
 export function getVersionDetail(context: RootServiceContext, params: unknown): VersionDetail {
   const command = parseParams(GetVersionDetailParamsSchema, params, "Invalid get version detail params.");
   const version = findRequiredVersion(context, command.versionId);
-  const queue = createReviewQueueService(context);
+  const remainingWork = createReviewQueueService(context).getRemainingWork({ versionId: version.id });
+  const commits = listCommitsByVersion(context.db, version.id);
 
   return VersionDetailSchema.parse({
-    ...toVersionSummary(context, version),
+    ...toVersionSummary(context, version, remainingWork),
     description: version.description ?? undefined,
-    commits: listCommitsByVersion(context.db, version.id).map((commit) => toCommitQueueItem(context, commit)),
+    commits: toCommitQueueItems(context, commits),
     selectedCommit: undefined,
-    remainingWork: queue.getRemainingWork({ versionId: version.id }),
+    remainingWork,
   });
 }
 
@@ -144,7 +143,7 @@ function closeVersionWithHuman(context: RootServiceContext, command: CloseVersio
   return toVersionSummary(context, closed);
 }
 
-function toVersionSummary(context: RootServiceContext, row: VersionRow): VersionSummary {
+function toVersionSummary(context: RootServiceContext, row: VersionRow, remainingWork?: RemainingWork[]): VersionSummary {
   return VersionSummarySchema.parse({
     id: row.id,
     label: row.label,
@@ -152,59 +151,27 @@ function toVersionSummary(context: RootServiceContext, row: VersionRow): Version
     createdAt: row.createdAt,
     updatedAt: row.updatedAt ?? undefined,
     closedAt: row.closedAt ?? undefined,
-    progress: versionProgress(context, row.id),
+    progress: versionProgress(context, row.id, remainingWork),
   });
 }
 
-function versionProgress(context: RootServiceContext, versionId: string): VersionProgress {
+function versionProgress(context: RootServiceContext, versionId: string, remainingWorkInput?: RemainingWork[]): VersionProgress {
   const commits = listCommitsByVersion(context.db, versionId);
-  const files = commits.flatMap((commit) => listCommitFilesByCommit(context.db, commit.id));
-  const queue = createReviewQueueService(context);
-  const remainingWork = queue.getRemainingWork({ versionId }).filter((work) => work.kind !== "version_closure");
+  const files = listCommitFilesByVersion(context.db, versionId);
+  const remainingWork = (remainingWorkInput ?? createReviewQueueService(context).getRemainingWork({ versionId })).filter(
+    (work) => work.kind !== "version_closure",
+  );
 
   return {
     totalCommits: commits.length,
     reviewedCommits: commits.filter((commit) => isReviewedStatus(commit.reviewStatus)).length,
     totalFiles: files.length,
     reviewedFiles: files.filter((file) => isReviewedStatus(file.reviewStatus)).length,
-    unresolvedComments: queue.listOpenComments({ versionId }).length,
-    pendingDecisions: queue.listMissingDecisions({ versionId }).length,
-    incompletePlans: queue.listOpenPlans({ versionId }).length,
+    unresolvedComments: remainingWork.find((work) => work.kind === "comment")?.count ?? 0,
+    pendingDecisions: remainingWork.find((work) => work.kind === "decision")?.count ?? 0,
+    incompletePlans: remainingWork.find((work) => work.kind === "plan")?.count ?? 0,
     remainingWorkCount: remainingWork.reduce((total, work) => total + work.count, 0),
   };
-}
-
-function toCommitQueueItem(context: RootServiceContext, row: CommitRow): CommitQueueItem {
-  const tagSlugs = getTargetTagSlugs(context, "commit", row.id);
-  return CommitQueueItemSchema.parse({
-    id: row.id,
-    versionId: row.versionId,
-    sha: row.sha,
-    title: row.title,
-    authorName: row.authorName ?? undefined,
-    committedAt: row.committedAt ?? undefined,
-    status: row.reviewStatus,
-    primaryTagSlug: tagSlugs.primary,
-    secondaryTagSlugs: tagSlugs.secondary,
-    fileCount: listCommitFilesByCommit(context.db, row.id).length,
-  });
-}
-
-function getTargetTagSlugs(context: RootServiceContext, targetType: "commit" | "commit_file", targetId: string) {
-  const primary: string[] = [];
-  const secondary: string[] = [];
-  for (const tagging of listTaggingsByTarget(context.db, { targetType, targetId })) {
-    const tag = findConcernTagById(context.db, tagging.tagId);
-    if (tag === undefined) {
-      throw invariantFailed("Tagging points at a missing concern tag.", { taggingId: tagging.id, tagId: tagging.tagId });
-    }
-    if (tagging.kind === "primary") {
-      primary.push(tag.slug);
-    } else {
-      secondary.push(tag.slug);
-    }
-  }
-  return { primary: primary[0], secondary };
 }
 
 function findRequiredVersion(context: RootServiceContext, versionId: string): VersionRow {

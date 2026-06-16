@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { DecisionScopeType, PlanItemStatus, PlanStatus } from "../domain/enums.js";
-import { planComments, planDecisions, planDiffBlocks, planItems, plans } from "../db/schema.js";
+import { commitFiles, commits, planComments, planDecisions, planDiffBlocks, planItems, plans } from "../db/schema.js";
 import { unixSecondsNow } from "../db/timestamps.js";
 import type { RepositoryDatabase } from "./database.js";
 
@@ -193,6 +193,58 @@ export function listIncompleteAcceptedPlanItemsByTarget(
     .all();
 }
 
+export function listIncompleteAcceptedPlansByVersion(db: RepositoryDatabase, versionId: string): PlanRow[] {
+  const versionPlans = db
+    .select({ plan: plans })
+    .from(plans)
+    .innerJoin(planItems, eq(planItems.planId, plans.id))
+    .where(
+      and(
+        eq(plans.scope, "version"),
+        eq(plans.versionId, versionId),
+        eq(plans.status, "accepted"),
+        inArray(planItems.status, incompleteAcceptedPlanItemStatuses),
+      ),
+    )
+    .all()
+    .map((row) => row.plan);
+  const commitPlans = db
+    .select({ plan: plans })
+    .from(plans)
+    .innerJoin(planItems, eq(planItems.planId, plans.id))
+    .innerJoin(commits, eq(commits.id, plans.commitId))
+    .where(
+      and(
+        eq(plans.scope, "commit"),
+        eq(commits.versionId, versionId),
+        eq(plans.status, "accepted"),
+        inArray(planItems.status, incompleteAcceptedPlanItemStatuses),
+      ),
+    )
+    .all()
+    .map((row) => row.plan);
+  const filePlans = db
+    .select({ plan: plans })
+    .from(plans)
+    .innerJoin(planItems, eq(planItems.planId, plans.id))
+    .innerJoin(commitFiles, eq(commitFiles.id, plans.commitFileId))
+    .innerJoin(commits, eq(commits.id, commitFiles.commitId))
+    .where(
+      and(
+        eq(plans.scope, "commit_file"),
+        eq(commits.versionId, versionId),
+        eq(plans.status, "accepted"),
+        inArray(planItems.status, incompleteAcceptedPlanItemStatuses),
+      ),
+    )
+    .all()
+    .map((row) => row.plan);
+
+  return uniquePlans([...versionPlans, ...commitPlans, ...filePlans]).sort(
+    (left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id),
+  );
+}
+
 function planTargetCondition(target: PlanTarget) {
   if (target.scope === "version") {
     return eq(plans.versionId, target.targetId);
@@ -201,4 +253,12 @@ function planTargetCondition(target: PlanTarget) {
     return eq(plans.commitId, target.targetId);
   }
   return eq(plans.commitFileId, target.targetId);
+}
+
+function uniquePlans(rows: PlanRow[]): PlanRow[] {
+  const unique = new Map<string, PlanRow>();
+  for (const row of rows) {
+    unique.set(row.id, row);
+  }
+  return [...unique.values()];
 }
