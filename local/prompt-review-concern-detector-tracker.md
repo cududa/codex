@@ -106,11 +106,77 @@ Status legend:
     - 2026-06-16: Batch 2 was committed in a focused git commit excluding
       unrelated `AGENTS.md` and `prompt_reviews/REFACTOR.md`.
 
-- [ ] Batch 3: graph builder and detector engine.
+- [x] Batch 3: graph builder and detector engine.
   - Requirements reference: lines 854-901, 1040-1055, 1148-1163.
   - Must deliver: seed graph builder, bounded expansion, commit/file/diff
     detection, diff-block mapping, persistence, deterministic rerun behavior.
   - Completion notes:
+    - 2026-06-16: Started Batch 3 after Batch 2 commit `12a785f366`.
+      Scope is the graph-builder/detector engine required by lines 854-901,
+      1040-1055, and 1148-1163. This batch must not claim ingestion hook
+      automation or MCP/UI surfacing; those remain Batch 4/5.
+    - 2026-06-16: Subagent `019ed289-993b-7c90-8588-ee76dd8f34aa`
+      recommended splitting Batch 3 into three implementation milestones:
+      graph builder/bounded expansion (`src/detector/graph/*`), diff mapping
+      (`src/detector/diff/*`), and engine/persistence
+      (`src/detector/engine/*`). Split accepted because it preserves the full
+      Batch 3 scope while keeping write scopes reviewable.
+    - 2026-06-16: Graph milestone completed by subagent
+      `019ed289-993b-7c90-8588-ee76dd8f34aa`. Added deterministic seed graph
+      construction, extractor/scanner graph nodes, bounded one-hop expansion,
+      per-concern edge allow-list filtering, and expansion metadata. Subagent
+      reported focused graph tests, structure check, typecheck, and full
+      `npm test` passing.
+    - 2026-06-16: Diff mapping milestone completed by subagent
+      `019ed28c-ca8c-73e3-9030-3e090325ee2e`. Added unified diff changed-line
+      extraction, commit-file/diff-block mapping, old/new side ranges,
+      `mapSourceRangeToDiff(...)`, path-only fallback behavior, and focused
+      diff mapping tests. Subagent reported focused diff tests, structure
+      check, typecheck, and full `npm test` passing.
+    - 2026-06-16: Local integrated verification passed for graph+diff focused
+      tests (2 files, 11 tests), `npm run test:structure`, and
+      `npm run typecheck`. Engine/persistence milestone is next.
+    - 2026-06-16: Engine/persistence subagent
+      `019ed292-d7e0-7d43-97dc-258a912fc5ec` checkpointed with no files changed
+      yet, no blocker, and committed to implement
+      `src/detector/engine/runDetector.ts` plus focused tests next.
+    - 2026-06-16: Engine/persistence subagent
+      `019ed292-d7e0-7d43-97dc-258a912fc5ec` returned the same no-files
+      checkpoint and was closed. Engine/persistence remains unimplemented and
+      is being reassigned to a fresh subagent.
+    - 2026-06-16: Reassigned engine/persistence subagent
+      `019ed296-7dff-7190-a3a8-f6bbe786ee72` also returned a no-progress
+      checkpoint and was closed. Engine work is being split further into
+      engine-core finding construction followed by persistence/rerun/sequential
+      repository integration, preserving the full Batch 3 scope.
+    - 2026-06-16: Engine-core subagent
+      `019ed29a-39c7-7860-9766-fabdc5fae688` also returned no progress and was
+      closed. Next engine-core reassignment will be test-first with exact
+      function signatures and current graph/diff contracts.
+    - 2026-06-16: Engine-core finding builder completed by subagent
+      `019ed29e-2d0b-7393-addc-cd3225c29d62`. Added
+      `src/detector/engine/*` finding builder/types/tests that produce
+      deterministic detector finding inserts from graph nodes plus diff
+      mappings, including high/medium/low confidence behavior and stable keys.
+      Persistence/rerun/sequential repository integration remains.
+    - 2026-06-16: Persistence/rerun reassignment subagent
+      `019ed2a4-107f-7f53-8ddd-85f9b88fc2df` returned a no-progress checkpoint
+      and was closed. Remaining Batch 3 work is being reassigned as a narrower
+      `runDetector` persistence slice with explicit repository contracts.
+    - 2026-06-16: Persistence/rerun/sequential integration completed by
+      subagent `019ed2a9-05e8-76d1-a650-d2134b1099f7`. Added detector runner
+      persistence for runs, graph nodes, graph edges, findings, graph-node-id
+      mapping, deterministic same-run replacement, review-artifact separation,
+      and sequential A/B expanded-node detection tests.
+    - 2026-06-16: Parent review found a stale graph rerun gap when a refreshed
+      concern/source scope becomes empty. Sent correction back to the same
+      subagent. Correction added explicit `graphReplacementScopes`, empty-scope
+      stale node/edge deletion, root-database transaction rollback, and focused
+      regression tests.
+    - 2026-06-16: Final Batch 3 gates passed locally: focused graph/diff/engine
+      tests (5 files, 22 tests), `npm run test:structure`, `npm run typecheck`,
+      `npm run db:check`, full `npm test` (42 files, 181 tests), and
+      `npm run build`. Batch 3 is complete and ready for its focused commit.
 
 - [ ] Batch 4: ingestion and post-commit automation.
   - Requirements reference: lines 42-56, 925-956, 1057-1073, 1165-1178.
