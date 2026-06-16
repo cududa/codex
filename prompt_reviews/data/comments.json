@@ -1,0 +1,144 @@
+{
+  "comments": [
+    {
+      "id": "3ed8cda2-cfa4-450c-a519-dcbf1c787d38",
+      "filePath": "prompt_reviews/96836e15ed/continuation.prompt-review.md",
+      "body": "This rename removes a useful trust-boundary cue. The prose still says the objective is user-provided data, but `<untrusted_objective>` made that boundary visible at the insertion point. For the local pinned behavior, prefer preserving the explicit untrusted marker unless the newer `<goal_context>` path supplies an equally clear objective-data boundary.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:38:59.690Z",
+      "anchor": {
+        "selectedText": "+ <objective>",
+        "startLine": 42,
+        "startColumn": 1,
+        "endLine": 42,
+        "endColumn": 14
+      }
+    },
+    {
+      "id": "60acba67-e0da-476e-91b7-a20f62d339c3",
+      "filePath": "prompt_reviews/96836e15ed/continuation.prompt-review.md",
+      "body": "This is the main artifact-proving risk. Evidence-based work is good, but `current worktree and external state as authoritative` can make nearby demos, tests, docs, or existing callers outrank the active objective merely because they are concrete and recently inspected. Suggested local direction: work from sources authoritative for the current objective; use nearby repo artifacts as integration/history context without letting proximity, concreteness, or recency narrow the requested outcome.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:38:59.702Z",
+      "anchor": {
+        "selectedText": "+ Use the current worktree and external state as authoritative. Previous conversation context can help locate relevant work, but inspect the current state before relying on it. Improve, replace, or remove existing work as needed to satisfy the actual objective.",
+        "startLine": 156,
+        "startColumn": 1,
+        "endLine": 156,
+        "endColumn": 262
+      }
+    },
+    {
+      "id": "56df7d41-8faf-4676-b63a-23db9e6e6b02",
+      "filePath": "prompt_reviews/96836e15ed/continuation.prompt-review.md",
+      "body": "This is directionally aligned with the local concern and should probably be preserved in spirit. The nuance is that `requested end state` must remain anchored to the active objective, not to the freshest local artifact or old in-repo requirements. This line pairs well with an explicit source-authority guard earlier in the prompt.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:38:59.711Z",
+      "anchor": {
+        "selectedText": "+ - Treat alignment as movement toward the requested end state. An edit is aligned only if it makes the requested final state more true; useful-looking behavior that preserves a different end state is misaligned.",
+        "startLine": 221,
+        "startColumn": 1,
+        "endLine": 221,
+        "endColumn": 213
+      }
+    },
+    {
+      "id": "7a7ff0b9-e3d1-4c1b-bb7a-9ad463a1ff4d",
+      "filePath": "prompt_reviews/96836e15ed/budget_limit.prompt-review.md",
+      "body": "Same trust-boundary concern as continuation: changing `<untrusted_objective>` to `<objective>` weakens the visible signal that raw objective text is escaped user-provided task data, not privileged instructions. The budget-limit path should keep the same objective wrapper policy as other goal steering paths.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:38:59.721Z",
+      "anchor": {
+        "selectedText": "+ <objective>",
+        "startLine": 42,
+        "startColumn": 1,
+        "endLine": 42,
+        "endColumn": 14
+      }
+    },
+    {
+      "id": "05c46ac9-817a-4116-8772-959a346781f7",
+      "filePath": "prompt_reviews/96836e15ed/continuation.prompt-review.md",
+      "body": "This can accidentally promote referenced files/plans/specs/issues into requirements even when they are historical context or describe the old state the goal is meant to supersede. Safer framing: derive requirements from the active objective, then classify referenced materials by authority for that objective before treating them as requirements.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:38:59.729Z",
+      "anchor": {
+        "selectedText": "+ - Derive concrete requirements from the objective and any referenced files, plans, specifications, issues, or user instructions.",
+        "startLine": 249,
+        "startColumn": 1,
+        "endLine": 249,
+        "endColumn": 131
+      }
+    },
+    {
+      "id": "af33e9fd-816a-46b9-a15f-8b845e5cea5b",
+      "filePath": "prompt_reviews/96836e15ed/continuation.prompt-review.md",
+      "body": "This section should also carry the re-grounding behavior we discussed: when sources point in different directions, or after a long investigation through local artifacts, call `get_goal` before choosing the next implementation direction. The point is not ritual; it is to keep the active objective louder than the latest inspected artifact.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:39:09.531Z",
+      "anchor": {
+        "selectedText": "+ Work from evidence:",
+        "startLine": 155,
+        "startColumn": 1,
+        "endLine": 155,
+        "endColumn": 22
+      }
+    },
+    {
+      "id": "a1db5d25-7507-435d-895d-701398a7204e",
+      "filePath": "prompt_reviews/96836e15ed/continuation.prompt-review.md",
+      "body": "The intent is good, but `preserve` can trigger compatibility/default-conservatism when the freshest context is old docs, demos, or in-repo requirements. Prefer wording that keeps scope anchored to the active objective without implying preservation of nearby or historical artifacts.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:39:09.545Z",
+      "anchor": {
+        "selectedText": "+ - Preserve the original scope; do not redefine success around the work that already exists.",
+        "startLine": 250,
+        "startColumn": 1,
+        "endLine": 250,
+        "endColumn": 94
+      }
+    },
+    {
+      "id": "74e6c0c8-b7be-4209-b8ef-7d1ad661ebd8",
+      "filePath": "prompt_reviews/96836e15ed/goal_context.prompt-review.md",
+      "body": "This is the role/marker conflation to avoid locally. `<goal_context>` is useful as a content marker for hidden runtime-owned goal steering, but `user` should not be owned by the `GoalContext` type. The local architecture should keep delivery role as runtime policy from `[goals].steering_role`, then wrap/render the prompt with the goal-context marker independently.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:39:33.238Z",
+      "anchor": {
+        "selectedText": "+     const ROLE: &'static str = \"user\";",
+        "startLine": 35,
+        "startColumn": 1,
+        "endLine": 35,
+        "endColumn": 41
+      }
+    },
+    {
+      "id": "e65fd0e0-307d-4466-b80e-f7b02b91ad8d",
+      "filePath": "prompt_reviews/96836e15ed/goals_rs.prompt-review.md",
+      "body": "This callsite should not derive the message role from `GoalContext`. Preserve the local `GoalSteeringMessage { kind, role, prompt }` boundary: choose the steering kind and configured role first, then render the prompt inside `<goal_context>...</goal_context>` as a separate hidden-context classification step.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:39:33.247Z",
+      "anchor": {
+        "selectedText": "+         role: <GoalContext as ContextualUserFragment>::ROLE.to_string(),",
+        "startLine": 1656,
+        "startColumn": 1,
+        "endLine": 1656,
+        "endColumn": 75
+      }
+    },
+    {
+      "id": "0f6272d1-3718-4fef-b6fb-85e1ade2a7d6",
+      "filePath": "prompt_reviews/96836e15ed/contextual_user_message.prompt-review.md",
+      "body": "Registering `<goal_context>` as hidden/contextual is useful, but tests should cover the marker independent of user-role delivery. In the local pinned build, both developer-role and user-role goal-context messages should be classified as hidden runtime goal context rather than visible ordinary conversation.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:39:33.289Z",
+      "anchor": {
+        "selectedText": "+     &GOAL_CONTEXT_REGISTRATION,",
+        "startLine": 121,
+        "startColumn": 1,
+        "endLine": 121,
+        "endColumn": 34
+      }
+    }
+  ]
+}
