@@ -57,13 +57,6 @@ const architectureRuleFiles = new Set(["scripts/check-architecture.ts"]);
 const legacyImportFiles = new Set(["scripts/import-legacy-review-data.ts"]);
 const legacyArtifactFiles = new Set([
   ...prototypeModules,
-  // Condemned prototype frontend files. Batch 07 must replace these instead of extending them.
-  "web/src/entities/review/api.ts",
-  "web/src/entities/review/types.ts",
-  "web/src/features/review-workspace/ReviewWorkspacePage.tsx",
-  "web/src/features/review-workspace/components/ReviewList.tsx",
-  "web/src/features/review-workspace/hooks/reviewQueries.ts",
-  "web/src/features/review-workspace/model/reviewWorkspaceStore.ts",
 ]);
 
 export function checkArchitecture(files: SourceFile[]): ArchitectureViolation[] {

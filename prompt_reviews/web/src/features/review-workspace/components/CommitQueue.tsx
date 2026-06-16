@@ -22,7 +22,7 @@ export function CommitQueue({
   onSelect,
 }: CommitQueueProps) {
   return (
-    <section className="flex min-h-0 flex-col border-r border-slate-200 bg-white">
+    <section className="flex h-full min-h-0 flex-col border-r border-slate-200 bg-white">
       <header className="border-b border-slate-200 px-3 py-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Commit Queue</h2>
       </header>

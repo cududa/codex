@@ -1,9 +1,9 @@
 import { createBrowserRouter } from "react-router";
-import { ReviewWorkspacePage } from "@/features/review-workspace/ReviewWorkspacePage";
+import { WorkbenchPage } from "@/features/review-workspace/WorkbenchPage";
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <ReviewWorkspacePage />,
+    element: <WorkbenchPage />,
   },
 ]);

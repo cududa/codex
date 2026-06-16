@@ -1,5 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { FileCode2, GitCommit } from "lucide-react";
+import type { CommentDetail, CommentLocation, CommitDetail, CommitFileDetail, CommitQueueItem } from "@/entities/review/types";
+import { cn } from "@/shared/lib/cn";
 import { ClassificationPanel } from "./components/ClassificationPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { CommitQueue } from "./components/CommitQueue";
@@ -9,8 +11,6 @@ import { FileReviewPane } from "./components/FileReviewPane";
 import { PlansPanel } from "./components/PlansPanel";
 import { VersionHeader } from "./components/VersionHeader";
 import { VersionRail } from "./components/VersionRail";
-import type { CommentDetail, CommentLocation, CommitDetail, CommitFileDetail, CommitQueueItem } from "@/entities/review/types";
-import { cn } from "@/shared/lib/cn";
 import {
   scopeForSelection,
   useAddCommentMutation,
@@ -34,22 +34,22 @@ import {
   useVersionCommentsQuery,
   useVersionCommitsQuery,
   useVersionsQuery,
-} from "./hooks/reviewQueries";
-import { useReviewWorkspaceStore } from "./model/reviewWorkspaceStore";
-import type { ReviewFocus } from "./model/reviewWorkspaceStore";
+} from "./hooks/reviewData";
+import { ResizableWorkbench } from "./layout/ResizableWorkbench";
 import type { ReviewCommentTarget } from "./model/commentTargets";
+import { useReviewSelectionStore, type ReviewFocus } from "./model/reviewSelectionStore";
 
-export function ReviewWorkspacePage() {
-  const selectedVersionId = useReviewWorkspaceStore((state) => state.selectedVersionId);
-  const selectedCommitId = useReviewWorkspaceStore((state) => state.selectedCommitId);
-  const selectedFileId = useReviewWorkspaceStore((state) => state.selectedFileId);
-  const commentTarget = useReviewWorkspaceStore((state) => state.commentTarget);
-  const reviewFocus = useReviewWorkspaceStore((state) => state.reviewFocus);
-  const setSelectedVersionId = useReviewWorkspaceStore((state) => state.setSelectedVersionId);
-  const setSelectedCommitId = useReviewWorkspaceStore((state) => state.setSelectedCommitId);
-  const setSelectedFileId = useReviewWorkspaceStore((state) => state.setSelectedFileId);
-  const setCommentTarget = useReviewWorkspaceStore((state) => state.setCommentTarget);
-  const setReviewFocus = useReviewWorkspaceStore((state) => state.setReviewFocus);
+export function WorkbenchPage() {
+  const selectedVersionId = useReviewSelectionStore((state) => state.selectedVersionId);
+  const selectedCommitId = useReviewSelectionStore((state) => state.selectedCommitId);
+  const selectedFileId = useReviewSelectionStore((state) => state.selectedFileId);
+  const commentTarget = useReviewSelectionStore((state) => state.commentTarget);
+  const reviewFocus = useReviewSelectionStore((state) => state.reviewFocus);
+  const setSelectedVersionId = useReviewSelectionStore((state) => state.setSelectedVersionId);
+  const setSelectedCommitId = useReviewSelectionStore((state) => state.setSelectedCommitId);
+  const setSelectedFileId = useReviewSelectionStore((state) => state.setSelectedFileId);
+  const setCommentTarget = useReviewSelectionStore((state) => state.setCommentTarget);
+  const setReviewFocus = useReviewSelectionStore((state) => state.setReviewFocus);
 
   const versionsQuery = useVersionsQuery();
   const commitsQuery = useVersionCommitsQuery(selectedVersionId);
@@ -125,6 +125,8 @@ export function ReviewWorkspacePage() {
     commitId: selectedCommitId,
     fileId: reviewFocus === "file" ? selectedFileId : null,
   });
+  const actionError =
+    addCommentMutation.error?.message ?? resolveCommentMutation.error?.message ?? reopenCommentMutation.error?.message;
   const locateComment = (comment: CommentDetail) => {
     const location = comment.location;
     if (location === undefined) {
@@ -147,20 +149,21 @@ export function ReviewWorkspacePage() {
   };
 
   return (
-    <main className="grid h-screen min-h-[760px] grid-cols-[300px_minmax(0,1fr)_390px] bg-slate-100 text-slate-950">
-      <VersionRail
-        error={versionsQuery.error?.message}
-        isLoading={versionsQuery.isLoading}
-        onRefresh={() => void versionsQuery.refetch()}
-        onSelect={setSelectedVersionId}
-        remainingWork={remainingWorkQuery.data ?? []}
-        selectedVersionId={selectedVersionId}
-        versions={versionsQuery.data ?? []}
-      />
-
-      <section className="grid min-w-0 grid-rows-[auto_minmax(0,1fr)]">
-        <VersionHeader commit={commitQuery.data} version={selectedVersion} />
-        <div className="grid min-h-0 grid-cols-[280px_300px_minmax(0,1fr)]">
+    <main className="grid h-screen min-h-[760px] grid-rows-[auto_minmax(0,1fr)] bg-slate-100 text-slate-950">
+      <VersionHeader commit={commitQuery.data} version={selectedVersion} />
+      <ResizableWorkbench
+        versionRail={
+          <VersionRail
+            error={versionsQuery.error?.message}
+            isLoading={versionsQuery.isLoading}
+            onRefresh={() => void versionsQuery.refetch()}
+            onSelect={setSelectedVersionId}
+            remainingWork={remainingWorkQuery.data ?? []}
+            selectedVersionId={selectedVersionId}
+            versions={versionsQuery.data ?? []}
+          />
+        }
+        commitQueue={
           <CommitQueue
             commits={visibleCommits}
             error={commitsQuery.error?.message}
@@ -170,6 +173,8 @@ export function ReviewWorkspacePage() {
             selectedCommit={commitQuery.data}
             selectedCommitId={selectedCommitId}
           />
+        }
+        fileQueue={
           <FileQueue
             error={filesQuery.error?.message}
             files={filesQuery.data?.data ?? commitQuery.data?.queuedFiles ?? []}
@@ -179,12 +184,10 @@ export function ReviewWorkspacePage() {
             selectedFile={fileQuery.data}
             selectedFileId={selectedFileId}
           />
+        }
+        diffReview={
           <FileReviewPane
-            actionError={
-              addCommentMutation.error?.message ??
-              resolveCommentMutation.error?.message ??
-              reopenCommentMutation.error?.message
-            }
+            actionError={actionError}
             commentTarget={commentTarget}
             error={fileQuery.error?.message}
             file={fileQuery.data}
@@ -193,79 +196,185 @@ export function ReviewWorkspacePage() {
             onAddComment={(input) => addCommentMutation.mutateAsync(input)}
             onCommentTargetChange={setFileCommentTarget}
           />
-        </div>
-      </section>
+        }
+        reviewActions={
+          <ReviewActionsPane
+            actionError={actionError}
+            classificationError={classifyCommitMutation.error?.message ?? classifyFileMutation.error?.message}
+            comments={commentsQuery.data ?? []}
+            commit={commitQuery.data}
+            completePlanMutation={completePlanMutation}
+            createPlanItemMutation={createPlanItemMutation}
+            createPlanMutation={createPlanMutation}
+            decisionError={proposeDecisionMutation.error?.message ?? finalizeDecisionMutation.error?.message}
+            file={focusedFile}
+            focus={reviewFocus}
+            isClassifying={classifyCommitMutation.isPending || classifyFileMutation.isPending}
+            isCommentSubmitting={addCommentMutation.isPending}
+            isDecisionSubmitting={proposeDecisionMutation.isPending || finalizeDecisionMutation.isPending}
+            isPlanSubmitting={
+              createPlanMutation.isPending ||
+              updatePlanMutation.isPending ||
+              createPlanItemMutation.isPending ||
+              updatePlanItemMutation.isPending ||
+              completePlanMutation.isPending
+            }
+            onAddComment={(input) => addCommentMutation.mutateAsync(input)}
+            onClassifyCommit={(input) => classifyCommitMutation.mutateAsync(input)}
+            onClassifyFile={(input) => classifyFileMutation.mutateAsync(input)}
+            onFinalize={(input) => finalizeDecisionMutation.mutateAsync(input)}
+            onFocusCommit={() => setReviewFocus("commit")}
+            onFocusFile={() => setReviewFocus("file")}
+            onLocateComment={locateComment}
+            onPropose={(input) => proposeDecisionMutation.mutateAsync(input)}
+            onReopen={(commentId, reason) => reopenCommentMutation.mutateAsync({ commentId, reason })}
+            onResolve={(commentId, resolution) => resolveCommentMutation.mutateAsync({ commentId, resolution })}
+            onUpdateItem={(input) => updatePlanItemMutation.mutateAsync(input)}
+            onUpdatePlan={(input) => updatePlanMutation.mutateAsync(input)}
+            planError={
+              createPlanMutation.error?.message ??
+              updatePlanMutation.error?.message ??
+              createPlanItemMutation.error?.message ??
+              updatePlanItemMutation.error?.message ??
+              completePlanMutation.error?.message
+            }
+            remainingWork={remainingWorkQuery.data ?? []}
+            scope={currentScope}
+            selectedCommentTarget={focusedCommentTarget}
+            tags={tagsQuery.data ?? []}
+            version={selectedVersion}
+          />
+        }
+      />
+    </main>
+  );
+}
 
-      <aside className="min-h-0 overflow-y-auto border-l border-slate-200 bg-white">
+type ReviewActionsPaneProps = {
+  actionError?: string;
+  classificationError?: string;
+  comments: CommentDetail[];
+  commit: CommitDetail | undefined;
+  completePlanMutation: ReturnType<typeof useCompletePlanMutation>;
+  createPlanItemMutation: ReturnType<typeof useCreatePlanItemMutation>;
+  createPlanMutation: ReturnType<typeof useCreatePlanMutation>;
+  decisionError?: string;
+  file: CommitFileDetail | undefined;
+  focus: ReviewFocus;
+  isClassifying: boolean;
+  isCommentSubmitting: boolean;
+  isDecisionSubmitting: boolean;
+  isPlanSubmitting: boolean;
+  onAddComment: Parameters<typeof CommentsPanel>[0]["onAddComment"];
+  onClassifyCommit: Parameters<typeof ClassificationPanel>[0]["onClassifyCommit"];
+  onClassifyFile: Parameters<typeof ClassificationPanel>[0]["onClassifyFile"];
+  onFinalize: Parameters<typeof DecisionPanel>[0]["onFinalize"];
+  onFocusCommit: () => void;
+  onFocusFile: () => void;
+  onLocateComment: (comment: CommentDetail) => void;
+  onPropose: Parameters<typeof DecisionPanel>[0]["onPropose"];
+  onReopen: Parameters<typeof CommentsPanel>[0]["onReopen"];
+  onResolve: Parameters<typeof CommentsPanel>[0]["onResolve"];
+  onUpdateItem: Parameters<typeof PlansPanel>[0]["onUpdateItem"];
+  onUpdatePlan: Parameters<typeof PlansPanel>[0]["onUpdatePlan"];
+  planError?: string;
+  remainingWork: Parameters<typeof PlansPanel>[0]["remainingWork"];
+  scope: Parameters<typeof DecisionPanel>[0]["scope"];
+  selectedCommentTarget: ReviewCommentTarget | null;
+  tags: Parameters<typeof ClassificationPanel>[0]["tags"];
+  version: Parameters<typeof CommentsPanel>[0]["version"];
+};
+
+function ReviewActionsPane({
+  actionError,
+  classificationError,
+  comments,
+  commit,
+  completePlanMutation,
+  createPlanItemMutation,
+  createPlanMutation,
+  decisionError,
+  file,
+  focus,
+  isClassifying,
+  isCommentSubmitting,
+  isDecisionSubmitting,
+  isPlanSubmitting,
+  onAddComment,
+  onClassifyCommit,
+  onClassifyFile,
+  onFinalize,
+  onFocusCommit,
+  onFocusFile,
+  onLocateComment,
+  onPropose,
+  onReopen,
+  onResolve,
+  onUpdateItem,
+  onUpdatePlan,
+  planError,
+  remainingWork,
+  scope,
+  selectedCommentTarget,
+  tags,
+  version,
+}: ReviewActionsPaneProps) {
+  return (
+    <aside className="flex h-full min-h-0 flex-col border-l border-slate-200 bg-white">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <ReviewFocusHeader
-          commit={commitQuery.data}
-          file={fileQuery.data}
-          focus={reviewFocus}
-          onFocusCommit={() => setReviewFocus("commit")}
-          onFocusFile={() => setReviewFocus("file")}
+          commit={commit}
+          file={file}
+          focus={focus}
+          onFocusCommit={onFocusCommit}
+          onFocusFile={onFocusFile}
         />
         <ClassificationPanel
-          commit={commitQuery.data}
-          error={classifyCommitMutation.error?.message ?? classifyFileMutation.error?.message}
-          file={focusedFile}
-          isSubmitting={classifyCommitMutation.isPending || classifyFileMutation.isPending}
-          onClassifyCommit={(input) => classifyCommitMutation.mutateAsync(input)}
-          onClassifyFile={(input) => classifyFileMutation.mutateAsync(input)}
-          tags={tagsQuery.data ?? []}
+          commit={commit}
+          error={classificationError}
+          file={file}
+          isSubmitting={isClassifying}
+          onClassifyCommit={onClassifyCommit}
+          onClassifyFile={onClassifyFile}
+          tags={tags}
         />
         <CommentsPanel
-          actionError={
-            addCommentMutation.error?.message ??
-            resolveCommentMutation.error?.message ??
-            reopenCommentMutation.error?.message
-          }
-          commit={commitQuery.data}
-          file={focusedFile}
-          isSubmitting={addCommentMutation.isPending}
-          onAddComment={(input) => addCommentMutation.mutateAsync(input)}
-          onLocateComment={locateComment}
-          onReopen={(commentId, reason) => reopenCommentMutation.mutateAsync({ commentId, reason })}
-          onResolve={(commentId, resolution) => resolveCommentMutation.mutateAsync({ commentId, resolution })}
-          commentTarget={focusedCommentTarget}
-          version={selectedVersion}
-          versionComments={commentsQuery.data ?? []}
+          actionError={actionError}
+          commit={commit}
+          commentTarget={selectedCommentTarget}
+          file={file}
+          isSubmitting={isCommentSubmitting}
+          onAddComment={onAddComment}
+          onLocateComment={onLocateComment}
+          onReopen={onReopen}
+          onResolve={onResolve}
+          version={version}
+          versionComments={comments}
         />
         <DecisionPanel
-          commit={commitQuery.data}
-          error={proposeDecisionMutation.error?.message ?? finalizeDecisionMutation.error?.message}
-          file={focusedFile}
-          isSubmitting={proposeDecisionMutation.isPending || finalizeDecisionMutation.isPending}
-          onFinalize={(input) => finalizeDecisionMutation.mutateAsync(input)}
-          onPropose={(input) => proposeDecisionMutation.mutateAsync(input)}
-          scope={currentScope}
+          commit={commit}
+          error={decisionError}
+          file={file}
+          isSubmitting={isDecisionSubmitting}
+          onFinalize={onFinalize}
+          onPropose={onPropose}
+          scope={scope}
         />
         <PlansPanel
-          commit={commitQuery.data}
-          error={
-            createPlanMutation.error?.message ??
-            updatePlanMutation.error?.message ??
-            createPlanItemMutation.error?.message ??
-            updatePlanItemMutation.error?.message ??
-            completePlanMutation.error?.message
-          }
-          file={focusedFile}
-          isSubmitting={
-            createPlanMutation.isPending ||
-            updatePlanMutation.isPending ||
-            createPlanItemMutation.isPending ||
-            updatePlanItemMutation.isPending ||
-            completePlanMutation.isPending
-          }
+          commit={commit}
+          error={planError}
+          file={file}
+          isSubmitting={isPlanSubmitting}
           onCompletePlan={(input) => completePlanMutation.mutateAsync(input)}
           onCreateItem={(input) => createPlanItemMutation.mutateAsync(input)}
           onCreatePlan={(input) => createPlanMutation.mutateAsync(input)}
-          onUpdateItem={(input) => updatePlanItemMutation.mutateAsync(input)}
-          onUpdatePlan={(input) => updatePlanMutation.mutateAsync(input)}
-          remainingWork={remainingWorkQuery.data ?? []}
-          scope={currentScope}
+          onUpdateItem={onUpdateItem}
+          onUpdatePlan={onUpdatePlan}
+          remainingWork={remainingWork}
+          scope={scope}
         />
-      </aside>
-    </main>
+      </div>
+    </aside>
   );
 }
 
@@ -310,21 +419,11 @@ function ReviewFocusHeader({ commit, file, focus, onFocusCommit, onFocusFile }: 
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Review focus</h2>
         <div className="grid grid-cols-2 rounded-md border border-slate-200 bg-white p-0.5 text-xs font-medium">
-          <button
-            className={focusButtonClass(effectiveFocus === "commit")}
-            disabled={commit === undefined}
-            onClick={onFocusCommit}
-            type="button"
-          >
+          <button className={focusButtonClass(effectiveFocus === "commit")} disabled={commit === undefined} onClick={onFocusCommit} type="button">
             <GitCommit className="size-3.5" aria-hidden="true" />
             Commit
           </button>
-          <button
-            className={focusButtonClass(effectiveFocus === "file")}
-            disabled={file === undefined}
-            onClick={onFocusFile}
-            type="button"
-          >
+          <button className={focusButtonClass(effectiveFocus === "file")} disabled={file === undefined} onClick={onFocusFile} type="button">
             <FileCode2 className="size-3.5" aria-hidden="true" />
             File
           </button>

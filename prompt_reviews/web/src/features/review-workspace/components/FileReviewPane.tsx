@@ -26,7 +26,7 @@ export function FileReviewPane({
   onCommentTargetChange,
 }: FileReviewPaneProps) {
   return (
-    <section className="flex min-h-0 flex-col bg-white">
+    <section className="flex h-full min-h-0 flex-col bg-white">
       <header className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
         <div className="min-w-0">
           <h2 className="truncate text-sm font-semibold text-slate-950">

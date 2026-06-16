@@ -3,7 +3,7 @@ import type { ReviewCommentTarget } from "./commentTargets";
 
 export type ReviewFocus = "commit" | "file";
 
-type ReviewWorkspaceState = {
+type ReviewSelectionState = {
   selectedVersionId: string | null;
   selectedCommitId: string | null;
   selectedFileId: string | null;
@@ -16,7 +16,7 @@ type ReviewWorkspaceState = {
   setReviewFocus: (reviewFocus: ReviewFocus) => void;
 };
 
-export const useReviewWorkspaceStore = create<ReviewWorkspaceState>((set) => ({
+export const useReviewSelectionStore = create<ReviewSelectionState>((set) => ({
   selectedVersionId: null,
   selectedCommitId: null,
   selectedFileId: null,

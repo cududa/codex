@@ -24,7 +24,7 @@ export function VersionRail({
   onSelect,
 }: VersionRailProps) {
   return (
-    <aside className="flex min-h-0 flex-col border-r border-slate-200 bg-white">
+    <aside className="flex h-full min-h-0 flex-col border-r border-slate-200 bg-white">
       <header className="border-b border-slate-200 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <div>
