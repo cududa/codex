@@ -1,53 +1,77 @@
-export type ReviewSummary = {
-  reviewPath: string;
-  commit: string;
-  bundle?: string;
-  bytes: number;
-  persisted: boolean;
-  commentCount: number;
-  noteCount: number;
+import type {
+  ActorRef,
+  AddCommentParams,
+  ClassifyCommitParams,
+  ClassifyFileParams,
+  CommentDetail,
+  CommentSummary,
+  CommitDetail,
+  CommitFileDetail,
+  CommitFileQueueItem,
+  CommitQueueItem,
+  ConcernTagView,
+  DecisionDetail,
+  DecisionScope,
+  FinalizeDecisionParams,
+  PlanDetail,
+  PlanItemDetail,
+  RemainingWork,
+  ReviewEntityScope,
+  SourceAnchor,
+  VersionDetail,
+  VersionSummary,
+} from "@domain/schemas";
+
+export type {
+  ActorRef,
+  AddCommentParams,
+  ClassifyCommitParams,
+  ClassifyFileParams,
+  CommentDetail,
+  CommentSummary,
+  CommitDetail,
+  CommitFileDetail,
+  CommitFileQueueItem,
+  CommitQueueItem,
+  ConcernTagView,
+  DecisionDetail,
+  DecisionScope,
+  FinalizeDecisionParams,
+  PlanDetail,
+  PlanItemDetail,
+  RemainingWork,
+  ReviewEntityScope,
+  SourceAnchor,
+  VersionDetail,
+  VersionSummary,
 };
 
-export type ReviewFile = {
-  relativePath: string;
-  text: string;
+export type Page<T> = {
+  data: T[];
+  nextCursor: string | null;
 };
 
-export type ReviewComment = {
-  id: string;
-  filePath: string;
-  body: string;
-  author: string;
-  createdAt: string;
-  blockId?: string;
-  anchor: TextAnchor;
-};
+export type MissingDecisionTarget = "commit" | "file";
 
-export type ReviewNote =
+export type MissingDecisionsResponse =
   | {
-      id: string;
-      scope: { type: "review"; filePath: string };
-      body: string;
-      author: string;
-      createdAt: string;
+      target: "commit";
+      data: CommitQueueItem[];
     }
   | {
-      id: string;
-      scope: { type: "bundle"; bundle: string };
-      body: string;
-      author: string;
-      createdAt: string;
+      target: "file";
+      data: CommitFileQueueItem[];
     };
 
-export type TextAnchor = {
-  selectedText: string;
-  startLine: number;
-  startColumn: number;
-  endLine: number;
-  endColumn: number;
-};
+export type StructuredCommentTarget =
+  | { type: "version"; versionId: string }
+  | { type: "commit"; commitId: string }
+  | { type: "commit_file"; commitFileId: string }
+  | { type: "diff_block"; diffBlockId: string };
 
-export type TextSelection = {
-  text: string;
+export type SourceRangeDraft = {
+  side: "old" | "new";
   startLine: number;
+  endLine: number;
+  selectedText: string;
 };

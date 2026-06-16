@@ -1,137 +1,229 @@
-import { RefreshCw } from "lucide-react";
-import { useEffect } from "react";
-import { CommentComposer } from "./components/CommentComposer";
-import { CommentThread } from "./components/CommentThread";
-import { ReviewEditor } from "./components/ReviewEditor";
-import { ReviewList } from "./components/ReviewList";
+import { useEffect, useMemo } from "react";
+import { ClassificationPanel } from "./components/ClassificationPanel";
+import { CommentsPanel } from "./components/CommentsPanel";
+import { CommitQueue } from "./components/CommitQueue";
+import { DecisionPanel } from "./components/DecisionPanel";
+import { FileQueue } from "./components/FileQueue";
+import { FileReviewPane } from "./components/FileReviewPane";
+import { PlansPanel } from "./components/PlansPanel";
+import { VersionHeader } from "./components/VersionHeader";
+import { VersionRail } from "./components/VersionRail";
 import {
-  useAddReviewCommentMutation,
-  useReviewCommentsQuery,
-  useReviewFileQuery,
-  useReviewsQuery,
+  scopeForSelection,
+  useAddCommentMutation,
+  useClassifyCommitMutation,
+  useClassifyFileMutation,
+  useCommitDetailQuery,
+  useCommitFileDetailQuery,
+  useCommitFilesQuery,
+  useCompletePlanMutation,
+  useConcernTagsQuery,
+  useCreatePlanItemMutation,
+  useCreatePlanMutation,
+  useFinalizeDecisionMutation,
+  useMissingDecisionsQuery,
+  useProposeDecisionMutation,
+  useRemainingWorkQuery,
+  useReopenCommentMutation,
+  useResolveCommentMutation,
+  useUpdatePlanItemMutation,
+  useUpdatePlanMutation,
+  useVersionCommentsQuery,
+  useVersionCommitsQuery,
+  useVersionDetailQuery,
+  useVersionsQuery,
 } from "./hooks/reviewQueries";
 import { useReviewWorkspaceStore } from "./model/reviewWorkspaceStore";
-import { Button } from "@/shared/ui/Button";
-import { Panel } from "@/shared/ui/Panel";
 
 export function ReviewWorkspacePage() {
-  const selectedReviewPath = useReviewWorkspaceStore((state) => state.selectedReviewPath);
-  const selection = useReviewWorkspaceStore((state) => state.selection);
-  const setSelectedReviewPath = useReviewWorkspaceStore((state) => state.setSelectedReviewPath);
-  const setSelection = useReviewWorkspaceStore((state) => state.setSelection);
+  const selectedVersionId = useReviewWorkspaceStore((state) => state.selectedVersionId);
+  const selectedCommitId = useReviewWorkspaceStore((state) => state.selectedCommitId);
+  const selectedFileId = useReviewWorkspaceStore((state) => state.selectedFileId);
+  const selectedDiffBlockId = useReviewWorkspaceStore((state) => state.selectedDiffBlockId);
+  const sourceRange = useReviewWorkspaceStore((state) => state.sourceRange);
+  const setSelectedVersionId = useReviewWorkspaceStore((state) => state.setSelectedVersionId);
+  const setSelectedCommitId = useReviewWorkspaceStore((state) => state.setSelectedCommitId);
+  const setSelectedFileId = useReviewWorkspaceStore((state) => state.setSelectedFileId);
+  const setSelectedDiffBlockId = useReviewWorkspaceStore((state) => state.setSelectedDiffBlockId);
+  const setSourceRange = useReviewWorkspaceStore((state) => state.setSourceRange);
 
-  const reviewsQuery = useReviewsQuery();
-  const fileQuery = useReviewFileQuery(selectedReviewPath);
-  const commentsQuery = useReviewCommentsQuery(selectedReviewPath);
-  const addCommentMutation = useAddReviewCommentMutation(selectedReviewPath);
+  const versionsQuery = useVersionsQuery();
+  const versionQuery = useVersionDetailQuery(selectedVersionId);
+  const commitsQuery = useVersionCommitsQuery(selectedVersionId);
+  const commitQuery = useCommitDetailQuery(selectedCommitId);
+  const filesQuery = useCommitFilesQuery(selectedCommitId);
+  const fileQuery = useCommitFileDetailQuery(selectedFileId);
+  const tagsQuery = useConcernTagsQuery();
+  const commentsQuery = useVersionCommentsQuery(selectedVersionId);
+  const missingCommitDecisionsQuery = useMissingDecisionsQuery(selectedVersionId, "commit");
+  const missingFileDecisionsQuery = useMissingDecisionsQuery(selectedVersionId, "file");
+  const remainingWorkQuery = useRemainingWorkQuery(selectedVersionId);
+
+  const classifyCommitMutation = useClassifyCommitMutation(selectedVersionId, selectedCommitId);
+  const classifyFileMutation = useClassifyFileMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const addCommentMutation = useAddCommentMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const resolveCommentMutation = useResolveCommentMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const reopenCommentMutation = useReopenCommentMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const proposeDecisionMutation = useProposeDecisionMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const finalizeDecisionMutation = useFinalizeDecisionMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const createPlanMutation = useCreatePlanMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const updatePlanMutation = useUpdatePlanMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const createPlanItemMutation = useCreatePlanItemMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const updatePlanItemMutation = useUpdatePlanItemMutation(selectedVersionId, selectedCommitId, selectedFileId);
+  const completePlanMutation = useCompletePlanMutation(selectedVersionId, selectedCommitId, selectedFileId);
 
   useEffect(() => {
-    if (selectedReviewPath !== null || reviewsQuery.data === undefined) {
+    if (selectedVersionId !== null || versionsQuery.data === undefined) {
       return;
     }
-    const firstReview = reviewsQuery.data[0];
-    if (firstReview !== undefined) {
-      setSelectedReviewPath(firstReview.reviewPath);
+    const firstVersion = versionsQuery.data[0];
+    if (firstVersion !== undefined) {
+      setSelectedVersionId(firstVersion.id);
     }
-  }, [reviewsQuery.data, selectedReviewPath, setSelectedReviewPath]);
+  }, [selectedVersionId, setSelectedVersionId, versionsQuery.data]);
 
-  const selectedReview = reviewsQuery.data?.find(
-    (review) => review.reviewPath === selectedReviewPath,
+  useEffect(() => {
+    if (selectedCommitId !== null || commitsQuery.data === undefined) {
+      return;
+    }
+    const firstCommit = commitsQuery.data.data[0];
+    if (firstCommit !== undefined) {
+      setSelectedCommitId(firstCommit.id);
+    }
+  }, [commitsQuery.data, selectedCommitId, setSelectedCommitId]);
+
+  useEffect(() => {
+    if (selectedFileId !== null || filesQuery.data === undefined) {
+      return;
+    }
+    const firstFile = filesQuery.data.data[0];
+    if (firstFile !== undefined) {
+      setSelectedFileId(firstFile.id);
+    }
+  }, [filesQuery.data, selectedFileId, setSelectedFileId]);
+
+  const selectedVersion = versionQuery.data ?? versionsQuery.data?.find((version) => version.id === selectedVersionId);
+  const missingCommitIds = useMemo(
+    () => new Set(missingCommitDecisionsQuery.data?.target === "commit" ? missingCommitDecisionsQuery.data.data.map((commit) => commit.id) : []),
+    [missingCommitDecisionsQuery.data],
   );
+  const missingFileIds = useMemo(
+    () => new Set(missingFileDecisionsQuery.data?.target === "file" ? missingFileDecisionsQuery.data.data.map((file) => file.id) : []),
+    [missingFileDecisionsQuery.data],
+  );
+  const currentScope = scopeForSelection({
+    versionId: selectedVersionId,
+    commitId: selectedCommitId,
+    fileId: selectedFileId,
+  });
 
   return (
-    <main className="grid h-screen min-h-[720px] grid-cols-[320px_minmax(0,1fr)_390px] bg-slate-100 text-slate-950">
-      <Panel className="flex min-h-0 flex-col border-y-0 border-l-0">
-        <header className="border-b border-slate-200 px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-base font-semibold">Prompt Reviews</h1>
-              <p className="text-xs text-slate-500">Generated prompt diffs and anchored comments</p>
-            </div>
-            <Button
-              aria-label="Refresh reviews"
-              className="size-9 px-0"
-              onClick={() => void reviewsQuery.refetch()}
-              title="Refresh reviews"
-              type="button"
-              variant="ghost"
-            >
-              <RefreshCw className="size-4" aria-hidden="true" />
-            </Button>
-          </div>
-        </header>
-        {reviewsQuery.isLoading ? (
-          <div className="p-4 text-sm text-slate-500">Loading reviews...</div>
-        ) : reviewsQuery.isError ? (
-          <div className="p-4 text-sm text-red-700">{reviewsQuery.error.message}</div>
-        ) : (
-          <ReviewList
-            reviews={reviewsQuery.data ?? []}
-            selectedReviewPath={selectedReviewPath}
-            onSelect={setSelectedReviewPath}
-          />
-        )}
-      </Panel>
+    <main className="grid h-screen min-h-[760px] grid-cols-[300px_minmax(0,1fr)_390px] bg-slate-100 text-slate-950">
+      <VersionRail
+        error={versionsQuery.error?.message}
+        isLoading={versionsQuery.isLoading}
+        onRefresh={() => void versionsQuery.refetch()}
+        onSelect={setSelectedVersionId}
+        remainingWork={remainingWorkQuery.data ?? versionQuery.data?.remainingWork ?? []}
+        selectedVersionId={selectedVersionId}
+        versions={versionsQuery.data ?? []}
+      />
 
-      <section className="flex min-w-0 flex-col">
-        <header className="border-b border-slate-200 bg-white px-5 py-3">
-          <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            {selectedReview?.bundle ?? "default bundle"}
-          </div>
-          <div className="truncate text-sm font-semibold">
-            {selectedReviewPath ?? "No review selected"}
-          </div>
-        </header>
-        <div className="min-h-0 flex-1 bg-white">
-          {fileQuery.isLoading ? (
-            <div className="p-5 text-sm text-slate-500">Loading review file...</div>
-          ) : fileQuery.isError ? (
-            <div className="p-5 text-sm text-red-700">{fileQuery.error.message}</div>
-          ) : fileQuery.data === undefined ? (
-            <div className="p-5 text-sm text-slate-500">Select a review to begin.</div>
-          ) : (
-            <ReviewEditor text={fileQuery.data.text} onSelectionChange={setSelection} />
-          )}
+      <section className="grid min-w-0 grid-rows-[auto_minmax(0,1fr)]">
+        <VersionHeader commit={commitQuery.data} version={selectedVersion} />
+        <div className="grid min-h-0 grid-cols-[280px_300px_minmax(0,1fr)]">
+          <CommitQueue
+            commits={commitsQuery.data?.data ?? versionQuery.data?.commits ?? []}
+            error={commitsQuery.error?.message}
+            isLoading={commitsQuery.isLoading}
+            missingDecisionIds={missingCommitIds}
+            onSelect={setSelectedCommitId}
+            selectedCommit={commitQuery.data}
+            selectedCommitId={selectedCommitId}
+          />
+          <FileQueue
+            error={filesQuery.error?.message}
+            files={filesQuery.data?.data ?? commitQuery.data?.queuedFiles ?? []}
+            isLoading={filesQuery.isLoading}
+            missingDecisionIds={missingFileIds}
+            onSelect={setSelectedFileId}
+            selectedFile={fileQuery.data}
+            selectedFileId={selectedFileId}
+          />
+          <FileReviewPane
+            error={fileQuery.error?.message}
+            file={fileQuery.data}
+            isLoading={fileQuery.isLoading}
+            onSelectDiffBlock={setSelectedDiffBlockId}
+            onSourceRangeChange={setSourceRange}
+            selectedDiffBlockId={selectedDiffBlockId}
+            sourceRange={sourceRange}
+          />
         </div>
       </section>
 
-      <Panel className="flex min-h-0 flex-col border-y-0 border-r-0">
-        <header className="border-b border-slate-200 px-4 py-3">
-          <h2 className="text-sm font-semibold">Comments</h2>
-          <p className="text-xs text-slate-500">
-            {commentsQuery.data?.comments.length ?? 0} anchored comments
-          </p>
-        </header>
-        <div className="grid gap-4 overflow-y-auto p-4">
-          <CommentComposer
-            isSubmitting={addCommentMutation.isPending}
-            selection={selection}
-            onSubmit={async (body) => {
-              if (selection === null) {
-                return;
-              }
-              await addCommentMutation.mutateAsync({
-                selectedText: selection.text,
-                startLine: selection.startLine,
-                comment: body,
-              });
-              setSelection(null);
-            }}
-          />
-          {addCommentMutation.isError ? (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {addCommentMutation.error.message}
-            </div>
-          ) : null}
-          {commentsQuery.isLoading ? (
-            <div className="text-sm text-slate-500">Loading comments...</div>
-          ) : commentsQuery.isError ? (
-            <div className="text-sm text-red-700">{commentsQuery.error.message}</div>
-          ) : (
-            <CommentThread comments={commentsQuery.data?.comments ?? []} />
-          )}
-        </div>
-      </Panel>
+      <aside className="min-h-0 overflow-y-auto border-l border-slate-200 bg-white">
+        <ClassificationPanel
+          commit={commitQuery.data}
+          error={classifyCommitMutation.error?.message ?? classifyFileMutation.error?.message}
+          file={fileQuery.data}
+          isSubmitting={classifyCommitMutation.isPending || classifyFileMutation.isPending}
+          onClassifyCommit={(input) => classifyCommitMutation.mutateAsync(input)}
+          onClassifyFile={(input) => classifyFileMutation.mutateAsync(input)}
+          tags={tagsQuery.data ?? []}
+        />
+        <CommentsPanel
+          actionError={
+            addCommentMutation.error?.message ??
+            resolveCommentMutation.error?.message ??
+            reopenCommentMutation.error?.message
+          }
+          commit={commitQuery.data}
+          file={fileQuery.data}
+          isSubmitting={addCommentMutation.isPending}
+          onAddComment={(input) => addCommentMutation.mutateAsync(input)}
+          onReopen={(commentId, reason) => reopenCommentMutation.mutateAsync({ commentId, reason })}
+          onResolve={(commentId, resolution) => resolveCommentMutation.mutateAsync({ commentId, resolution })}
+          selectedDiffBlockId={selectedDiffBlockId}
+          sourceRange={sourceRange}
+          version={selectedVersion}
+          versionComments={commentsQuery.data ?? []}
+        />
+        <DecisionPanel
+          commit={commitQuery.data}
+          error={proposeDecisionMutation.error?.message ?? finalizeDecisionMutation.error?.message}
+          file={fileQuery.data}
+          isSubmitting={proposeDecisionMutation.isPending || finalizeDecisionMutation.isPending}
+          onFinalize={(input) => finalizeDecisionMutation.mutateAsync(input)}
+          onPropose={(input) => proposeDecisionMutation.mutateAsync(input)}
+          scope={currentScope}
+        />
+        <PlansPanel
+          commit={commitQuery.data}
+          error={
+            createPlanMutation.error?.message ??
+            updatePlanMutation.error?.message ??
+            createPlanItemMutation.error?.message ??
+            updatePlanItemMutation.error?.message ??
+            completePlanMutation.error?.message
+          }
+          file={fileQuery.data}
+          isSubmitting={
+            createPlanMutation.isPending ||
+            updatePlanMutation.isPending ||
+            createPlanItemMutation.isPending ||
+            updatePlanItemMutation.isPending ||
+            completePlanMutation.isPending
+          }
+          onCompletePlan={(input) => completePlanMutation.mutateAsync(input)}
+          onCreateItem={(input) => createPlanItemMutation.mutateAsync(input)}
+          onCreatePlan={(input) => createPlanMutation.mutateAsync(input)}
+          onUpdateItem={(input) => updatePlanItemMutation.mutateAsync(input)}
+          onUpdatePlan={(input) => updatePlanMutation.mutateAsync(input)}
+          remainingWork={remainingWorkQuery.data ?? []}
+          scope={currentScope}
+        />
+      </aside>
     </main>
   );
 }
