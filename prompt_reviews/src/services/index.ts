@@ -5,6 +5,7 @@ export * from "./errors.js";
 export * from "./ingestionService.js";
 export * from "./planService.js";
 export * from "./reviewQueueService.js";
+export * from "./reviewReadService.js";
 export * from "./serviceContext.js";
 export * from "./statusService.js";
 export * from "./versionService.js";

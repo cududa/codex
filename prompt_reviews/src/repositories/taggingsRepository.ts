@@ -31,6 +31,14 @@ export function addTagging(db: RepositoryDatabase, values: TaggingInsert): Taggi
     .get();
 }
 
+export function findTaggingById(db: RepositoryDatabase, id: string): TaggingRow | undefined {
+  return db.select().from(taggings).where(eq(taggings.id, id)).get();
+}
+
+export function deleteTaggingById(db: RepositoryDatabase, id: string): TaggingRow[] {
+  return db.delete(taggings).where(eq(taggings.id, id)).returning().all();
+}
+
 export function removeTagging(
   db: RepositoryDatabase,
   values: Pick<TaggingRow, "tagId" | "targetType" | "targetId">,
