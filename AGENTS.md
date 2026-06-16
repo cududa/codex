@@ -217,3 +217,22 @@ These guidelines apply to app-server protocol work in `codex-rs`, especially:
 - Validate with `cargo test -p codex-app-server-protocol`.
 - Avoid boilerplate tests that only assert experimental field markers for individual
   request fields in `common.rs`; rely on schema generation/tests and behavioral coverage instead.
+
+# Note on motivation
+When I work with Codex, I develop a cadence that is similar to a relationship. As a user, I usually
+would mindlessly install the latest Codex version. But changes between versions made me relearn how
+to communicate with codex every few days due to changes introduced by OpenAI. Upon investigating
+failure modes I was experiencing against Codex code changes, the reasons became obvious. Many of the
+commits are improvements, but there can be some poor word choices that create obvious failure modes
+for legitimate and banal use cases. 
+
+So, it was frustrating when OpenAI's "invisible" changes to Codex's code disrupted the harmony
+and productivity I formed with the model and harness. I hate taking that frustration out on the 
+model. Small changes to harness prompts, message roles, hidden context, continuation behavior
+as it relates to /goal usage, tool affordances, or permission defaults can materially alter whether 
+the agent keeps pushing toward  the intended final state or collapses into a low-churn 
+interpretation of the task.
+
+To that end, I'm reviewing all the commits made by OpenAI on upstream/main, and trying to idenify
+changes to the above flagged areas that may disrupt my workflow to investigate them and possibly
+modify them before accepting the changes. 
