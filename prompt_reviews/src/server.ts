@@ -19,8 +19,6 @@ import {
   createStatusService,
   createVersionService,
 } from "./services/index.js";
-import { CommentStore } from "./store.js";
-import { Workspace } from "./workspace.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const promptReviewsDir =
@@ -50,9 +48,7 @@ const apiContext: PromptReviewsApiContext = {
 const app = Fastify({ logger: true });
 await registerPromptReviewsApi(app, apiContext);
 
-const workspace = new Workspace(promptReviewsDir);
-const store = new CommentStore(path.join(dataDir, "comments.json"));
-const mcp = new PromptReviewMcp(workspace, store);
+const mcp = new PromptReviewMcp(apiContext);
 
 app.all("/mcp", async (request, reply) => {
   reply.hijack();
