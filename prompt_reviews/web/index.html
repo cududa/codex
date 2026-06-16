@@ -4,32 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prompt Reviews</title>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </head>
   <body>
-    <main class="shell">
-      <section class="toolbar">
-        <label>
-          File
-          <input id="filePath" placeholder="codex-rs/core/templates/..." />
-        </label>
-        <button id="loadFile">Load</button>
-      </section>
-      <section class="workspace">
-        <textarea id="fileText" spellcheck="false"></textarea>
-        <aside>
-          <label>
-            Comment
-            <textarea id="commentBody"></textarea>
-          </label>
-          <div class="actions">
-            <button id="addComment">Add Comment</button>
-          </div>
-          <div id="status"></div>
-          <h2>Comments</h2>
-          <div id="comments"></div>
-        </aside>
-      </section>
-    </main>
+    <div id="root"></div>
   </body>
 </html>

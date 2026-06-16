@@ -11,7 +11,8 @@ import { CommentStore } from "./store.js";
 import { Workspace } from "./workspace.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const promptReviewsDir = path.resolve(__dirname, "../..");
+const promptReviewsDir =
+  path.basename(__dirname) === "src" ? path.resolve(__dirname, "..") : path.resolve(__dirname, "../..");
 const workspace = new Workspace(promptReviewsDir);
 const store = new CommentStore(path.join(promptReviewsDir, "data/comments.json"));
 const mcp = new PromptReviewMcp(workspace, store);
