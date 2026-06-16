@@ -67,11 +67,44 @@ Status legend:
     - 2026-06-16: Batch 1 was committed in a focused git commit excluding the
       unrelated `AGENTS.md` worktree change.
 
-- [ ] Batch 2: extractor and scanners.
+- [x] Batch 2: extractor and scanners.
   - Requirements reference: lines 808-852, 1014-1038, 1133-1146.
   - Must deliver: Rust-aware extractor, text/template scanners, deterministic
     JSON, fixtures, extractor/scanner tests.
   - Completion notes:
+    - 2026-06-16: Started Batch 2 after Batch 1 commit `774645a0d8`.
+      Scope is the extractor/scanner foundation required by lines 808-852,
+      1014-1038, and 1133-1146; no graph-builder/diff-detection success should
+      be claimed under this batch.
+    - 2026-06-16: Subagent `019ed277-b618-7691-885e-486fac629432`
+      was closed after checkpointing. It did not implement extractor/scanner
+      modules or fixtures. It left starter shared files
+      `src/detector/extraction/types.ts` and `sourceText.ts`; unrelated
+      untracked `prompt_reviews/REFACTOR.md` remains outside Batch 2 scope.
+      Batch 2 remains in progress and is being reassigned as concrete
+      extractor/scanner milestones.
+    - 2026-06-16: Text/template scanner milestone completed by subagent
+      `019ed27d-2dab-76e2-8aad-3dd4ce0412d9`. Added
+      `src/detector/extraction/textScanner.ts`, scanner tests, and text
+      fixtures for prompt markers, tool names, RPC methods, config keys, SQL
+      migration table names, and hidden-context tags. Subagent reported focused
+      scanner tests, structure check, typecheck, and full `npm test` passing.
+      Integrated Batch 2 remains open pending Rust-aware extractor milestone.
+    - 2026-06-16: Rust-aware extractor milestone files appeared from subagent
+      `019ed27c-e644-7741-a982-01b9cae587d3`, including `rustExtractor.ts`,
+      tests, and a Rust fixture covering functions, impls, trait impls, enum
+      variants, calls, match arms, string markers, role literals,
+      `include_str!`, and registration arrays. Local structure check currently
+      fails because `src/detector/extraction/rustExtractor.ts` is 517 lines;
+      sent back to split under the architecture limit without changing scope.
+    - 2026-06-16: Rust-aware extractor milestone completed after refactor into
+      `rustExtractor.ts` and `rustSyntax.ts`, both under architecture limits.
+      Integrated local validation passed: focused extractor/scanner tests (2
+      files, 7 tests), full `npm test` (37 files, 159 tests),
+      `npm run test:structure`, `npm run typecheck`, `npm run build`, and
+      `npm run db:check`. Batch 2 is complete and ready for its focused commit.
+    - 2026-06-16: Batch 2 was committed in a focused git commit excluding
+      unrelated `AGENTS.md` and `prompt_reviews/REFACTOR.md`.
 
 - [ ] Batch 3: graph builder and detector engine.
   - Requirements reference: lines 854-901, 1040-1055, 1148-1163.
