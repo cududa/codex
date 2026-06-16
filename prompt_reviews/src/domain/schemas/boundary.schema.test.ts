@@ -107,6 +107,8 @@ const planItem = {
   title: "Add regression evidence",
   description: "Capture the affected prompt path.",
   status: "complete",
+  commitFileId: "cf-1",
+  decisionId: "decision-1",
   createdAt: 7,
 };
 const planSummary = {
@@ -122,6 +124,8 @@ const planSummary = {
 const planDetail = {
   ...planSummary,
   items: [planItem],
+  linkedCommentIds: ["comment-1"],
+  linkedDecisionIds: ["decision-1"],
   completedBy: agent,
   completionNote: "Evidence captured.",
 };
@@ -252,10 +256,19 @@ describe("boundary command schemas", () => {
       [ProposeDecisionParamsSchema, { scope: decisionScope, outcome: "accept", rationale: "Looks good.", proposedBy: agent }],
       [UpdateDecisionParamsSchema, { decisionId: "decision-1", outcome: "needs_tests", actor: agent }],
       [FinalizeDecisionParamsSchema, { decisionId: "decision-1", status: "accepted", finalizer: human }],
-      [CreatePlanParamsSchema, { scope: decisionScope, title: "Validate", proposedBy: agent }],
-      [UpdatePlanParamsSchema, { planId: "plan-1", status: "in_progress", actor: agent }],
-      [CreatePlanItemParamsSchema, { planId: "plan-1", title: "Run focused tests", actor: agent }],
-      [UpdatePlanItemParamsSchema, { planItemId: "plan-item-1", status: "complete", actor: agent }],
+      [
+        CreatePlanParamsSchema,
+        { scope: decisionScope, title: "Validate", proposedBy: agent, commentIds: ["comment-1"] },
+      ],
+      [UpdatePlanParamsSchema, { planId: "plan-1", status: "in_progress", decisionIds: ["decision-1"], actor: agent }],
+      [
+        CreatePlanItemParamsSchema,
+        { planId: "plan-1", title: "Run focused tests", actor: agent, commitFileId: "cf-1" },
+      ],
+      [
+        UpdatePlanItemParamsSchema,
+        { planItemId: "plan-item-1", status: "complete", actor: agent, decisionId: "decision-1" },
+      ],
       [CompletePlanParamsSchema, { planId: "plan-1", completedBy: agent, completionNote: "Finished." }],
       [CloseVersionParamsSchema, { versionId: "version-1", finalizer: human, summary: "Closed after review." }],
     ] as const;

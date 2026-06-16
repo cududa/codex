@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTempPromptReviewsDatabase, type TempPromptReviewsDatabase } from "../test-support/db.js";
 import {
   addComment,
+  addPlanCommentLink,
+  addPlanDecisionLink,
   addTagging,
   bulkInsertCommitFiles,
   bulkInsertCommits,
@@ -11,11 +13,16 @@ import {
   createPlanItem,
   createVersion,
   deletePlanItem,
+  deletePlanCommentLinks,
+  deletePlanDecisionLinks,
   findActiveDecisionByTarget,
+  findDecisionById,
   findConcernTagById,
   findConcernTagBySlug,
   findDiffBlockById,
   findLastClosedTarget,
+  findPlanById,
+  findPlanItemById,
   findVersionById,
   findVersionByRange,
   listCommitFilesByCommit,
@@ -26,12 +33,15 @@ import {
   listCommentsByScopeStatus,
   listDiffBlocksByCommitFile,
   listIncompleteAcceptedPlanItemsByTarget,
+  listPlanCommentLinks,
+  listPlanDecisionLinks,
   listPlanItems,
   listPlans,
   listPrimaryTaggingsByTarget,
   listRemainingCommitFilesByCommit,
   listRemainingCommitsByVersion,
   listTaggingsByTarget,
+  listVersions,
   listVersionsByStatus,
   listVersionsMissingActiveDecision,
   removeTagging,
@@ -69,6 +79,7 @@ describe("version repository", () => {
 
     expect(findVersionById(database.db, version.id)).toEqual(version);
     expect(findVersionByRange(database.db, { baseSha: "base-ver_one", targetSha: "target-a" })).toEqual(version);
+    expect(listVersions(database.db).map((row) => row.id)).toEqual(["ver_two", "ver_one"]);
     expect(listVersionsByStatus(database.db, "open").map((row) => row.id)).toEqual(["ver_two", "ver_one"]);
 
     const closed = updateVersionStatus(database.db, version.id, {
@@ -306,6 +317,7 @@ describe("decision and plan repositories", () => {
       updatedAt: 601,
     });
 
+    expect(findDecisionById(database.db, decision.id)).toEqual(accepted);
     expect(findActiveDecisionByTarget(database.db, { scope: "commit_file", targetId: fileOne.id })).toBeUndefined();
     expect(accepted).toMatchObject({ id: decision.id, status: "accepted", riskLevel: "medium" });
     expect(listCommitFilesMissingActiveDecision(database.db, { commitId: commitOne.id }).map((row) => row.id)).toEqual([
@@ -368,8 +380,38 @@ describe("decision and plan repositories", () => {
       title: "Add test",
       status: "complete",
     });
+    const comment = addComment(database.db, {
+      id: "com_plan_link",
+      scope: "commit_file",
+      commitFileId: file.id,
+      body: "Plan link comment.",
+      status: "open",
+      authorActorType: "agent",
+    });
+    const decision = createDecision(database.db, {
+      id: "dec_plan_link",
+      scope: "commit_file",
+      commitFileId: file.id,
+      outcome: "accept",
+      rationale: "Plan link decision.",
+      proposedByActorType: "human",
+    });
+    addPlanCommentLink(database.db, {
+      id: "plc_plan_link",
+      planId: plan.id,
+      commentId: comment.id,
+    });
+    addPlanDecisionLink(database.db, {
+      id: "pld_plan_link",
+      planId: plan.id,
+      decisionId: decision.id,
+    });
 
+    expect(findPlanById(database.db, plan.id)).toEqual(updatedPlan);
+    expect(findPlanItemById(database.db, firstItem.id)).toEqual(firstItem);
     expect(updatedPlan).toMatchObject({ id: plan.id, status: "accepted", updatedAt: 700 });
+    expect(listPlanCommentLinks(database.db, plan.id).map((link) => link.commentId)).toEqual([comment.id]);
+    expect(listPlanDecisionLinks(database.db, plan.id).map((link) => link.decisionId)).toEqual([decision.id]);
     expect(listPlans(database.db, { scope: "commit_file", status: "accepted" })).toEqual([updatedPlan]);
     expect(listPlanItems(database.db, plan.id)).toEqual([firstItem, secondItem]);
     expect(listIncompleteAcceptedPlanItemsByTarget(database.db, { scope: "commit_file", targetId: file.id })).toEqual([
@@ -383,6 +425,8 @@ describe("decision and plan repositories", () => {
     });
     expect(blocked).toMatchObject({ id: firstItem.id, status: "blocked", blockingReason: "Waiting on context." });
     expect(deletePlanItem(database.db, secondItem.id)).toEqual([secondItem]);
+    expect(deletePlanCommentLinks(database.db, plan.id).map((link) => link.commentId)).toEqual([comment.id]);
+    expect(deletePlanDecisionLinks(database.db, plan.id).map((link) => link.decisionId)).toEqual([decision.id]);
     expect(listPlanItems(database.db, plan.id).map((row) => row.id)).toEqual([firstItem.id]);
   });
 });

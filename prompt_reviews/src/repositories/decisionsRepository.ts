@@ -17,6 +17,10 @@ export function createDecision(db: RepositoryDatabase, values: DecisionInsert): 
   return db.insert(decisions).values(values).returning().get();
 }
 
+export function findDecisionById(db: RepositoryDatabase, id: string): DecisionRow | undefined {
+  return db.select().from(decisions).where(eq(decisions.id, id)).get();
+}
+
 export type DecisionUpdate = Partial<
   Pick<
     DecisionRow,

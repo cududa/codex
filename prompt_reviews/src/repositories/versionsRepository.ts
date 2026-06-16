@@ -26,6 +26,23 @@ export function findVersionByRange(
     .get();
 }
 
+export function listVersions(
+  db: RepositoryDatabase,
+  filter: { repositoryId?: string; status?: VersionStatus } = {},
+): VersionRow[] {
+  return db
+    .select()
+    .from(versions)
+    .where(
+      and(
+        filter.repositoryId === undefined ? undefined : eq(versions.repositoryId, filter.repositoryId),
+        filter.status === undefined ? undefined : eq(versions.status, filter.status),
+      ),
+    )
+    .orderBy(desc(versions.createdAt), desc(versions.id))
+    .all();
+}
+
 export function listVersionsByStatus(db: RepositoryDatabase, status: VersionStatus): VersionRow[] {
   return db.select().from(versions).where(eq(versions.status, status)).orderBy(desc(versions.createdAt)).all();
 }

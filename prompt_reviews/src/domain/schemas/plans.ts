@@ -13,21 +13,30 @@ const PlanEditableFieldsSchema = z
   })
   .strict();
 
+const PlanLinkFieldsSchema = z
+  .object({
+    commentIds: z.array(IdSchema).optional(),
+    decisionIds: z.array(IdSchema).optional(),
+  })
+  .strict();
+
 const PlanItemEditableFieldsSchema = z
   .object({
     title: NonEmptyTextSchema,
     description: OptionalTextSchema,
     status: PlanItemStatusSchema,
     blockingReason: OptionalTextSchema,
+    commitFileId: IdSchema.optional(),
+    decisionId: IdSchema.optional(),
   })
   .strict();
 
-export const CreatePlanParamsSchema = PlanEditableFieldsSchema.extend({
+export const CreatePlanParamsSchema = PlanEditableFieldsSchema.merge(PlanLinkFieldsSchema).extend({
   scope: DecisionScopeSchema,
   proposedBy: ActorRefSchema,
 });
 
-export const UpdatePlanParamsSchema = PlanEditableFieldsSchema.partial().extend({
+export const UpdatePlanParamsSchema = PlanEditableFieldsSchema.merge(PlanLinkFieldsSchema).partial().extend({
   planId: IdSchema,
   status: PlanStatusSchema.optional(),
   actor: ActorRefSchema,
@@ -36,6 +45,8 @@ export const UpdatePlanParamsSchema = PlanEditableFieldsSchema.partial().extend(
 export const CreatePlanItemParamsSchema = PlanItemEditableFieldsSchema.pick({
   title: true,
   description: true,
+  commitFileId: true,
+  decisionId: true,
 }).extend({
   planId: IdSchema,
   actor: ActorRefSchema,
@@ -72,6 +83,8 @@ export const PlanSummarySchema = PlanEditableFieldsSchema.extend({
 
 export const PlanDetailSchema = PlanSummarySchema.extend({
   items: z.array(PlanItemDetailSchema),
+  linkedCommentIds: z.array(IdSchema),
+  linkedDecisionIds: z.array(IdSchema),
   updatedAt: UnixSecondsSchema.optional(),
   completedBy: ActorRefSchema.optional(),
   completionNote: OptionalTextSchema,

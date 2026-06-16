@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { DecisionScopeType, PlanItemStatus, PlanStatus } from "../domain/enums.js";
-import { planItems, plans } from "../db/schema.js";
+import { planComments, planDecisions, planItems, plans } from "../db/schema.js";
 import { unixSecondsNow } from "../db/timestamps.js";
 import type { RepositoryDatabase } from "./database.js";
 
@@ -8,6 +8,10 @@ export type PlanRow = typeof plans.$inferSelect;
 export type PlanInsert = typeof plans.$inferInsert;
 export type PlanItemRow = typeof planItems.$inferSelect;
 export type PlanItemInsert = typeof planItems.$inferInsert;
+export type PlanCommentRow = typeof planComments.$inferSelect;
+export type PlanCommentInsert = typeof planComments.$inferInsert;
+export type PlanDecisionRow = typeof planDecisions.$inferSelect;
+export type PlanDecisionInsert = typeof planDecisions.$inferInsert;
 export type PlanTarget = {
   scope: DecisionScopeType;
   targetId: string;
@@ -21,6 +25,10 @@ const incompleteAcceptedPlanItemStatuses = [
 
 export function createPlan(db: RepositoryDatabase, values: PlanInsert): PlanRow {
   return db.insert(plans).values(values).returning().get();
+}
+
+export function findPlanById(db: RepositoryDatabase, id: string): PlanRow | undefined {
+  return db.select().from(plans).where(eq(plans.id, id)).get();
 }
 
 export type PlanUpdate = Partial<
@@ -81,8 +89,46 @@ export function listPlansByTarget(
     .all();
 }
 
+export function addPlanCommentLink(db: RepositoryDatabase, values: PlanCommentInsert): PlanCommentRow {
+  return db.insert(planComments).values(values).returning().get();
+}
+
+export function deletePlanCommentLinks(db: RepositoryDatabase, planId: string): PlanCommentRow[] {
+  return db.delete(planComments).where(eq(planComments.planId, planId)).returning().all();
+}
+
+export function listPlanCommentLinks(db: RepositoryDatabase, planId: string): PlanCommentRow[] {
+  return db
+    .select()
+    .from(planComments)
+    .where(eq(planComments.planId, planId))
+    .orderBy(asc(planComments.createdAt), asc(planComments.id))
+    .all();
+}
+
+export function addPlanDecisionLink(db: RepositoryDatabase, values: PlanDecisionInsert): PlanDecisionRow {
+  return db.insert(planDecisions).values(values).returning().get();
+}
+
+export function deletePlanDecisionLinks(db: RepositoryDatabase, planId: string): PlanDecisionRow[] {
+  return db.delete(planDecisions).where(eq(planDecisions.planId, planId)).returning().all();
+}
+
+export function listPlanDecisionLinks(db: RepositoryDatabase, planId: string): PlanDecisionRow[] {
+  return db
+    .select()
+    .from(planDecisions)
+    .where(eq(planDecisions.planId, planId))
+    .orderBy(asc(planDecisions.createdAt), asc(planDecisions.id))
+    .all();
+}
+
 export function createPlanItem(db: RepositoryDatabase, values: PlanItemInsert): PlanItemRow {
   return db.insert(planItems).values(values).returning().get();
+}
+
+export function findPlanItemById(db: RepositoryDatabase, id: string): PlanItemRow | undefined {
+  return db.select().from(planItems).where(eq(planItems.id, id)).get();
 }
 
 export function listPlanItems(db: RepositoryDatabase, planId: string): PlanItemRow[] {
