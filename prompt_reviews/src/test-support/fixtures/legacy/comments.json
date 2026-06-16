@@ -1,0 +1,18 @@
+{
+  "comments": [
+    {
+      "id": "legacy-comment-1",
+      "filePath": "prompt_reviews/src/test-support/fixtures/legacy/prompt_reviews/legacy123/continuation.prompt-review.md",
+      "body": "The wrapper rename weakens the trust-boundary cue.",
+      "author": "agent",
+      "createdAt": "2026-06-16T05:38:59.690Z",
+      "anchor": {
+        "selectedText": "+ new objective wrapper",
+        "startLine": 24,
+        "startColumn": 1,
+        "endLine": 24,
+        "endColumn": 24
+      }
+    }
+  ]
+}

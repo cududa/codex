@@ -1,0 +1,13 @@
+{
+  "comments": [
+    {
+      "id": "legacy-comment-ambiguous",
+      "filePath": "prompt_reviews/src/test-support/fixtures/legacy/prompt_reviews/legacy123/continuation.prompt-review.md",
+      "body": "This phrase appears in more than one block.",
+      "author": "agent",
+      "anchor": {
+        "selectedText": "duplicate phrase"
+      }
+    }
+  ]
+}

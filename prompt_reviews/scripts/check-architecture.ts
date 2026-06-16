@@ -54,6 +54,7 @@ const prototypeModules = new Set([
   "src/store.ts",
 ]);
 const architectureRuleFiles = new Set(["scripts/check-architecture.ts"]);
+const legacyImportFiles = new Set(["scripts/import-legacy-review-data.ts"]);
 const legacyArtifactFiles = new Set([
   ...prototypeModules,
   // Condemned prototype frontend files. Batch 07 must replace these instead of extending them.
@@ -455,6 +456,7 @@ function canReferenceLegacyTerms(filePath: string): boolean {
   return (
     legacyArtifactFiles.has(filePath) ||
     architectureRuleFiles.has(filePath) ||
+    legacyImportFiles.has(filePath) ||
     isUnder(filePath, "src/legacy/") ||
     filePath.endsWith(".legacy-import.test.ts") ||
     filePath.endsWith(".importer.test.ts")
