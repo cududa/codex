@@ -162,6 +162,31 @@ export function updateCommitFileReviewFields(
     .get();
 }
 
+export type CommitFileStatusOverrideUpdate = Pick<
+  CommitFileRow,
+  | "statusOverride"
+  | "statusOverrideReason"
+  | "statusOverrideActorType"
+  | "statusOverrideActorId"
+  | "statusOverrideDisplayName"
+  | "statusOverrideAt"
+> & {
+  updatedAt?: number | null;
+};
+
+export function updateCommitFileStatusOverride(
+  db: RepositoryDatabase,
+  id: string,
+  values: CommitFileStatusOverrideUpdate,
+): CommitFileRow | undefined {
+  return db
+    .update(commitFiles)
+    .set({ ...values, updatedAt: values.updatedAt ?? unixSecondsNow() })
+    .where(eq(commitFiles.id, id))
+    .returning()
+    .get();
+}
+
 function pageFromCommitFileRows(rows: CommitFileRow[], limit: number): Page<CommitFileRow> {
   const items = rows.slice(0, limit);
   const last = items.at(-1);

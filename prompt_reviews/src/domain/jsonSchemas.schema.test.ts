@@ -5,6 +5,7 @@ describe("boundary JSON schema export", () => {
   it("exports every command and view schema for later orchestration", () => {
     expect(Object.keys(boundarySchemas).sort()).toEqual([
       "AddCommentParams",
+      "ClassificationView",
       "ClassifyCommitParams",
       "ClassifyFileParams",
       "CloseVersionParams",
@@ -26,6 +27,8 @@ describe("boundary JSON schema export", () => {
       "FileReviewView",
       "FinalizeDecisionParams",
       "NextActionHint",
+      "OverrideCommitStatusParams",
+      "OverrideFileStatusParams",
       "PaginatedResponse",
       "PlanDetail",
       "PlanItemDetail",

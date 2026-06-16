@@ -71,6 +71,12 @@ export const commits = sqliteTable(
     authorEmail: text("author_email"),
     committedAt: integer("committed_at", { mode: "number" }),
     reviewStatus: text("review_status", { enum: reviewStatuses }).notNull().default(reviewStatuses[0]),
+    statusOverride: text("status_override", { enum: reviewStatuses }),
+    statusOverrideReason: text("status_override_reason"),
+    statusOverrideActorType: text("status_override_actor_type", { enum: actorTypes }),
+    statusOverrideActorId: text("status_override_actor_id"),
+    statusOverrideDisplayName: text("status_override_display_name"),
+    statusOverrideAt: integer("status_override_at", { mode: "number" }),
     createdAt: createdAtColumn(),
     updatedAt: updatedAtColumn(),
   },
@@ -79,6 +85,10 @@ export const commits = sqliteTable(
     uniqueIndex("commits_version_ordinal_unique").on(table.versionId, table.ordinal),
     index("commits_version_status_idx").on(table.versionId, table.reviewStatus),
     index("commits_sha_idx").on(table.sha),
+    check(
+      "commits_status_override_reason_check",
+      sql`(${table.statusOverride} is null and ${table.statusOverrideReason} is null and ${table.statusOverrideActorType} is null and ${table.statusOverrideAt} is null) or (${table.statusOverride} is not null and length(trim(coalesce(${table.statusOverrideReason}, ''))) > 0 and ${table.statusOverrideActorType} is not null and ${table.statusOverrideAt} is not null)`,
+    ),
   ],
 );
 
@@ -93,6 +103,12 @@ export const commitFiles = sqliteTable(
     newPath: text("new_path"),
     changeType: text("change_type", { enum: changeTypes }).notNull(),
     reviewStatus: text("review_status", { enum: reviewStatuses }).notNull().default(reviewStatuses[0]),
+    statusOverride: text("status_override", { enum: reviewStatuses }),
+    statusOverrideReason: text("status_override_reason"),
+    statusOverrideActorType: text("status_override_actor_type", { enum: actorTypes }),
+    statusOverrideActorId: text("status_override_actor_id"),
+    statusOverrideDisplayName: text("status_override_display_name"),
+    statusOverrideAt: integer("status_override_at", { mode: "number" }),
     additions: integer("additions", { mode: "number" }).notNull().default(0),
     deletions: integer("deletions", { mode: "number" }).notNull().default(0),
     createdAt: createdAtColumn(),
@@ -112,6 +128,10 @@ export const commitFiles = sqliteTable(
     index("commit_files_new_path_idx").on(table.newPath),
     index("commit_files_old_path_idx").on(table.oldPath),
     check("commit_files_path_present_check", sql`${table.oldPath} is not null or ${table.newPath} is not null`),
+    check(
+      "commit_files_status_override_reason_check",
+      sql`(${table.statusOverride} is null and ${table.statusOverrideReason} is null and ${table.statusOverrideActorType} is null and ${table.statusOverrideAt} is null) or (${table.statusOverride} is not null and length(trim(coalesce(${table.statusOverrideReason}, ''))) > 0 and ${table.statusOverrideActorType} is not null and ${table.statusOverrideAt} is not null)`,
+    ),
   ],
 );
 
@@ -187,6 +207,27 @@ export const taggings = sqliteTable(
     uniqueIndex("taggings_tag_target_unique").on(table.tagId, table.targetType, table.targetId),
     index("taggings_target_idx").on(table.targetType, table.targetId),
     index("taggings_tag_idx").on(table.tagId),
+  ],
+);
+
+export const classificationMetadata = sqliteTable(
+  "classification_metadata",
+  {
+    id: idColumn("clf"),
+    targetType: text("target_type", { enum: reviewEntityScopeTypes }).notNull(),
+    targetId: text("target_id").notNull(),
+    summary: text("summary"),
+    riskLevel: text("risk_level", { enum: riskLevels }),
+    confidence: text("confidence", { enum: confidenceLevels }),
+    updatedByActorType: text("updated_by_actor_type", { enum: actorTypes }).notNull(),
+    updatedByActorId: text("updated_by_actor_id"),
+    updatedByDisplayName: text("updated_by_display_name"),
+    createdAt: createdAtColumn(),
+    updatedAt: updatedAtColumn(),
+  },
+  (table) => [
+    uniqueIndex("classification_metadata_target_unique").on(table.targetType, table.targetId),
+    index("classification_metadata_target_idx").on(table.targetType, table.targetId),
   ],
 );
 
@@ -346,6 +387,21 @@ export const planDecisions = sqliteTable(
   (table) => [uniqueIndex("plan_decisions_plan_decision_unique").on(table.planId, table.decisionId)],
 );
 
+export const planDiffBlocks = sqliteTable(
+  "plan_diff_blocks",
+  {
+    id: idColumn("pdb"),
+    planId: text("plan_id")
+      .notNull()
+      .references(() => plans.id, { onDelete: "cascade" }),
+    diffBlockId: text("diff_block_id")
+      .notNull()
+      .references(() => diffBlocks.id, { onDelete: "cascade" }),
+    createdAt: createdAtColumn(),
+  },
+  (table) => [uniqueIndex("plan_diff_blocks_plan_diff_block_unique").on(table.planId, table.diffBlockId)],
+);
+
 export const decisionComments = sqliteTable(
   "decision_comments",
   {
@@ -368,12 +424,14 @@ export const schemaTables = [
   diffBlocks,
   concernTags,
   taggings,
+  classificationMetadata,
   comments,
   decisions,
   plans,
   planItems,
   planComments,
   planDecisions,
+  planDiffBlocks,
   decisionComments,
 ] as const;
 

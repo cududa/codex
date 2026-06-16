@@ -4,6 +4,7 @@ import {
   addComment,
   addPlanCommentLink,
   addPlanDecisionLink,
+  addPlanDiffBlockLink,
   addTagging,
   bulkInsertCommitFiles,
   bulkInsertCommits,
@@ -15,7 +16,9 @@ import {
   deletePlanItem,
   deletePlanCommentLinks,
   deletePlanDecisionLinks,
+  deletePlanDiffBlockLinks,
   findActiveDecisionByTarget,
+  findClassificationMetadataByTarget,
   findDecisionById,
   findConcernTagById,
   findConcernTagBySlug,
@@ -35,6 +38,7 @@ import {
   listIncompleteAcceptedPlanItemsByTarget,
   listPlanCommentLinks,
   listPlanDecisionLinks,
+  listPlanDiffBlockLinks,
   listPlanItems,
   listPlans,
   listPrimaryTaggingsByTarget,
@@ -46,9 +50,12 @@ import {
   listVersionsMissingActiveDecision,
   removeTagging,
   seedConcernTagsRepository,
+  upsertClassificationMetadata,
   updateCommentLifecycleFields,
   updateCommitFileReviewFields,
+  updateCommitFileStatusOverride,
   updateCommitReviewFields,
+  updateCommitStatusOverride,
   updateDecision,
   updatePlan,
   updatePlanItem,
@@ -115,6 +122,24 @@ describe("commit and file repositories", () => {
       commits[1].id,
       commits[2].id,
     ]);
+
+    const overridden = updateCommitStatusOverride(database.db, commits[0].id, {
+      statusOverride: "blocked",
+      statusOverrideReason: "Manual review hold.",
+      statusOverrideActorType: "human",
+      statusOverrideActorId: "reviewer",
+      statusOverrideDisplayName: "Reviewer",
+      statusOverrideAt: 301,
+      updatedAt: 302,
+    });
+
+    expect(overridden).toMatchObject({
+      id: commits[0].id,
+      statusOverride: "blocked",
+      statusOverrideReason: "Manual review hold.",
+      statusOverrideAt: 301,
+      updatedAt: 302,
+    });
   });
 
   it("uses stable cursor pagination for remaining commits", () => {
@@ -154,6 +179,24 @@ describe("commit and file repositories", () => {
     });
 
     expect(updated).toMatchObject({ id: files[0].id, reviewStatus: "needs_decision", updatedAt: 400 });
+
+    const overridden = updateCommitFileStatusOverride(database.db, files[0].id, {
+      statusOverride: "patch_required",
+      statusOverrideReason: "Patch is required.",
+      statusOverrideActorType: "agent",
+      statusOverrideActorId: "agent-1",
+      statusOverrideDisplayName: "Agent",
+      statusOverrideAt: 401,
+      updatedAt: 402,
+    });
+
+    expect(overridden).toMatchObject({
+      id: files[0].id,
+      statusOverride: "patch_required",
+      statusOverrideReason: "Patch is required.",
+      statusOverrideAt: 401,
+      updatedAt: 402,
+    });
   });
 
   it("uses stable cursor pagination for remaining commit files", () => {
@@ -242,6 +285,21 @@ describe("tagging and comment repositories", () => {
     expect(updated).toMatchObject({ id: "tgg_primary", kind: "secondary", rationale: "Downgraded." });
     expect(listTaggingsByTarget(database.db, { targetType: "commit_file", targetId: file.id })).toEqual([updated]);
     expect(listPrimaryTaggingsByTarget(database.db, { targetType: "commit_file", targetId: file.id })).toEqual([]);
+    const metadata = upsertClassificationMetadata(database.db, {
+      targetType: "commit_file",
+      targetId: file.id,
+      summary: "Repository metadata round trip.",
+      riskLevel: "medium",
+      confidence: "high",
+      updatedByActorType: "agent",
+      updatedByActorId: "agent-1",
+      createdAt: 201,
+      updatedAt: 202,
+    });
+
+    expect(findClassificationMetadataByTarget(database.db, { targetType: "commit_file", targetId: file.id })).toEqual(
+      metadata,
+    );
     expect(removeTagging(database.db, updated)).toEqual([updated]);
   });
 
@@ -406,12 +464,19 @@ describe("decision and plan repositories", () => {
       planId: plan.id,
       decisionId: decision.id,
     });
+    const [diffBlock] = bulkInsertDiffBlocks(database.db, [makeDiffBlock(file.id, 1)]);
+    addPlanDiffBlockLink(database.db, {
+      id: "pdb_plan_link",
+      planId: plan.id,
+      diffBlockId: diffBlock.id,
+    });
 
     expect(findPlanById(database.db, plan.id)).toEqual(updatedPlan);
     expect(findPlanItemById(database.db, firstItem.id)).toEqual(firstItem);
     expect(updatedPlan).toMatchObject({ id: plan.id, status: "accepted", updatedAt: 700 });
     expect(listPlanCommentLinks(database.db, plan.id).map((link) => link.commentId)).toEqual([comment.id]);
     expect(listPlanDecisionLinks(database.db, plan.id).map((link) => link.decisionId)).toEqual([decision.id]);
+    expect(listPlanDiffBlockLinks(database.db, plan.id).map((link) => link.diffBlockId)).toEqual([diffBlock.id]);
     expect(listPlans(database.db, { scope: "commit_file", status: "accepted" })).toEqual([updatedPlan]);
     expect(listPlanItems(database.db, plan.id)).toEqual([firstItem, secondItem]);
     expect(listIncompleteAcceptedPlanItemsByTarget(database.db, { scope: "commit_file", targetId: file.id })).toEqual([
@@ -427,6 +492,7 @@ describe("decision and plan repositories", () => {
     expect(deletePlanItem(database.db, secondItem.id)).toEqual([secondItem]);
     expect(deletePlanCommentLinks(database.db, plan.id).map((link) => link.commentId)).toEqual([comment.id]);
     expect(deletePlanDecisionLinks(database.db, plan.id).map((link) => link.decisionId)).toEqual([decision.id]);
+    expect(deletePlanDiffBlockLinks(database.db, plan.id).map((link) => link.diffBlockId)).toEqual([diffBlock.id]);
     expect(listPlanItems(database.db, plan.id).map((row) => row.id)).toEqual([firstItem.id]);
   });
 });

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IdSchema, NonEmptyTextSchema, OptionalTextSchema, UnixSecondsSchema } from "./actors.js";
+import { ActorRefSchema, IdSchema, NonEmptyTextSchema, OptionalTextSchema, UnixSecondsSchema } from "./actors.js";
 import { CommentSummarySchema } from "./comments.js";
 import { DecisionSummarySchema } from "./decisions.js";
 import { CommitFileDetailSchema, CommitFileQueueItemSchema, ReviewStatusSchema } from "./files.js";
@@ -9,6 +9,15 @@ import { ClassificationFieldsSchema, TaggingViewSchema } from "./tags.js";
 export const ClassifyCommitParamsSchema = ClassificationFieldsSchema.extend({
   commitId: IdSchema,
 });
+
+export const OverrideCommitStatusParamsSchema = z
+  .object({
+    commitId: IdSchema,
+    status: ReviewStatusSchema,
+    reason: NonEmptyTextSchema,
+    actor: ActorRefSchema,
+  })
+  .strict();
 
 export const CommitQueueItemSchema = z
   .object({
@@ -36,5 +45,6 @@ export const CommitDetailSchema = CommitQueueItemSchema.extend({
 });
 
 export type ClassifyCommitParams = z.infer<typeof ClassifyCommitParamsSchema>;
+export type OverrideCommitStatusParams = z.infer<typeof OverrideCommitStatusParamsSchema>;
 export type CommitQueueItem = z.infer<typeof CommitQueueItemSchema>;
 export type CommitDetail = z.infer<typeof CommitDetailSchema>;

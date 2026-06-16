@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { changeTypes, reviewStatuses } from "../enums.js";
-import { IdSchema, NonEmptyTextSchema, OptionalTextSchema } from "./actors.js";
+import { ActorRefSchema, IdSchema, NonEmptyTextSchema, OptionalTextSchema } from "./actors.js";
 import { CommentSummarySchema } from "./comments.js";
 import { DecisionSummarySchema } from "./decisions.js";
 import { DiffBlockViewSchema } from "./diffBlocks.js";
@@ -13,6 +13,15 @@ export const ReviewStatusSchema = z.enum(reviewStatuses);
 export const ClassifyFileParamsSchema = ClassificationFieldsSchema.extend({
   commitFileId: IdSchema,
 });
+
+export const OverrideFileStatusParamsSchema = z
+  .object({
+    commitFileId: IdSchema,
+    status: ReviewStatusSchema,
+    reason: NonEmptyTextSchema,
+    actor: ActorRefSchema,
+  })
+  .strict();
 
 export const CommitFileQueueItemSchema = z
   .object({
@@ -43,6 +52,7 @@ export const CommitFileDetailSchema = CommitFileQueueItemSchema.extend({
 });
 
 export type ClassifyFileParams = z.infer<typeof ClassifyFileParamsSchema>;
+export type OverrideFileStatusParams = z.infer<typeof OverrideFileStatusParamsSchema>;
 export type CommitFileQueueItem = z.infer<typeof CommitFileQueueItemSchema>;
 export type CommitFileDetail = z.infer<typeof CommitFileDetailSchema>;
 export type FileReviewView = z.infer<typeof FileReviewViewSchema>;

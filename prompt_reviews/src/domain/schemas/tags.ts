@@ -1,15 +1,20 @@
 import { z } from "zod";
-import { tagKinds } from "../enums.js";
+import { confidenceLevels, riskLevels, tagKinds } from "../enums.js";
 import { ActorRefSchema, IdSchema, NonEmptyTextSchema, OptionalTextSchema, SlugSchema, UnixSecondsSchema } from "./actors.js";
 import { ReviewEntityScopeSchema } from "./scopes.js";
 
 export const TagKindSchema = z.enum(tagKinds);
+export const ClassificationRiskLevelSchema = z.enum(riskLevels);
+export const ClassificationConfidenceLevelSchema = z.enum(confidenceLevels);
 
 export const ClassificationFieldsSchema = z
   .object({
     primaryTagSlug: SlugSchema,
     secondaryTagSlugs: z.array(SlugSchema).optional(),
     rationale: OptionalTextSchema,
+    summary: OptionalTextSchema,
+    riskLevel: ClassificationRiskLevelSchema.optional(),
+    confidence: ClassificationConfidenceLevelSchema.optional(),
   })
   .strict();
 
@@ -37,6 +42,18 @@ export const TaggingViewSchema = z
   })
   .strict();
 
+export const ClassificationViewSchema = z
+  .object({
+    scope: ReviewEntityScopeSchema,
+    taggings: z.array(TaggingViewSchema),
+    summary: OptionalTextSchema,
+    riskLevel: ClassificationRiskLevelSchema.optional(),
+    confidence: ClassificationConfidenceLevelSchema.optional(),
+    updatedBy: ActorRefSchema,
+    updatedAt: UnixSecondsSchema,
+  })
+  .strict();
+
 export const CreateTaggingParamsSchema = z
   .object({
     scope: ReviewEntityScopeSchema,
@@ -57,6 +74,7 @@ export const DeleteTaggingParamsSchema = z
 
 export type ConcernTagView = z.infer<typeof ConcernTagViewSchema>;
 export type TaggingView = z.infer<typeof TaggingViewSchema>;
+export type ClassificationView = z.infer<typeof ClassificationViewSchema>;
 export type ClassificationFields = z.infer<typeof ClassificationFieldsSchema>;
 export type CreateTaggingParams = z.infer<typeof CreateTaggingParamsSchema>;
 export type DeleteTaggingParams = z.infer<typeof DeleteTaggingParamsSchema>;

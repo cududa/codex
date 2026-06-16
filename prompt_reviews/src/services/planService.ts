@@ -20,19 +20,23 @@ import {
 import {
   addPlanCommentLink,
   addPlanDecisionLink,
+  addPlanDiffBlockLink,
   createPlan as createPlanRow,
   createPlanItem as createPlanItemRow,
   deletePlanCommentLinks,
   deletePlanDecisionLinks,
+  deletePlanDiffBlockLinks,
   findCommentById,
   findCommitById,
   findCommitFileById,
   findDecisionById,
+  findDiffBlockById,
   findPlanById,
   findPlanItemById,
   findVersionById,
   listPlanCommentLinks,
   listPlanDecisionLinks,
+  listPlanDiffBlockLinks,
   listPlanItems,
   updatePlan as updatePlanRow,
   updatePlanItem as updatePlanItemRow,
@@ -104,6 +108,7 @@ function createPlanInTransaction(context: ServiceContext, command: CreatePlanPar
   replacePlanLinks(context, row.id, {
     commentIds: command.commentIds ?? [],
     decisionIds: command.decisionIds ?? [],
+    diffBlockIds: command.diffBlockIds ?? [],
   });
 
   refreshAffectedStatus(context, row);
@@ -126,6 +131,7 @@ function updatePlanInTransaction(context: ServiceContext, command: UpdatePlanPar
   replacePlanLinks(context, updated.id, {
     commentIds: command.commentIds,
     decisionIds: command.decisionIds,
+    diffBlockIds: command.diffBlockIds,
   });
 
   refreshAffectedStatus(context, updated);
@@ -229,7 +235,7 @@ function validateScopeParent(context: ServiceContext, scope: DecisionScope): voi
 function replacePlanLinks(
   context: ServiceContext,
   planId: string,
-  links: { commentIds?: string[]; decisionIds?: string[] },
+  links: { commentIds?: string[]; decisionIds?: string[]; diffBlockIds?: string[] },
 ): void {
   if (links.commentIds !== undefined) {
     validateUniqueIds(links.commentIds, "commentIds");
@@ -254,6 +260,19 @@ function replacePlanLinks(
     deletePlanDecisionLinks(context.db, planId);
     for (const decisionId of links.decisionIds) {
       addPlanDecisionLink(context.db, { planId, decisionId, createdAt: context.now() });
+    }
+  }
+
+  if (links.diffBlockIds !== undefined) {
+    validateUniqueIds(links.diffBlockIds, "diffBlockIds");
+    for (const diffBlockId of links.diffBlockIds) {
+      if (findDiffBlockById(context.db, diffBlockId) === undefined) {
+        throw notFound("diff_block", diffBlockId);
+      }
+    }
+    deletePlanDiffBlockLinks(context.db, planId);
+    for (const diffBlockId of links.diffBlockIds) {
+      addPlanDiffBlockLink(context.db, { planId, diffBlockId, createdAt: context.now() });
     }
   }
 }
@@ -361,6 +380,7 @@ function toPlanDetail(context: ServiceContext, row: PlanRow): PlanDetail {
     items: listPlanItems(context.db, row.id).map(toPlanItemDetail),
     linkedCommentIds: listPlanCommentLinks(context.db, row.id).map((link) => link.commentId),
     linkedDecisionIds: listPlanDecisionLinks(context.db, row.id).map((link) => link.decisionId),
+    linkedDiffBlockIds: listPlanDiffBlockLinks(context.db, row.id).map((link) => link.diffBlockId),
     updatedAt: row.updatedAt ?? undefined,
     completedBy:
       row.completedByActorType === null

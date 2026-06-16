@@ -1,10 +1,18 @@
+import { z } from "zod";
 import type { ReviewStatus, VersionStatus } from "../domain/enums.js";
+import {
+  OverrideCommitStatusParamsSchema,
+  OverrideFileStatusParamsSchema,
+  type OverrideCommitStatusParams,
+  type OverrideFileStatusParams,
+} from "../domain/schemas/index.js";
 import {
   deriveCommitFileStatus,
   deriveCommitStatus,
   deriveVersionReadiness,
   type CommitFileStatusInput,
   type StatusDecision,
+  type StatusOverride,
   type StatusPlan,
 } from "../domain/rules/status.js";
 import {
@@ -21,13 +29,15 @@ import {
   listPlansByTarget,
   listTaggingsByTarget,
   updateCommitFileReviewFields,
+  updateCommitFileStatusOverride,
   updateCommitReviewFields,
+  updateCommitStatusOverride,
   updateVersionStatus,
   type CommitFileRow,
   type CommitRow,
   type VersionRow,
 } from "../repositories/index.js";
-import { invariantFailed, notFound } from "./errors.js";
+import { invariantFailed, notFound, validationFailed } from "./errors.js";
 import type { ServiceContext } from "./serviceContext.js";
 
 export type ReviewStatusResult = {
@@ -44,6 +54,8 @@ export type StatusService = {
   recomputeFileStatus: (commitFileId: string) => ReviewStatusResult;
   recomputeCommitStatus: (commitId: string) => ReviewStatusResult;
   recomputeVersionStatus: (versionId: string) => VersionStatusResult;
+  overrideFileStatus: (params: unknown) => ReviewStatusResult;
+  overrideCommitStatus: (params: unknown) => ReviewStatusResult;
 };
 
 export function createStatusService(context: ServiceContext): StatusService {
@@ -51,7 +63,23 @@ export function createStatusService(context: ServiceContext): StatusService {
     recomputeFileStatus: (commitFileId) => recomputeFileStatus(context, commitFileId),
     recomputeCommitStatus: (commitId) => recomputeCommitStatus(context, commitId),
     recomputeVersionStatus: (versionId) => recomputeVersionStatus(context, versionId),
+    overrideFileStatus: (params) => overrideFileStatus(context, params),
+    overrideCommitStatus: (params) => overrideCommitStatus(context, params),
   };
+}
+
+export function overrideFileStatus(context: ServiceContext, params: unknown): ReviewStatusResult {
+  const command = parseParams(OverrideFileStatusParamsSchema, params, "Invalid file status override params.");
+  const file = findRequiredCommitFile(context, command.commitFileId);
+  updateCommitFileStatusOverride(context.db, file.id, toFileOverrideUpdate(command, context.now()));
+  return recomputeFileStatus(context, file.id);
+}
+
+export function overrideCommitStatus(context: ServiceContext, params: unknown): ReviewStatusResult {
+  const command = parseParams(OverrideCommitStatusParamsSchema, params, "Invalid commit status override params.");
+  const commit = findRequiredCommit(context, command.commitId);
+  updateCommitStatusOverride(context.db, commit.id, toCommitOverrideUpdate(command, context.now()));
+  return recomputeCommitStatus(context, commit.id);
 }
 
 export function recomputeFileStatus(context: ServiceContext, commitFileId: string): ReviewStatusResult {
@@ -78,9 +106,9 @@ export function recomputeVersionStatus(context: ServiceContext, versionId: strin
   const commits = listCommitsByVersion(context.db, version.id);
   const commitInputs = commits.map((commit) => {
     const files = listCommitFilesByCommit(context.db, commit.id).map((file) => hydrateFileStatusInput(context, file));
-    const status = deriveCommitStatus({ files });
+    const status = deriveCommitStatus({ files, override: statusOverrideFromCommit(commit) });
     updateCommitReviewFields(context.db, commit.id, { reviewStatus: status, updatedAt: context.now() });
-    return { files };
+    return { files, override: statusOverrideFromCommit(commit) };
   });
   const readiness = deriveVersionReadiness({ commits: commitInputs });
   const status = hasUnresolvedVersionWork(context, version.id) ? "reviewing" : readiness.status;
@@ -91,7 +119,7 @@ export function recomputeVersionStatus(context: ServiceContext, versionId: strin
 
 function recomputeCommitStatusOnly(context: ServiceContext, commit: CommitRow): ReviewStatus {
   const files = listCommitFilesByCommit(context.db, commit.id).map((file) => hydrateFileStatusInput(context, file));
-  const status = deriveCommitStatus({ files });
+  const status = deriveCommitStatus({ files, override: statusOverrideFromCommit(commit) });
   updateCommitReviewFields(context.db, commit.id, { reviewStatus: status, updatedAt: context.now() });
   return status;
 }
@@ -116,7 +144,22 @@ function hydrateFileStatusInput(context: ServiceContext, file: CommitFileRow): C
     decisions,
     comments: comments.map((comment) => ({ status: comment.status })),
     plans,
+    override: statusOverrideFromFile(file),
   };
+}
+
+function statusOverrideFromFile(file: CommitFileRow): StatusOverride | null {
+  if (file.statusOverride === null) {
+    return null;
+  }
+  return { status: file.statusOverride, reason: file.statusOverrideReason };
+}
+
+function statusOverrideFromCommit(commit: CommitRow): StatusOverride | null {
+  if (commit.statusOverride === null) {
+    return null;
+  }
+  return { status: commit.statusOverride, reason: commit.statusOverrideReason };
 }
 
 function toStatusDecision(row: ReturnType<typeof listDecisionsByTarget>[number]): StatusDecision {
@@ -204,4 +247,36 @@ function findRequiredCommitFile(context: ServiceContext, commitFileId: string): 
     throw invariantFailed("Commit file must have at least one path.", { commitFileId });
   }
   return file;
+}
+
+function toFileOverrideUpdate(command: OverrideFileStatusParams, now: number) {
+  return {
+    statusOverride: command.status,
+    statusOverrideReason: command.reason,
+    statusOverrideActorType: command.actor.type,
+    statusOverrideActorId: command.actor.id ?? null,
+    statusOverrideDisplayName: command.actor.displayName ?? null,
+    statusOverrideAt: now,
+    updatedAt: now,
+  };
+}
+
+function toCommitOverrideUpdate(command: OverrideCommitStatusParams, now: number) {
+  return {
+    statusOverride: command.status,
+    statusOverrideReason: command.reason,
+    statusOverrideActorType: command.actor.type,
+    statusOverrideActorId: command.actor.id ?? null,
+    statusOverrideDisplayName: command.actor.displayName ?? null,
+    statusOverrideAt: now,
+    updatedAt: now,
+  };
+}
+
+function parseParams<T>(schema: z.ZodType<T>, params: unknown, message: string): T {
+  const parsed = schema.safeParse(params);
+  if (!parsed.success) {
+    throw validationFailed(message, { issues: parsed.error.issues });
+  }
+  return parsed.data;
 }

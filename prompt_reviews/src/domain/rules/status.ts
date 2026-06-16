@@ -32,16 +32,23 @@ export type StatusPlan = {
   items: readonly StatusPlanItem[];
 };
 
+export type StatusOverride = {
+  status: ReviewStatus;
+  reason: string | null | undefined;
+};
+
 export type CommitFileStatusInput = {
   primaryTagSlugs?: readonly string[];
   secondaryTagSlugs?: readonly string[];
   decisions?: readonly StatusDecision[];
   comments?: readonly StatusComment[];
   plans?: readonly StatusPlan[];
+  override?: StatusOverride | null;
 };
 
 export type CommitStatusInput = {
   files: readonly CommitFileStatusInput[];
+  override?: StatusOverride | null;
 };
 
 export type VersionReadinessInput = {
@@ -72,6 +79,11 @@ export const statusPrecedence = [
 const terminalCommitStatuses = ["accepted", "accepted_with_watch", "rejected"] as const satisfies readonly ReviewStatus[];
 
 export function deriveCommitFileStatus(file: CommitFileStatusInput): ReviewStatus {
+  const override = validStatusOverride(file.override);
+  if (override !== null) {
+    return override.status;
+  }
+
   if (!hasAnyClassificationTag(file)) {
     return "needs_classification";
   }
@@ -110,6 +122,11 @@ export function deriveCommitFileStatus(file: CommitFileStatusInput): ReviewStatu
 }
 
 export function deriveCommitStatus(commit: CommitStatusInput): ReviewStatus {
+  const override = validStatusOverride(commit.override);
+  if (override !== null) {
+    return override.status;
+  }
+
   const fileStatuses = commit.files.map(deriveCommitFileStatus);
 
   if (fileStatuses.length === 0) {
@@ -152,6 +169,16 @@ export function canCloseVersion(input: CloseVersionInput): boolean {
 
 function hasAnyClassificationTag(file: Pick<CommitFileStatusInput, "primaryTagSlugs" | "secondaryTagSlugs">): boolean {
   return (file.primaryTagSlugs?.length ?? 0) > 0 || (file.secondaryTagSlugs?.length ?? 0) > 0;
+}
+
+function validStatusOverride(override: StatusOverride | null | undefined): StatusOverride | null {
+  if (override === null || override === undefined) {
+    return null;
+  }
+  if (override.reason === null || override.reason === undefined || override.reason.trim() === "") {
+    return null;
+  }
+  return override;
 }
 
 function isAcceptedHumanFinalDecision(decision: StatusDecision): boolean {

@@ -15,6 +15,13 @@
       "when": 1781602920074,
       "tag": "0001_ambiguous_the_liberteens",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781606576073,
+      "tag": "0002_omniscient_siren",
+      "breakpoints": true
     }
   ]
 }

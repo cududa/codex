@@ -2,11 +2,13 @@ import { z } from "zod";
 import {
   ClassifyCommitParamsSchema,
   ClassifyFileParamsSchema,
+  ClassificationViewSchema,
   ConcernTagViewSchema,
   TaggingViewSchema,
   type ActorRef,
   type ClassifyCommitParams,
   type ClassifyFileParams,
+  type ClassificationView,
   type ConcernTagView,
   type ReviewEntityScope,
   type TaggingView,
@@ -15,11 +17,13 @@ import {
   addTagging,
   findCommitById,
   findCommitFileById,
+  findClassificationMetadataByTarget,
   findConcernTagById,
   findConcernTagBySlug,
   listPrimaryTaggingsByTarget,
   listTaggingsByTarget,
   removeTaggingsByTargetKind,
+  upsertClassificationMetadata,
   type ConcernTagRow,
   type TaggingRow,
   type TaggingTarget,
@@ -33,8 +37,8 @@ export type ClassificationServiceOptions = {
 };
 
 export type ClassificationService = {
-  classifyCommit: (params: unknown) => TaggingView[];
-  classifyFile: (params: unknown) => TaggingView[];
+  classifyCommit: (params: unknown) => ClassificationView;
+  classifyFile: (params: unknown) => ClassificationView;
 };
 
 const defaultClassificationActor = {
@@ -57,7 +61,7 @@ export function classifyCommit(
   context: RootServiceContext,
   params: unknown,
   actor: ActorRef = defaultClassificationActor,
-): TaggingView[] {
+): ClassificationView {
   const command = parseParams(ClassifyCommitParamsSchema, params, "Invalid commit classification params.");
   return withServiceTransaction(context, (txContext) => classifyCommitInTransaction(txContext, command, actor));
 }
@@ -66,7 +70,7 @@ export function classifyFile(
   context: RootServiceContext,
   params: unknown,
   actor: ActorRef = defaultClassificationActor,
-): TaggingView[] {
+): ClassificationView {
   const command = parseParams(ClassifyFileParamsSchema, params, "Invalid file classification params.");
   return withServiceTransaction(context, (txContext) => classifyFileInTransaction(txContext, command, actor));
 }
@@ -75,26 +79,26 @@ function classifyCommitInTransaction(
   context: ServiceContext,
   command: ClassifyCommitParams,
   actor: ActorRef,
-): TaggingView[] {
+): ClassificationView {
   const commit = findCommitById(context.db, command.commitId);
   if (commit === undefined) {
     throw notFound("commit", command.commitId);
   }
 
-  const taggings = replaceTargetClassification(context, { targetType: "commit", targetId: commit.id }, command, actor);
+  const classification = replaceTargetClassification(context, { targetType: "commit", targetId: commit.id }, command, actor);
   recomputeCommitStatus(context, commit.id);
-  return taggings;
+  return classification;
 }
 
-function classifyFileInTransaction(context: ServiceContext, command: ClassifyFileParams, actor: ActorRef): TaggingView[] {
+function classifyFileInTransaction(context: ServiceContext, command: ClassifyFileParams, actor: ActorRef): ClassificationView {
   const file = findCommitFileById(context.db, command.commitFileId);
   if (file === undefined) {
     throw notFound("commit_file", command.commitFileId);
   }
 
-  const taggings = replaceTargetClassification(context, { targetType: "commit_file", targetId: file.id }, command, actor);
+  const classification = replaceTargetClassification(context, { targetType: "commit_file", targetId: file.id }, command, actor);
   recomputeFileStatus(context, file.id);
-  return taggings;
+  return classification;
 }
 
 function replaceTargetClassification(
@@ -102,7 +106,7 @@ function replaceTargetClassification(
   target: TaggingTarget,
   command: ClassifyCommitParams | ClassifyFileParams,
   actor: ActorRef,
-): TaggingView[] {
+): ClassificationView {
   const secondarySlugs = command.secondaryTagSlugs ?? [];
   if (secondarySlugs.includes(command.primaryTagSlug)) {
     throw validationFailed("Primary tag cannot also be a secondary tag.", { primaryTagSlug: command.primaryTagSlug });
@@ -121,6 +125,18 @@ function replaceTargetClassification(
   for (const tag of secondaryTags) {
     addTagging(context.db, toTaggingInsert(context, target, tag, "secondary", command.rationale, actor));
   }
+  upsertClassificationMetadata(context.db, {
+    targetType: target.targetType,
+    targetId: target.targetId,
+    summary: command.summary ?? null,
+    riskLevel: command.riskLevel ?? null,
+    confidence: command.confidence ?? null,
+    updatedByActorType: actor.type,
+    updatedByActorId: actor.id ?? null,
+    updatedByDisplayName: actor.displayName ?? null,
+    createdAt: context.now(),
+    updatedAt: context.now(),
+  });
 
   const primaryTaggings = listPrimaryTaggingsByTarget(context.db, target);
   if (primaryTaggings.length !== 1) {
@@ -131,7 +147,7 @@ function replaceTargetClassification(
     });
   }
 
-  return listTaggingsByTarget(context.db, target).map((tagging) => toTaggingView(context, tagging));
+  return toClassificationView(context, target);
 }
 
 function toTaggingInsert(
@@ -183,6 +199,23 @@ function toTaggingView(context: ServiceContext, row: TaggingRow): TaggingView {
   });
 }
 
+function toClassificationView(context: ServiceContext, target: TaggingTarget): ClassificationView {
+  const metadata = findClassificationMetadataByTarget(context.db, target);
+  if (metadata === undefined) {
+    throw invariantFailed("Classification metadata is missing after classification.", target);
+  }
+
+  return ClassificationViewSchema.parse({
+    scope: taggingScopeTarget(target),
+    taggings: listTaggingsByTarget(context.db, target).map((tagging) => toTaggingView(context, tagging)),
+    summary: metadata.summary ?? undefined,
+    riskLevel: metadata.riskLevel ?? undefined,
+    confidence: metadata.confidence ?? undefined,
+    updatedBy: actorRef(metadata.updatedByActorType, metadata.updatedByActorId, metadata.updatedByDisplayName),
+    updatedAt: metadata.updatedAt ?? metadata.createdAt,
+  });
+}
+
 function toConcernTagView(context: ServiceContext, row: ConcernTagRow): ConcernTagView {
   const parent = row.parentId === null ? undefined : findConcernTagById(context.db, row.parentId);
   return ConcernTagViewSchema.parse({
@@ -197,16 +230,20 @@ function toConcernTagView(context: ServiceContext, row: ConcernTagRow): ConcernT
 }
 
 function taggingScope(row: TaggingRow): ReviewEntityScope {
-  if (row.targetType === "version") {
-    return { type: "version", versionId: row.targetId };
+  return taggingScopeTarget({ targetType: row.targetType, targetId: row.targetId });
+}
+
+function taggingScopeTarget(target: TaggingTarget): ReviewEntityScope {
+  if (target.targetType === "version") {
+    return { type: "version", versionId: target.targetId };
   }
-  if (row.targetType === "commit") {
-    return { type: "commit", commitId: row.targetId };
+  if (target.targetType === "commit") {
+    return { type: "commit", commitId: target.targetId };
   }
-  if (row.targetType === "commit_file") {
-    return { type: "commit_file", commitFileId: row.targetId };
+  if (target.targetType === "commit_file") {
+    return { type: "commit_file", commitFileId: target.targetId };
   }
-  return { type: "diff_block", diffBlockId: row.targetId };
+  return { type: "diff_block", diffBlockId: target.targetId };
 }
 
 function actorRef(type: ActorRef["type"], id: string | null, displayName: string | null): ActorRef {

@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { DecisionScopeType, PlanItemStatus, PlanStatus } from "../domain/enums.js";
-import { planComments, planDecisions, planItems, plans } from "../db/schema.js";
+import { planComments, planDecisions, planDiffBlocks, planItems, plans } from "../db/schema.js";
 import { unixSecondsNow } from "../db/timestamps.js";
 import type { RepositoryDatabase } from "./database.js";
 
@@ -12,6 +12,8 @@ export type PlanCommentRow = typeof planComments.$inferSelect;
 export type PlanCommentInsert = typeof planComments.$inferInsert;
 export type PlanDecisionRow = typeof planDecisions.$inferSelect;
 export type PlanDecisionInsert = typeof planDecisions.$inferInsert;
+export type PlanDiffBlockRow = typeof planDiffBlocks.$inferSelect;
+export type PlanDiffBlockInsert = typeof planDiffBlocks.$inferInsert;
 export type PlanTarget = {
   scope: DecisionScopeType;
   targetId: string;
@@ -120,6 +122,23 @@ export function listPlanDecisionLinks(db: RepositoryDatabase, planId: string): P
     .from(planDecisions)
     .where(eq(planDecisions.planId, planId))
     .orderBy(asc(planDecisions.createdAt), asc(planDecisions.id))
+    .all();
+}
+
+export function addPlanDiffBlockLink(db: RepositoryDatabase, values: PlanDiffBlockInsert): PlanDiffBlockRow {
+  return db.insert(planDiffBlocks).values(values).returning().get();
+}
+
+export function deletePlanDiffBlockLinks(db: RepositoryDatabase, planId: string): PlanDiffBlockRow[] {
+  return db.delete(planDiffBlocks).where(eq(planDiffBlocks.planId, planId)).returning().all();
+}
+
+export function listPlanDiffBlockLinks(db: RepositoryDatabase, planId: string): PlanDiffBlockRow[] {
+  return db
+    .select()
+    .from(planDiffBlocks)
+    .where(eq(planDiffBlocks.planId, planId))
+    .orderBy(asc(planDiffBlocks.createdAt), asc(planDiffBlocks.id))
     .all();
 }
 

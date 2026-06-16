@@ -5,6 +5,7 @@ import {
   addTagging,
   bulkInsertCommitFiles,
   bulkInsertCommits,
+  bulkInsertDiffBlocks,
   createDecision,
   createVersion,
   findCommitById,
@@ -60,6 +61,7 @@ describe("plan service", () => {
       items: [],
       linkedCommentIds: [],
       linkedDecisionIds: [],
+      linkedDiffBlockIds: [],
       updatedAt: 9_000,
       completedBy: undefined,
       completionNote: undefined,
@@ -124,8 +126,18 @@ describe("plan service", () => {
     });
   });
 
-  it("links plans to comments and decisions and plan items to files and decisions", () => {
+  it("links plans to comments, decisions, and diff blocks and plan items to files and decisions", () => {
     const { file } = seedAcceptedFile("plan_links");
+    const [diffBlock] = bulkInsertDiffBlocks(database.db, [
+      {
+        id: "blk_plan_link",
+        commitFileId: file.id,
+        blockKey: "plan-link",
+        ordinal: 1,
+        contentHash: "hash-plan-link",
+        patch: "@@ patch",
+      },
+    ]);
     const comment = addComment(database.db, {
       id: "com_plan_link",
       scope: "commit_file",
@@ -153,6 +165,7 @@ describe("plan service", () => {
       proposedBy: agent,
       commentIds: [comment.id],
       decisionIds: [decision.id],
+      diffBlockIds: [diffBlock.id],
     });
     const item = service.createPlanItem({
       planId: plan.id,
@@ -164,6 +177,7 @@ describe("plan service", () => {
 
     expect(plan.linkedCommentIds).toEqual([comment.id]);
     expect(plan.linkedDecisionIds).toEqual([decision.id]);
+    expect(plan.linkedDiffBlockIds).toEqual([diffBlock.id]);
     expect(item).toMatchObject({
       commitFileId: file.id,
       decisionId: decision.id,
@@ -173,10 +187,12 @@ describe("plan service", () => {
       planId: plan.id,
       commentIds: [],
       decisionIds: [],
+      diffBlockIds: [],
       actor: human,
     });
     expect(cleared.linkedCommentIds).toEqual([]);
     expect(cleared.linkedDecisionIds).toEqual([]);
+    expect(cleared.linkedDiffBlockIds).toEqual([]);
   });
 
   it("rejects unvalidated plan link ids", () => {
@@ -189,6 +205,14 @@ describe("plan service", () => {
         title: "Bad link",
         proposedBy: agent,
         commentIds: ["com_missing"],
+      }),
+    ).toThrow();
+    expect(() =>
+      service.createPlan({
+        scope: { type: "commit_file", commitFileId: file.id },
+        title: "Bad block link",
+        proposedBy: agent,
+        diffBlockIds: ["blk_missing"],
       }),
     ).toThrow();
   });

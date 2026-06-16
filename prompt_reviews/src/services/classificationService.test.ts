@@ -6,6 +6,7 @@ import {
   createVersion,
   findCommitById,
   findCommitFileById,
+  findClassificationMetadataByTarget,
   findConcernTagById,
   findVersionById,
   listPrimaryTaggingsByTarget,
@@ -36,13 +37,13 @@ describe("classification service", () => {
     const { commit } = seedReviewTarget("commit_primary");
     const service = createClassificationService(context, { actor: { type: "agent", id: "agent-1" } });
 
-    const taggings = service.classifyCommit({
+    const classification = service.classifyCommit({
       commitId: commit.id,
       primaryTagSlug: "goal.initial-steering",
       rationale: "This changes the steering prompt.",
     });
 
-    expect(taggings.map((tagging) => ({ kind: tagging.kind, slug: tagging.tag.slug }))).toEqual([
+    expect(classification.taggings.map((tagging) => ({ kind: tagging.kind, slug: tagging.tag.slug }))).toEqual([
       { kind: "primary", slug: "goal.initial-steering" },
     ]);
     expect(listPrimaryTaggingsByTarget(database.db, { targetType: "commit", targetId: commit.id })).toHaveLength(1);
@@ -56,14 +57,14 @@ describe("classification service", () => {
     const { commit, file } = seedReviewTarget("file_primary");
     const service = createClassificationService(context, { actor: { type: "human", id: "reviewer" } });
 
-    const taggings = service.classifyFile({
+    const classification = service.classifyFile({
       commitFileId: file.id,
       primaryTagSlug: "goal.initial-steering",
       secondaryTagSlugs: ["prompt.fidelity"],
       rationale: "Prompt contract changed and needs fidelity review.",
     });
 
-    expect(taggings.map((tagging) => ({ kind: tagging.kind, slug: tagging.tag.slug }))).toEqual([
+    expect(classification.taggings.map((tagging) => ({ kind: tagging.kind, slug: tagging.tag.slug }))).toEqual([
       { kind: "primary", slug: "goal.initial-steering" },
       { kind: "secondary", slug: "prompt.fidelity" },
     ]);
@@ -82,6 +83,40 @@ describe("classification service", () => {
     expect(primaryTaggings).toHaveLength(1);
     expect(findConcernTagById(database.db, primaryTaggings[0].tagId)?.slug).toBe("prompt.fidelity");
     expect(listTaggingsByTarget(database.db, { targetType: "commit_file", targetId: file.id })).toEqual(primaryTaggings);
+  });
+
+  it("accepts, persists, and returns classification summary, risk, and confidence", () => {
+    const { file } = seedReviewTarget("file_metadata");
+    const service = createClassificationService(context, { actor: { type: "agent", id: "agent-1" } });
+
+    const classification = service.classifyFile({
+      commitFileId: file.id,
+      primaryTagSlug: "goal.initial-steering",
+      summary: "Prompt steering change with low blast radius.",
+      riskLevel: "low",
+      confidence: "high",
+    });
+
+    expect(classification).toMatchObject({
+      scope: { type: "commit_file", commitFileId: file.id },
+      summary: "Prompt steering change with low blast radius.",
+      riskLevel: "low",
+      confidence: "high",
+      updatedBy: { type: "agent", id: "agent-1" },
+      updatedAt: 5_000,
+    });
+    expect(
+      findClassificationMetadataByTarget(database.db, { targetType: "commit_file", targetId: file.id }),
+    ).toMatchObject({
+      targetType: "commit_file",
+      targetId: file.id,
+      summary: "Prompt steering change with low blast radius.",
+      riskLevel: "low",
+      confidence: "high",
+      updatedByActorType: "agent",
+      updatedByActorId: "agent-1",
+      updatedAt: 5_000,
+    });
   });
 
   it("rejects a tag slug used as both primary and secondary", () => {

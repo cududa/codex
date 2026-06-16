@@ -17,6 +17,7 @@ const PlanLinkFieldsSchema = z
   .object({
     commentIds: z.array(IdSchema).optional(),
     decisionIds: z.array(IdSchema).optional(),
+    diffBlockIds: z.array(IdSchema).optional(),
   })
   .strict();
 
@@ -85,6 +86,7 @@ export const PlanDetailSchema = PlanSummarySchema.extend({
   items: z.array(PlanItemDetailSchema),
   linkedCommentIds: z.array(IdSchema),
   linkedDecisionIds: z.array(IdSchema),
+  linkedDiffBlockIds: z.array(IdSchema),
   updatedAt: UnixSecondsSchema.optional(),
   completedBy: ActorRefSchema.optional(),
   completionNote: OptionalTextSchema,

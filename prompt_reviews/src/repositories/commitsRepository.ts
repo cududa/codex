@@ -96,6 +96,31 @@ export function updateCommitReviewFields(
     .get();
 }
 
+export type CommitStatusOverrideUpdate = Pick<
+  CommitRow,
+  | "statusOverride"
+  | "statusOverrideReason"
+  | "statusOverrideActorType"
+  | "statusOverrideActorId"
+  | "statusOverrideDisplayName"
+  | "statusOverrideAt"
+> & {
+  updatedAt?: number | null;
+};
+
+export function updateCommitStatusOverride(
+  db: RepositoryDatabase,
+  id: string,
+  values: CommitStatusOverrideUpdate,
+): CommitRow | undefined {
+  return db
+    .update(commits)
+    .set({ ...values, updatedAt: values.updatedAt ?? unixSecondsNow() })
+    .where(eq(commits.id, id))
+    .returning()
+    .get();
+}
+
 function pageFromCommitRows(rows: CommitRow[], limit: number): Page<CommitRow> {
   const items = rows.slice(0, limit);
   const last = items.at(-1);

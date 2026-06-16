@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   comments,
+  classificationMetadata,
   commitFiles,
   commits,
   concernTags,
@@ -9,6 +10,7 @@ import {
   diffBlocks,
   planComments,
   planDecisions,
+  planDiffBlocks,
   planItems,
   plans,
   taggings,
@@ -42,6 +44,7 @@ export const commitFileRelations = relations(commitFiles, ({ one, many }) => ({
 export const diffBlockRelations = relations(diffBlocks, ({ one, many }) => ({
   commitFile: one(commitFiles, { fields: [diffBlocks.commitFileId], references: [commitFiles.id] }),
   comments: many(comments),
+  planLinks: many(planDiffBlocks),
 }));
 
 export const concernTagRelations = relations(concernTags, ({ one, many }) => ({
@@ -53,6 +56,8 @@ export const concernTagRelations = relations(concernTags, ({ one, many }) => ({
 export const taggingRelations = relations(taggings, ({ one }) => ({
   tag: one(concernTags, { fields: [taggings.tagId], references: [concernTags.id] }),
 }));
+
+export const classificationMetadataRelations = relations(classificationMetadata, () => ({}));
 
 export const commentRelations = relations(comments, ({ one, many }) => ({
   version: one(versions, { fields: [comments.versionId], references: [versions.id] }),
@@ -79,6 +84,7 @@ export const planRelations = relations(plans, ({ one, many }) => ({
   items: many(planItems),
   commentLinks: many(planComments),
   decisionLinks: many(planDecisions),
+  diffBlockLinks: many(planDiffBlocks),
 }));
 
 export const planItemRelations = relations(planItems, ({ one }) => ({
@@ -95,6 +101,11 @@ export const planCommentRelations = relations(planComments, ({ one }) => ({
 export const planDecisionRelations = relations(planDecisions, ({ one }) => ({
   plan: one(plans, { fields: [planDecisions.planId], references: [plans.id] }),
   decision: one(decisions, { fields: [planDecisions.decisionId], references: [decisions.id] }),
+}));
+
+export const planDiffBlockRelations = relations(planDiffBlocks, ({ one }) => ({
+  plan: one(plans, { fields: [planDiffBlocks.planId], references: [plans.id] }),
+  diffBlock: one(diffBlocks, { fields: [planDiffBlocks.diffBlockId], references: [diffBlocks.id] }),
 }));
 
 export const decisionCommentRelations = relations(decisionComments, ({ one }) => ({

@@ -1,6 +1,7 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import {
   comments,
+  classificationMetadata,
   commitFiles,
   commits,
   concernTags,
@@ -9,6 +10,7 @@ import {
   diffBlocks,
   planComments,
   planDecisions,
+  planDiffBlocks,
   planItems,
   plans,
   taggings,
@@ -45,6 +47,11 @@ export const taggingRowSchemas = {
   insert: createInsertSchema(taggings),
 };
 
+export const classificationMetadataRowSchemas = {
+  select: createSelectSchema(classificationMetadata),
+  insert: createInsertSchema(classificationMetadata),
+};
+
 export const commentRowSchemas = {
   select: createSelectSchema(comments),
   insert: createInsertSchema(comments),
@@ -73,6 +80,11 @@ export const planCommentRowSchemas = {
 export const planDecisionRowSchemas = {
   select: createSelectSchema(planDecisions),
   insert: createInsertSchema(planDecisions),
+};
+
+export const planDiffBlockRowSchemas = {
+  select: createSelectSchema(planDiffBlocks),
+  insert: createInsertSchema(planDiffBlocks),
 };
 
 export const decisionCommentRowSchemas = {

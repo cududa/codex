@@ -11,6 +11,7 @@ import {
   AddCommentParamsSchema,
   ClassifyCommitParamsSchema,
   ClassifyFileParamsSchema,
+  ClassificationViewSchema,
   CloseVersionParamsSchema,
   CommentDetailSchema,
   CommentSummarySchema,
@@ -30,6 +31,8 @@ import {
   FileReviewViewSchema,
   FinalizeDecisionParamsSchema,
   NextActionHintSchema,
+  OverrideCommitStatusParamsSchema,
+  OverrideFileStatusParamsSchema,
   PaginatedResponseSchema,
   PlanDetailSchema,
   PlanItemDetailSchema,
@@ -70,6 +73,15 @@ const tagging = {
   rationale: "This file changes goal setup.",
   createdBy: agent,
   createdAt: 1,
+};
+const classification = {
+  scope: fileScope,
+  taggings: [tagging],
+  summary: "Prompt steering change with low blast radius.",
+  riskLevel: "low",
+  confidence: "high",
+  updatedBy: agent,
+  updatedAt: 1,
 };
 const commentSummary = {
   id: "comment-1",
@@ -126,6 +138,7 @@ const planDetail = {
   items: [planItem],
   linkedCommentIds: ["comment-1"],
   linkedDecisionIds: ["decision-1"],
+  linkedDiffBlockIds: ["block-1"],
   completedBy: agent,
   completionNote: "Evidence captured.",
 };
@@ -246,8 +259,25 @@ describe("boundary command schemas", () => {
           label: "Next",
         },
       ],
-      [ClassifyCommitParamsSchema, { commitId: "commit-1", primaryTagSlug: "goal.initial-steering" }],
+      [
+        ClassifyCommitParamsSchema,
+        {
+          commitId: "commit-1",
+          primaryTagSlug: "goal.initial-steering",
+          summary: "Prompt steering change.",
+          riskLevel: "low",
+          confidence: "high",
+        },
+      ],
       [ClassifyFileParamsSchema, { commitFileId: "cf-1", primaryTagSlug: "prompt.fidelity" }],
+      [
+        OverrideCommitStatusParamsSchema,
+        { commitId: "commit-1", status: "blocked", reason: "Needs manual review.", actor: human },
+      ],
+      [
+        OverrideFileStatusParamsSchema,
+        { commitFileId: "cf-1", status: "patch_required", reason: "Needs patch.", actor: human },
+      ],
       [CreateTaggingParamsSchema, { scope: fileScope, tagSlug: "prompt.fidelity", kind: "secondary", actor: agent }],
       [DeleteTaggingParamsSchema, { taggingId: "tagging-1", actor: human, reason: "Replaced by primary tag." }],
       [AddCommentParamsSchema, { scope: fileScope, anchor: { kind: "scope" }, body: "Please verify.", author: agent }],
@@ -258,7 +288,7 @@ describe("boundary command schemas", () => {
       [FinalizeDecisionParamsSchema, { decisionId: "decision-1", status: "accepted", finalizer: human }],
       [
         CreatePlanParamsSchema,
-        { scope: decisionScope, title: "Validate", proposedBy: agent, commentIds: ["comment-1"] },
+        { scope: decisionScope, title: "Validate", proposedBy: agent, commentIds: ["comment-1"], diffBlockIds: ["block-1"] },
       ],
       [UpdatePlanParamsSchema, { planId: "plan-1", status: "in_progress", decisionIds: ["decision-1"], actor: agent }],
       [
@@ -334,6 +364,7 @@ describe("boundary view and response schemas", () => {
       [FileReviewViewSchema, fileReview],
       [ConcernTagViewSchema, tag],
       [TaggingViewSchema, tagging],
+      [ClassificationViewSchema, classification],
       [CommentSummarySchema, commentSummary],
       [CommentDetailSchema, commentDetail],
       [DecisionSummarySchema, decisionSummary],

@@ -11,6 +11,7 @@ import {
   createPlanItem,
   createVersion,
   findCommitById,
+  findCommitFileById,
   findConcernTagBySlug,
   seedConcernTagsRepository,
   updateVersionStatus,
@@ -18,6 +19,7 @@ import {
   type CommitRow,
   type VersionRow,
 } from "../repositories/index.js";
+import { PromptReviewServiceError } from "./errors.js";
 import { createServiceContext, type ServiceContext } from "./serviceContext.js";
 import { createStatusService } from "./statusService.js";
 
@@ -89,6 +91,71 @@ describe("status service", () => {
     });
 
     expect(createStatusService(context).recomputeFileStatus(file.id)).toEqual({ id: file.id, status: "blocked" });
+  });
+
+  it("rejects file status overrides without a reason and respects valid persisted overrides", () => {
+    const file = seedClassifiedFile("file_override");
+    acceptFile(file.id, "accept");
+    const service = createStatusService(context);
+
+    expect(() =>
+      service.overrideFileStatus({
+        commitFileId: file.id,
+        status: "blocked",
+        reason: "",
+        actor: { type: "human", id: "reviewer" },
+      }),
+    ).toThrow(PromptReviewServiceError);
+
+    expect(
+      service.overrideFileStatus({
+        commitFileId: file.id,
+        status: "blocked",
+        reason: "Waiting on manual verification.",
+        actor: { type: "human", id: "reviewer", displayName: "Reviewer" },
+      }),
+    ).toEqual({ id: file.id, status: "blocked" });
+
+    expect(findCommitFileById(database.db, file.id)).toMatchObject({
+      reviewStatus: "blocked",
+      statusOverride: "blocked",
+      statusOverrideReason: "Waiting on manual verification.",
+      statusOverrideActorType: "human",
+      statusOverrideActorId: "reviewer",
+      statusOverrideDisplayName: "Reviewer",
+      statusOverrideAt: 1_000,
+      updatedAt: 1_000,
+    });
+    expect(service.recomputeFileStatus(file.id)).toEqual({ id: file.id, status: "blocked" });
+  });
+
+  it("persists commit status overrides and version recomputation respects them", () => {
+    const commit = seedCommit("cmt_override");
+    const [file] = seedFiles(commit.id, ["file_commit_override"]);
+    tagFile(file.id);
+    acceptFile(file.id, "accept");
+    const service = createStatusService(context);
+
+    expect(service.recomputeCommitStatus(commit.id)).toEqual({ id: commit.id, status: "accepted" });
+    expect(
+      service.overrideCommitStatus({
+        commitId: commit.id,
+        status: "patch_required",
+        reason: "Reviewer requires a local patch despite file-level acceptance.",
+        actor: { type: "human", id: "reviewer" },
+      }),
+    ).toEqual({ id: commit.id, status: "patch_required" });
+
+    expect(findCommitById(database.db, commit.id)).toMatchObject({
+      reviewStatus: "patch_required",
+      statusOverride: "patch_required",
+      statusOverrideReason: "Reviewer requires a local patch despite file-level acceptance.",
+      statusOverrideActorType: "human",
+      statusOverrideActorId: "reviewer",
+      statusOverrideAt: 1_000,
+    });
+    expect(service.recomputeCommitStatus(commit.id)).toEqual({ id: commit.id, status: "patch_required" });
+    expect(service.recomputeVersionStatus(commit.versionId)).toEqual({ id: commit.versionId, status: "reviewing" });
   });
 
   it("updates commit status from the strictest child file status", () => {

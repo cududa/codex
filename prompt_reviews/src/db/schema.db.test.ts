@@ -3,6 +3,7 @@ import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   comments,
+  classificationMetadata,
   commitFiles,
   commits,
   concernTags,
@@ -11,6 +12,7 @@ import {
   diffBlocks,
   planComments,
   planDecisions,
+  planDiffBlocks,
   planItems,
   plans,
   schemaTables,
@@ -20,6 +22,7 @@ import {
 import { seedConcernTags } from "./seedConcernTags.js";
 import {
   commitRowSchemas,
+  classificationMetadataRowSchemas,
   commitFileRowSchemas,
   concernTagRowSchemas,
   decisionRowSchemas,
@@ -49,9 +52,11 @@ const expectedUniqueIndexes = [
   "diff_blocks_file_ordinal_unique",
   "concern_tags_slug_unique",
   "taggings_tag_target_unique",
+  "classification_metadata_target_unique",
   "plan_items_plan_ordinal_unique",
   "plan_comments_plan_comment_unique",
   "plan_decisions_plan_decision_unique",
+  "plan_diff_blocks_plan_diff_block_unique",
   "decision_comments_decision_comment_unique",
 ] as const;
 
@@ -354,6 +359,7 @@ describe("Drizzle schema and migrations", () => {
     }).run();
     database.db.insert(planComments).values({ id: "plc_1", planId: "pln_1", commentId: "com_1" }).run();
     database.db.insert(planDecisions).values({ id: "pld_1", planId: "pln_1", decisionId: "dec_1" }).run();
+    database.db.insert(planDiffBlocks).values({ id: "pdb_1", planId: "pln_1", diffBlockId: "blk_1" }).run();
     database.db.insert(decisionComments).values({ id: "dcm_1", decisionId: "dec_1", commentId: "com_1" }).run();
 
     expectConstraintFailure(() => {
@@ -369,6 +375,9 @@ describe("Drizzle schema and migrations", () => {
     });
     expectConstraintFailure(() => {
       database.db.insert(planDecisions).values({ id: "pld_duplicate", planId: "pln_1", decisionId: "dec_1" }).run();
+    });
+    expectConstraintFailure(() => {
+      database.db.insert(planDiffBlocks).values({ id: "pdb_duplicate", planId: "pln_1", diffBlockId: "blk_1" }).run();
     });
     expectConstraintFailure(() => {
       database.db.insert(decisionComments).values({
@@ -414,6 +423,58 @@ describe("Drizzle schema and migrations", () => {
       rationale: "Nope",
       proposedByActorType: "human",
     }).success).toBe(false);
+    expect(classificationMetadataRowSchemas.insert.parse({
+      targetType: "commit_file",
+      targetId: "file_modified",
+      summary: "Classified target.",
+      riskLevel: "low",
+      confidence: "high",
+      updatedByActorType: "agent",
+    })).toMatchObject({ targetType: "commit_file", riskLevel: "low", confidence: "high" });
+  });
+
+  it("enforces status override reason checks for commits and commit files", () => {
+    const database = openMigratedDb();
+    seedReviewGraph(database);
+
+    expectConstraintFailure(() => {
+      database.db.update(commits).set({
+        statusOverride: "blocked",
+        statusOverrideReason: "",
+        statusOverrideActorType: "human",
+        statusOverrideAt: 123,
+      }).where(eq(commits.id, "cmt_1")).run();
+    });
+    expectConstraintFailure(() => {
+      database.db.update(commitFiles).set({
+        statusOverride: "blocked",
+        statusOverrideReason: null,
+        statusOverrideActorType: "human",
+        statusOverrideAt: 123,
+      }).where(eq(commitFiles.id, "file_modified")).run();
+    });
+
+    database.db.update(commits).set({
+      statusOverride: "blocked",
+      statusOverrideReason: "Manual hold.",
+      statusOverrideActorType: "human",
+      statusOverrideAt: 123,
+    }).where(eq(commits.id, "cmt_1")).run();
+    database.db.update(commitFiles).set({
+      statusOverride: "patch_required",
+      statusOverrideReason: "Patch needed.",
+      statusOverrideActorType: "agent",
+      statusOverrideAt: 124,
+    }).where(eq(commitFiles.id, "file_modified")).run();
+
+    expect(database.db.select().from(commits).where(eq(commits.id, "cmt_1")).get()).toMatchObject({
+      statusOverride: "blocked",
+      statusOverrideReason: "Manual hold.",
+    });
+    expect(database.db.select().from(commitFiles).where(eq(commitFiles.id, "file_modified")).get()).toMatchObject({
+      statusOverride: "patch_required",
+      statusOverrideReason: "Patch needed.",
+    });
   });
 
   it("seeds concern tags idempotently and preserves local narrative edits", () => {
