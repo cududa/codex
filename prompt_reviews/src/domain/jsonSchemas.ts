@@ -1,0 +1,99 @@
+import { z } from "zod";
+import {
+  AddCommentParamsSchema,
+  ClassifyCommitParamsSchema,
+  ClassifyFileParamsSchema,
+  CloseVersionParamsSchema,
+  CommentDetailSchema,
+  CommentSummarySchema,
+  CommitDetailSchema,
+  CommitFileDetailSchema,
+  CommitFileQueueItemSchema,
+  CommitQueueItemSchema,
+  CompletePlanParamsSchema,
+  ConcernTagViewSchema,
+  CreatePlanItemParamsSchema,
+  CreatePlanParamsSchema,
+  CreateTaggingParamsSchema,
+  DecisionDetailSchema,
+  DecisionSummarySchema,
+  DeleteTaggingParamsSchema,
+  DiffBlockViewSchema,
+  FileReviewViewSchema,
+  FinalizeDecisionParamsSchema,
+  NextActionHintSchema,
+  PaginatedResponseSchema,
+  PlanDetailSchema,
+  PlanItemDetailSchema,
+  PlanSummarySchema,
+  PopulateNextVersionParamsSchema,
+  ProposeDecisionParamsSchema,
+  RemainingWorkSchema,
+  ReopenCommentParamsSchema,
+  ResolveCommentParamsSchema,
+  TaggingViewSchema,
+  UpdateDecisionParamsSchema,
+  UpdatePlanItemParamsSchema,
+  UpdatePlanParamsSchema,
+  VersionDetailSchema,
+  VersionProgressSchema,
+  VersionSummarySchema,
+} from "./schemas/index.js";
+
+export const boundarySchemas = {
+  PopulateNextVersionParams: PopulateNextVersionParamsSchema,
+  ClassifyCommitParams: ClassifyCommitParamsSchema,
+  ClassifyFileParams: ClassifyFileParamsSchema,
+  CreateTaggingParams: CreateTaggingParamsSchema,
+  DeleteTaggingParams: DeleteTaggingParamsSchema,
+  AddCommentParams: AddCommentParamsSchema,
+  ResolveCommentParams: ResolveCommentParamsSchema,
+  ReopenCommentParams: ReopenCommentParamsSchema,
+  ProposeDecisionParams: ProposeDecisionParamsSchema,
+  UpdateDecisionParams: UpdateDecisionParamsSchema,
+  FinalizeDecisionParams: FinalizeDecisionParamsSchema,
+  CreatePlanParams: CreatePlanParamsSchema,
+  UpdatePlanParams: UpdatePlanParamsSchema,
+  CreatePlanItemParams: CreatePlanItemParamsSchema,
+  UpdatePlanItemParams: UpdatePlanItemParamsSchema,
+  CompletePlanParams: CompletePlanParamsSchema,
+  CloseVersionParams: CloseVersionParamsSchema,
+  VersionSummary: VersionSummarySchema,
+  VersionDetail: VersionDetailSchema,
+  VersionProgress: VersionProgressSchema,
+  CommitQueueItem: CommitQueueItemSchema,
+  CommitDetail: CommitDetailSchema,
+  CommitFileQueueItem: CommitFileQueueItemSchema,
+  CommitFileDetail: CommitFileDetailSchema,
+  DiffBlockView: DiffBlockViewSchema,
+  FileReviewView: FileReviewViewSchema,
+  ConcernTagView: ConcernTagViewSchema,
+  TaggingView: TaggingViewSchema,
+  CommentSummary: CommentSummarySchema,
+  CommentDetail: CommentDetailSchema,
+  DecisionSummary: DecisionSummarySchema,
+  DecisionDetail: DecisionDetailSchema,
+  PlanSummary: PlanSummarySchema,
+  PlanDetail: PlanDetailSchema,
+  PlanItemDetail: PlanItemDetailSchema,
+  RemainingWork: RemainingWorkSchema,
+  PaginatedResponse: PaginatedResponseSchema,
+  NextActionHint: NextActionHintSchema,
+} as const;
+
+export type BoundarySchemaName = keyof typeof boundarySchemas;
+export type BoundaryJsonSchema = unknown;
+export type BoundaryJsonSchemas = Record<BoundarySchemaName, BoundaryJsonSchema>;
+
+export function toBoundaryJsonSchema(name: BoundarySchemaName): BoundaryJsonSchema {
+  return z.toJSONSchema(boundarySchemas[name], { reused: "ref" });
+}
+
+export function exportBoundaryJsonSchemas(): BoundaryJsonSchemas {
+  return Object.fromEntries(
+    Object.keys(boundarySchemas).map((name) => [
+      name,
+      toBoundaryJsonSchema(name as BoundarySchemaName),
+    ]),
+  ) as BoundaryJsonSchemas;
+}

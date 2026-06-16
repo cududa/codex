@@ -90,6 +90,13 @@ drizzle/**             generated migration SQL and metadata
 
 `scripts/check-architecture.ts` and `architecture-boundaries.test.ts` must fail when:
 
+- Any new architecture module imports the prototype implementation modules:
+  `src/anchors.ts`, `src/discovery.ts`, `src/mcp.ts`, `src/reviews.ts`, `src/server.ts`,
+  or `src/store.ts`. Those files are condemned prototype code, not reusable infrastructure.
+  Until replacement batches delete or isolate them, they may exist on disk only as legacy runtime
+  entry points for the old applet.
+- `src/domain/**` imports Node built-ins, filesystem/process/path modules, DB/repository/service/API/MCP
+  modules, frontend modules, React, Fastify, MCP SDK, `better-sqlite3`, or `drizzle-orm`.
 - `web/src/**` imports `src/db/**`, `src/repositories/**`, `src/services/**`, `better-sqlite3`, `drizzle-orm`, or generated row schemas.
 - `src/api/**` or `src/mcp/**` imports `src/db/schema.ts`, `src/db/rowSchemas.ts`, Drizzle tables, SQL clients, or repository internals directly.
 - `src/services/**` imports Fastify, MCP SDK, React, or frontend modules.
@@ -99,6 +106,12 @@ drizzle/**             generated migration SQL and metadata
 - New primary workflow modules reference `.prompt-review.md`, `comments.json`, `ReviewFile`, `reviewPath`, `bundle`, `markdown_path`, `folder`, or generated markdown concepts outside `src/legacy/**`, importer tests, or old prototype files pending deletion.
 - `src/server.ts` contains route business logic after Batch 05; it must become composition/bootstrap only.
 - `src/mcp.ts` contains tool business logic after Batch 06; it must become composition/bootstrap only.
+- Any non-test TypeScript or TSX source file outside the explicit condemned prototype allowlist
+  exceeds 500 physical lines. Split large files by concern before they become shared dumping
+  grounds.
+- Any source directory contains more than 12 direct TypeScript or TSX files without further
+  decomposition. Use nested feature, entity, service, repository, adapter, or test-support modules
+  instead of flat piles of files.
 
 The checker must be strict by default. Use narrow allowlists with comments, not broad ignore rules.
 
@@ -135,6 +148,7 @@ Reject the batch if:
 - It implements actual review tables, routes, tools, or frontend workflow.
 - Structure tests are advisory only.
 - The checker allows API/MCP to import DB rows directly.
+- The checker allows new domain, DB, repository, service, git, ingestion, API, MCP, frontend, or
+  legacy modules to import the prototype modules listed above.
 - Legacy markdown terms are merely renamed and allowed as primary entities.
 - `CommentStore`, generated markdown reviews, or `comments.json` remain described as active storage in new architecture docs.
-

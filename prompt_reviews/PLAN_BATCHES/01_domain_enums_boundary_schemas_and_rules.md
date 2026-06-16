@@ -8,6 +8,11 @@ Domain subagent.
 
 Define the shared vocabulary, hand-authored Zod boundary contracts, taxonomy seed data, and pure rule helpers that every later batch must obey. This batch must not introduce persistence, HTTP routes, MCP tools, or UI behavior.
 
+`src/domain/**` is the shared frontend/backend contract layer, not a backend-only folder. Keep it
+browser-safe and free of Node, filesystem, DB, repository, service, API, MCP, React, and web imports
+so both the backend and `web/src/**` can import the same schemas and inferred types. Frontend code
+should import it through the `@domain/*` alias.
+
 ## Dependencies
 
 Requires Batch 00.
@@ -298,6 +303,7 @@ Use whole-object equality where practical.
 - Boundary schemas do not import `src/db/**`, `src/db/rowSchemas.ts`, `drizzle-orm`, or `better-sqlite3`.
 - No schema exposes `reviewPath`, `bundle`, `.prompt-review.md`, or `comments.json` as a primary command field.
 - Frontend, API, and MCP can later import from `src/domain/**` without pulling in server-only DB modules.
+- `src/domain/**` remains browser-safe shared code suitable for frontend imports.
 
 ## Rejection Criteria
 
@@ -309,4 +315,3 @@ Reject the batch if:
 - Human-only finalization is deferred to API/UI instead of expressed in rules/services.
 - Status derivation is just manual labels.
 - Markdown, review paths, or bundles reappear as core domain concepts.
-

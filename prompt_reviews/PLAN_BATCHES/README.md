@@ -8,7 +8,10 @@ The architectural split is fixed:
 - `drizzle-zod` generated row schemas are DB-row building blocks only.
 - Hand-authored Zod schemas own API, MCP, frontend, structured agent payloads, and domain command/response validation.
 - Services own workflow truth: scope invariants, human-only finalization, comment lifecycle, status derivation, unresolved-work gates, and explicit version closure.
-- The frontend imports shared domain schemas/types, never DB-only modules.
+- `src/domain/**` is the shared frontend/backend contract layer for pure enums, hand-authored
+  boundary schemas, taxonomy, and pure rules. It must remain browser-safe.
+- The frontend imports shared domain schemas/types from `src/domain/**` via the `@domain/*`
+  alias, never DB-only modules.
 - Legacy markdown and `comments.json` are import/export material only.
 
 ## Execution Order
@@ -17,9 +20,9 @@ Agents must update this table as work progresses. Keep `Status` current, and use
 
 | Order | Batch | Status | Implementation Notes |
 | --- | --- | --- | --- |
-| 1 | `00_architecture_test_harness_and_gates.md` | In progress | Orchestrator implementing architecture gates before any product schema, route, MCP, or UI work. |
-| 2 | `01_domain_enums_boundary_schemas_and_rules.md` | Not started |  |
-| 3 | `02_persistence_drizzle_sqlite_repositories.md` | Not started |  |
+| 1 | `00_architecture_test_harness_and_gates.md` | Completed | Added npm/Drizzle/Vitest harness, strict architecture checker, prototype quarantine, generated-row-schema boundary guard, LOC cap, flat-directory cap, and placeholder schema export script. Verified `npm run verify`, `npm run test:contracts`, and `npm run db:check`. `npm run schema:json` intentionally fails until Batch 01 exports hand-authored boundary schemas. `npm run db:generate` fails until Batch 02 creates `src/db/schema.ts`. |
+| 2 | `01_domain_enums_boundary_schemas_and_rules.md` | Completed | Milestone A accepted shared enum arrays, scope schemas, actor/scope rules, taxonomy seeds, and focused tests. Milestone B accepted boundary schemas/json-schema export and pure status derivation rules. Verified `npm run verify`, `npm run schema:json`, `npm run db:check`; `npm run test` has 10 files / 36 tests. `npm run db:generate` still fails until Batch 02 creates `src/db/schema.ts`. |
+| 3 | `02_persistence_drizzle_sqlite_repositories.md` | In progress | Split into milestones. First Milestone A worker was lost after a Codex crash before writing shared DB files. Re-dispatching Milestone A for Drizzle schema, relations, row schemas, migration/bootstrap, DB test support, and concern-tag seeding before repository work. Must use Batch 01 enum arrays/domain taxonomy and avoid legacy artifact tables. |
 | 4 | `03_git_ingestion_version_population.md` | Not started |  |
 | 5 | `04_services_workflow_state_machine.md` | Not started |  |
 | 6 | `05_http_api_contracts.md` | Not started |  |

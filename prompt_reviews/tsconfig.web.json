@@ -18,9 +18,10 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["web/src/*"]
+      "@/*": ["web/src/*"],
+      "@domain/*": ["src/domain/*"]
     },
     "types": ["vite/client"]
   },
-  "include": ["web/src"]
+  "include": ["web/src", "src/domain"]
 }
