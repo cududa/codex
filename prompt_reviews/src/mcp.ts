@@ -1,15 +1,20 @@
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { resolveAnchor } from "./anchors.js";
+import { listReviewFiles } from "./discovery.js";
 import { createReviews, parseTargetSpec } from "./reviews.js";
 import type { CommentStore } from "./store.js";
 import type { Workspace } from "./workspace.js";
 
 type Transport = StreamableHTTPServerTransport;
+type ToolResult = {
+  isError?: boolean;
+  content: Array<{ type: "text"; text: string }>;
+};
 
 export class PromptReviewMcp {
   private readonly transports = new Map<string, Transport>();
@@ -68,6 +73,7 @@ export class PromptReviewMcp {
       version: "0.1.0",
     });
 
+    this.registerResources(server);
     server.registerTool(
       "get_file",
       {
@@ -77,7 +83,7 @@ export class PromptReviewMcp {
           filePath: z.string().describe("Workspace-relative path to read."),
         }),
       },
-      async ({ filePath }) => {
+      safeTool(async ({ filePath }) => {
         const file = await this.workspace.readTextFile(filePath);
         return {
           content: [
@@ -87,7 +93,7 @@ export class PromptReviewMcp {
             },
           ],
         };
-      },
+      }),
     );
 
     server.registerTool(
@@ -114,7 +120,7 @@ export class PromptReviewMcp {
             .describe("Alternative compact target specs like name=path or name=path:start-end."),
         }),
       },
-      async ({ commit, targets, targetSpecs }) => {
+      safeTool(async ({ commit, targets, targetSpecs }) => {
         const reviewTargets = targets ?? targetSpecs?.map(parseTargetSpec) ?? [];
         const result = await createReviews({
           workspace: this.workspace,
@@ -122,15 +128,24 @@ export class PromptReviewMcp {
           commit,
           targets: reviewTargets,
         });
+        const payload = {
+          ...result,
+          nextAction: {
+            tool: "add_review_comment",
+            reviewPath: result.outputs[0]?.reviewPath,
+            instructions:
+              "Read the generated reviewPath, select exact text from that generated review, then call add_review_comment with selectedText and optional startLine if the text repeats.",
+          },
+        };
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2),
+              text: JSON.stringify(payload, null, 2),
             },
           ],
         };
-      },
+      }),
     );
 
     server.registerTool(
@@ -147,7 +162,7 @@ export class PromptReviewMcp {
           author: z.string().optional(),
         }),
       },
-      async ({ reviewPath, selectedText, comment, startLine, author }) => {
+      safeTool(async ({ reviewPath, selectedText, comment, startLine, author }) => {
         const file = await this.workspace.readTextFile(reviewPath);
         const anchor = resolveAnchor(file.text, selectedText, startLine);
         if (!anchor.ok) {
@@ -177,7 +192,7 @@ export class PromptReviewMcp {
             },
           ],
         };
-      },
+      }),
     );
 
     server.registerTool(
@@ -189,7 +204,7 @@ export class PromptReviewMcp {
           filePath: z.string().optional(),
         }),
       },
-      async ({ filePath }) => {
+      safeTool(async ({ filePath }) => {
         const relativePath =
           filePath === undefined ? undefined : this.workspace.resolveFile(filePath).relativePath;
         const comments = await this.store.list(relativePath);
@@ -201,10 +216,136 @@ export class PromptReviewMcp {
             },
           ],
         };
-      },
+      }),
     );
 
     return server;
+  }
+
+  private registerResources(server: McpServer): void {
+    server.registerResource(
+      "prompt-review-index",
+      "prompt-reviews://index",
+      {
+        title: "Prompt review index",
+        description: "Lists generated prompt review artifacts and available MCP tools.",
+        mimeType: "application/json",
+      },
+      async (uri) => {
+        const reviews = await listReviewFiles(this.workspace.resolveFile("prompt_reviews").absolutePath);
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: "application/json",
+              text: JSON.stringify(
+                {
+                  reviews,
+                  tools: ["create_review", "add_review_comment", "list_comments", "get_file"],
+                  reviewTemplate: "prompt-reviews://review/{path}",
+                  commentsTemplate: "prompt-reviews://comments/{path}",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      },
+    );
+
+    server.registerResource(
+      "prompt-review-comments",
+      "prompt-reviews://comments",
+      {
+        title: "All prompt review comments",
+        description: "Lists every anchored prompt review comment currently stored by the app.",
+        mimeType: "application/json",
+      },
+      async (uri) => {
+        const comments = await this.store.list();
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: "application/json",
+              text: JSON.stringify({ comments }, null, 2),
+            },
+          ],
+        };
+      },
+    );
+
+    server.registerResource(
+      "prompt-review-file",
+      new ResourceTemplate("prompt-reviews://review/{path}", {
+        list: async () => {
+          const reviews = await listReviewFiles(this.workspace.resolveFile("prompt_reviews").absolutePath);
+          return {
+            resources: reviews.map((reviewPath) => ({
+              uri: `prompt-reviews://review/${encodePath(reviewPath)}`,
+              name: reviewPath,
+              title: reviewPath,
+              mimeType: "text/markdown",
+            })),
+          };
+        },
+      }),
+      {
+        title: "Generated prompt review",
+        description: "Read a generated .prompt-review.md artifact by workspace-relative path.",
+        mimeType: "text/markdown",
+      },
+      async (uri, variables) => {
+        const reviewPath = decodeTemplatePath(variables.path);
+        const file = await this.workspace.readTextFile(reviewPath);
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: "text/markdown",
+              text: file.text,
+            },
+          ],
+        };
+      },
+    );
+
+    server.registerResource(
+      "prompt-review-file-comments",
+      new ResourceTemplate("prompt-reviews://comments/{path}", {
+        list: async () => {
+          const reviews = await listReviewFiles(this.workspace.resolveFile("prompt_reviews").absolutePath);
+          return {
+            resources: reviews.map((reviewPath) => ({
+              uri: `prompt-reviews://comments/${encodePath(reviewPath)}`,
+              name: `${reviewPath} comments`,
+              title: `${reviewPath} comments`,
+              mimeType: "application/json",
+            })),
+          };
+        },
+      }),
+      {
+        title: "Generated prompt review comments",
+        description: "Read comments for a generated review artifact by workspace-relative path.",
+        mimeType: "application/json",
+      },
+      async (uri, variables) => {
+        const reviewPath = decodeTemplatePath(variables.path);
+        const relativePath = this.workspace.resolveFile(reviewPath).relativePath;
+        const comments = await this.store.list(relativePath);
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: "application/json",
+              text: JSON.stringify({ comments }, null, 2),
+            },
+          ],
+        };
+      },
+    );
   }
 }
 
@@ -214,4 +355,49 @@ function getHeader(req: IncomingMessage, name: string): string | undefined {
     return value[0];
   }
   return value;
+}
+
+function encodePath(value: string): string {
+  return value.split("/").map(encodeURIComponent).join("/");
+}
+
+function decodeTemplatePath(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) {
+    return value.join("/");
+  }
+  if (value === undefined) {
+    throw new Error("Missing path variable.");
+  }
+  return decodeURIComponent(value);
+}
+
+function safeTool<Args>(
+  handler: (args: Args) => Promise<ToolResult>,
+): (args: Args) => Promise<ToolResult> {
+  return async (args) => {
+    try {
+      return await handler(args);
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                ok: false,
+                error: errorMessage(error),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

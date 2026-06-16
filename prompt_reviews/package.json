@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json && vite build",
-    "start": "node dist/server/server.js",
+    "start": "npm run build && node dist/server/server.js",
+    "start:built": "node dist/server/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "keywords": [],
