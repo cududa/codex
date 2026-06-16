@@ -8,3 +8,4 @@ export * from "./taggingsRepository.js";
 export * from "./commentsRepository.js";
 export * from "./decisionsRepository.js";
 export * from "./plansRepository.js";
+export * from "./detectorRepository.js";

@@ -1,6 +1,7 @@
 export * from "./actors.js";
 export * from "./comments.js";
 export * from "./commits.js";
+export * from "./concernDetector/index.js";
 export * from "./decisions.js";
 export * from "./diffBlocks.js";
 export * from "./files.js";

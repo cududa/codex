@@ -83,3 +83,63 @@ export type NextActionKind = (typeof nextActionKinds)[number];
 
 export const remainingWorkKinds = ["classification", "comment", "decision", "plan", "version_closure"] as const;
 export type RemainingWorkKind = (typeof remainingWorkKinds)[number];
+
+export const concernGraphNodeKinds = [
+  "file",
+  "glob",
+  "rust_symbol",
+  "string_marker",
+  "template_marker",
+  "config_key",
+  "protocol_shape",
+  "tool",
+  "permission_profile",
+] as const;
+export type ConcernGraphNodeKind = (typeof concernGraphNodeKinds)[number];
+
+export const concernGraphEdgeKinds = [
+  "include_str",
+  "calls",
+  "called_by",
+  "owns_symbol",
+  "matches_marker",
+  "expands_to_path",
+  "configures",
+  "registers",
+  "persists",
+  "serializes",
+  "filters",
+  "dispatches",
+  "mutates",
+  "maps_role",
+  "surfaces_tool",
+  "gates_permission",
+  "reconstructs_history",
+] as const;
+export type ConcernGraphEdgeKind = (typeof concernGraphEdgeKinds)[number];
+
+export const concernGraphSourceKinds = [
+  "concern_map",
+  "ast_extractor",
+  "text_scanner",
+  "graph_builder",
+  "manual",
+] as const;
+export type ConcernGraphSourceKind = (typeof concernGraphSourceKinds)[number];
+
+export const detectorRunKinds = ["version_ingestion", "post_commit_refresh", "manual_refresh", "test"] as const;
+export type DetectorRunKind = (typeof detectorRunKinds)[number];
+
+export const detectorRunStatuses = ["running", "succeeded", "failed"] as const;
+export type DetectorRunStatus = (typeof detectorRunStatuses)[number];
+
+export const detectorFindingEvidenceKinds = [
+  "path",
+  "symbol",
+  "marker",
+  "template_marker",
+  "graph_node",
+  "graph_edge",
+  "diff_block",
+] as const;
+export type DetectorFindingEvidenceKind = (typeof detectorFindingEvidenceKinds)[number];

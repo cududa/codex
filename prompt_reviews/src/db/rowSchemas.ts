@@ -4,9 +4,13 @@ import {
   classificationMetadata,
   commitFiles,
   commits,
+  concernGraphEdges,
+  concernGraphNodes,
   concernTags,
   decisionComments,
   decisions,
+  detectorFindings,
+  detectorRuns,
   diffBlocks,
   planComments,
   planDecisions,
@@ -50,6 +54,26 @@ export const taggingRowSchemas = {
 export const classificationMetadataRowSchemas = {
   select: createSelectSchema(classificationMetadata),
   insert: createInsertSchema(classificationMetadata),
+};
+
+export const concernGraphNodeRowSchemas = {
+  select: createSelectSchema(concernGraphNodes),
+  insert: createInsertSchema(concernGraphNodes),
+};
+
+export const concernGraphEdgeRowSchemas = {
+  select: createSelectSchema(concernGraphEdges),
+  insert: createInsertSchema(concernGraphEdges),
+};
+
+export const detectorRunRowSchemas = {
+  select: createSelectSchema(detectorRuns),
+  insert: createInsertSchema(detectorRuns),
+};
+
+export const detectorFindingRowSchemas = {
+  select: createSelectSchema(detectorFindings),
+  insert: createInsertSchema(detectorFindings),
 };
 
 export const commentRowSchemas = {

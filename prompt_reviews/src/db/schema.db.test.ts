@@ -6,9 +6,13 @@ import {
   classificationMetadata,
   commitFiles,
   commits,
+  concernGraphEdges,
+  concernGraphNodes,
   concernTags,
   decisionComments,
   decisions,
+  detectorFindings,
+  detectorRuns,
   diffBlocks,
   planComments,
   planDecisions,
@@ -25,7 +29,11 @@ import {
   classificationMetadataRowSchemas,
   commitFileRowSchemas,
   concernTagRowSchemas,
+  concernGraphEdgeRowSchemas,
+  concernGraphNodeRowSchemas,
   decisionRowSchemas,
+  detectorFindingRowSchemas,
+  detectorRunRowSchemas,
   versionRowSchemas,
 } from "./rowSchemas.js";
 import { createTempPromptReviewsDatabase, type TempPromptReviewsDatabase } from "../test-support/db.js";
@@ -51,6 +59,10 @@ const expectedUniqueIndexes = [
   "diff_blocks_file_key_unique",
   "diff_blocks_file_ordinal_unique",
   "concern_tags_slug_unique",
+  "concern_graph_nodes_key_unique",
+  "concern_graph_edges_key_unique",
+  "concern_graph_edges_nodes_kind_unique",
+  "detector_findings_run_key_unique",
   "taggings_tag_target_unique",
   "classification_metadata_target_unique",
   "plan_items_plan_ordinal_unique",
@@ -146,7 +158,18 @@ describe("Drizzle schema and migrations", () => {
       .all()
       .map((row) => (row as { name: string }).name);
 
-    expect(tableNames).toEqual(expect.arrayContaining(["versions", "commits", "commit_files", "diff_blocks"]));
+    expect(tableNames).toEqual(
+      expect.arrayContaining([
+        "versions",
+        "commits",
+        "commit_files",
+        "diff_blocks",
+        "concern_graph_nodes",
+        "concern_graph_edges",
+        "detector_runs",
+        "detector_findings",
+      ]),
+    );
     expect(database.sqlite.pragma("foreign_keys", { simple: true })).toBe(1);
 
     const indexNames = database.sqlite
@@ -388,13 +411,197 @@ describe("Drizzle schema and migrations", () => {
     });
   });
 
+  it("keeps detector graph and findings in dedicated storage tables", () => {
+    const database = openMigratedDb();
+    seedReviewGraph(database);
+
+    database.db.insert(concernGraphNodes).values({
+      id: "cgn_file",
+      concernSlug: "harness-prompts",
+      nodeKey: "harness-prompts:file:codex-rs/core/src/client.rs",
+      nodeKind: "file",
+      path: "codex-rs/core/src/client.rs",
+      sourceKind: "concern_map",
+      isSeed: true,
+      isKnownMissing: false,
+    }).run();
+    database.db.insert(concernGraphNodes).values({
+      id: "cgn_symbol",
+      concernSlug: "harness-prompts",
+      nodeKey: "harness-prompts:symbol:build_responses_request",
+      nodeKind: "rust_symbol",
+      symbol: "build_responses_request",
+      sourceKind: "concern_map",
+      isSeed: true,
+      isKnownMissing: false,
+    }).run();
+    database.db.insert(concernGraphEdges).values({
+      id: "cge_owns",
+      concernSlug: "harness-prompts",
+      edgeKey: "harness-prompts:owns-symbol:client",
+      edgeKind: "owns_symbol",
+      fromNodeId: "cgn_file",
+      toNodeId: "cgn_symbol",
+      sourceKind: "concern_map",
+    }).run();
+    database.db.insert(detectorRuns).values({
+      id: "drun_seed",
+      versionId: "ver_1",
+      repositoryId: "codex",
+      runKind: "version_ingestion",
+      status: "running",
+      concernMapVersion: 1,
+    }).run();
+    database.db.insert(detectorFindings).values({
+      id: "dfnd_seed",
+      runId: "drun_seed",
+      commitFileId: "file_modified",
+      graphNodeId: "cgn_file",
+      graphNodeKey: "harness-prompts:file:codex-rs/core/src/client.rs",
+      findingKey: "file_modified:harness-prompts",
+      concernSlug: "harness-prompts",
+      targetType: "commit_file",
+      targetId: "file_modified",
+      path: "codex-rs/core/src/client.rs",
+      side: "new",
+      startLine: 1,
+      endLine: 3,
+      symbol: "build_responses_request",
+      evidenceKind: "symbol",
+      title: "Mapped concern surface changed",
+      summary: "A mapped harness prompt path changed.",
+      rationale: "The changed file and symbol are seeded harness prompt surfaces.",
+      riskLevel: "medium",
+      confidence: "high",
+    }).run();
+
+    expect(database.db.select().from(taggings).all()).toEqual([]);
+    expect(database.db.select().from(classificationMetadata).all()).toEqual([]);
+    expectConstraintFailure(() => {
+      database.db.insert(concernGraphNodes).values({
+        id: "cgn_duplicate",
+        concernSlug: "harness-prompts",
+        nodeKey: "harness-prompts:file:codex-rs/core/src/client.rs",
+        nodeKind: "file",
+        path: "codex-rs/core/src/client.rs",
+        sourceKind: "concern_map",
+      }).run();
+    });
+    expectConstraintFailure(() => {
+      database.db.insert(concernGraphEdges).values({
+        id: "cge_duplicate",
+        concernSlug: "harness-prompts",
+        edgeKey: "harness-prompts:owns-symbol:client",
+        edgeKind: "owns_symbol",
+        fromNodeId: "cgn_file",
+        toNodeId: "cgn_symbol",
+        sourceKind: "concern_map",
+      }).run();
+    });
+    expectConstraintFailure(() => {
+      database.db.insert(detectorFindings).values({
+        id: "dfnd_duplicate",
+        runId: "drun_seed",
+        commitFileId: "file_modified",
+        findingKey: "file_modified:harness-prompts",
+        concernSlug: "harness-prompts",
+        targetType: "commit_file",
+        targetId: "file_modified",
+        evidenceKind: "path",
+        title: "Duplicate",
+        summary: "Duplicate.",
+        rationale: "Duplicate finding key.",
+        riskLevel: "medium",
+        confidence: "high",
+      }).run();
+    });
+    expectConstraintFailure(() => {
+      database.db.insert(detectorFindings).values({
+        id: "dfnd_wrong_scope",
+        runId: "drun_seed",
+        versionId: "ver_1",
+        findingKey: "wrong-scope",
+        concernSlug: "harness-prompts",
+        targetType: "commit_file",
+        targetId: "file_modified",
+        evidenceKind: "path",
+        title: "Wrong scope",
+        summary: "Scope fields do not match.",
+        rationale: "Scope fields do not match.",
+        riskLevel: "medium",
+        confidence: "high",
+      }).run();
+    });
+  });
+
   it("parses DB rows and rejects invalid enum or nullability values", () => {
     const database = openMigratedDb();
     seedReviewGraph(database);
+    database.db.insert(concernGraphNodes).values({
+      id: "cgn_schema",
+      concernSlug: "harness-prompts",
+      nodeKey: "harness-prompts:file:schema",
+      nodeKind: "file",
+      path: "codex-rs/core/src/client.rs",
+      sourceKind: "concern_map",
+    }).run();
+    database.db.insert(concernGraphNodes).values({
+      id: "cgn_schema_symbol",
+      concernSlug: "harness-prompts",
+      nodeKey: "harness-prompts:symbol:schema",
+      nodeKind: "rust_symbol",
+      symbol: "build_responses_request",
+      sourceKind: "concern_map",
+    }).run();
+    database.db.insert(concernGraphEdges).values({
+      id: "cge_schema",
+      concernSlug: "harness-prompts",
+      edgeKey: "harness-prompts:owns-symbol:schema",
+      edgeKind: "owns_symbol",
+      fromNodeId: "cgn_schema",
+      toNodeId: "cgn_schema_symbol",
+      sourceKind: "concern_map",
+    }).run();
+    database.db.insert(detectorRuns).values({
+      id: "drun_schema",
+      versionId: "ver_1",
+      repositoryId: "codex",
+      runKind: "version_ingestion",
+      status: "running",
+      concernMapVersion: 1,
+    }).run();
+    database.db.insert(detectorFindings).values({
+      id: "dfnd_schema",
+      runId: "drun_schema",
+      commitId: "cmt_1",
+      findingKey: "cmt_1:harness-prompts",
+      concernSlug: "harness-prompts",
+      targetType: "commit",
+      targetId: "cmt_1",
+      graphNodeKey: "harness-prompts:file:schema",
+      evidenceKind: "path",
+      title: "Mapped concern surface changed",
+      summary: "A mapped path changed.",
+      rationale: "The changed path is mapped.",
+      riskLevel: "medium",
+      confidence: "high",
+    }).run();
     const version = database.db.select().from(versions).get();
     const commitFile = database.db.select().from(commitFiles).get();
     const concernTag = database.db.select().from(concernTags).get();
-    if (version === undefined || commitFile === undefined || concernTag === undefined) {
+    const graphNode = database.db.select().from(concernGraphNodes).where(eq(concernGraphNodes.id, "cgn_schema")).get();
+    const graphEdge = database.db.select().from(concernGraphEdges).where(eq(concernGraphEdges.id, "cge_schema")).get();
+    const detectorRun = database.db.select().from(detectorRuns).where(eq(detectorRuns.id, "drun_schema")).get();
+    const detectorFinding = database.db.select().from(detectorFindings).where(eq(detectorFindings.id, "dfnd_schema")).get();
+    if (
+      version === undefined ||
+      commitFile === undefined ||
+      concernTag === undefined ||
+      graphNode === undefined ||
+      graphEdge === undefined ||
+      detectorRun === undefined ||
+      detectorFinding === undefined
+    ) {
       throw new Error("Expected rows for row schema tests");
     }
 
@@ -408,6 +615,10 @@ describe("Drizzle schema and migrations", () => {
     })).toMatchObject({ parentSha: "parent-sha" });
     expect(commitFileRowSchemas.select.parse(commitFile)).toEqual(commitFile);
     expect(concernTagRowSchemas.select.parse(concernTag)).toEqual(concernTag);
+    expect(concernGraphNodeRowSchemas.select.parse(graphNode)).toEqual(graphNode);
+    expect(concernGraphEdgeRowSchemas.select.parse(graphEdge)).toEqual(graphEdge);
+    expect(detectorRunRowSchemas.select.parse(detectorRun)).toEqual(detectorRun);
+    expect(detectorFindingRowSchemas.select.parse(detectorFinding)).toEqual(detectorFinding);
     expect(commitFileRowSchemas.insert.parse({
       commitId: "cmt_1",
       oldPath: null,
@@ -431,6 +642,26 @@ describe("Drizzle schema and migrations", () => {
       confidence: "high",
       updatedByActorType: "agent",
     })).toMatchObject({ targetType: "commit_file", riskLevel: "low", confidence: "high" });
+    expect(concernGraphNodeRowSchemas.insert.safeParse({
+      concernSlug: "harness-prompts",
+      nodeKey: "missing-evidence",
+      nodeKind: "file",
+      sourceKind: "concern_map",
+    }).success).toBe(true);
+    expect(detectorFindingRowSchemas.insert.safeParse({
+      runId: "drun_schema",
+      findingKey: "bad-risk",
+      concernSlug: "harness-prompts",
+      targetType: "commit",
+      targetId: "cmt_1",
+      commitId: "cmt_1",
+      evidenceKind: "path",
+      title: "Bad risk",
+      summary: "Bad risk.",
+      rationale: "Bad risk should fail enum validation.",
+      riskLevel: "surprising",
+      confidence: "high",
+    }).success).toBe(false);
   });
 
   it("enforces status override reason checks for commits and commit files", () => {

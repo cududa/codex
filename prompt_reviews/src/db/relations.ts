@@ -4,9 +4,13 @@ import {
   classificationMetadata,
   commitFiles,
   commits,
+  concernGraphEdges,
+  concernGraphNodes,
   concernTags,
   decisionComments,
   decisions,
+  detectorFindings,
+  detectorRuns,
   diffBlocks,
   planComments,
   planDecisions,
@@ -19,6 +23,8 @@ import {
 
 export const versionRelations = relations(versions, ({ many }) => ({
   commits: many(commits),
+  detectorRuns: many(detectorRuns),
+  detectorFindings: many(detectorFindings),
   comments: many(comments),
   decisions: many(decisions),
   plans: many(plans),
@@ -27,6 +33,7 @@ export const versionRelations = relations(versions, ({ many }) => ({
 export const commitRelations = relations(commits, ({ one, many }) => ({
   version: one(versions, { fields: [commits.versionId], references: [versions.id] }),
   files: many(commitFiles),
+  detectorFindings: many(detectorFindings),
   comments: many(comments),
   decisions: many(decisions),
   plans: many(plans),
@@ -35,6 +42,7 @@ export const commitRelations = relations(commits, ({ one, many }) => ({
 export const commitFileRelations = relations(commitFiles, ({ one, many }) => ({
   commit: one(commits, { fields: [commitFiles.commitId], references: [commits.id] }),
   diffBlocks: many(diffBlocks),
+  detectorFindings: many(detectorFindings),
   comments: many(comments),
   decisions: many(decisions),
   plans: many(plans),
@@ -43,6 +51,7 @@ export const commitFileRelations = relations(commitFiles, ({ one, many }) => ({
 
 export const diffBlockRelations = relations(diffBlocks, ({ one, many }) => ({
   commitFile: one(commitFiles, { fields: [diffBlocks.commitFileId], references: [commitFiles.id] }),
+  detectorFindings: many(detectorFindings),
   comments: many(comments),
   planLinks: many(planDiffBlocks),
 }));
@@ -58,6 +67,39 @@ export const taggingRelations = relations(taggings, ({ one }) => ({
 }));
 
 export const classificationMetadataRelations = relations(classificationMetadata, () => ({}));
+
+export const concernGraphNodeRelations = relations(concernGraphNodes, ({ many }) => ({
+  outgoingEdges: many(concernGraphEdges, { relationName: "concernGraphEdgesFromNode" }),
+  incomingEdges: many(concernGraphEdges, { relationName: "concernGraphEdgesToNode" }),
+  detectorFindings: many(detectorFindings),
+}));
+
+export const concernGraphEdgeRelations = relations(concernGraphEdges, ({ one }) => ({
+  fromNode: one(concernGraphNodes, {
+    fields: [concernGraphEdges.fromNodeId],
+    references: [concernGraphNodes.id],
+    relationName: "concernGraphEdgesFromNode",
+  }),
+  toNode: one(concernGraphNodes, {
+    fields: [concernGraphEdges.toNodeId],
+    references: [concernGraphNodes.id],
+    relationName: "concernGraphEdgesToNode",
+  }),
+}));
+
+export const detectorRunRelations = relations(detectorRuns, ({ one, many }) => ({
+  version: one(versions, { fields: [detectorRuns.versionId], references: [versions.id] }),
+  findings: many(detectorFindings),
+}));
+
+export const detectorFindingRelations = relations(detectorFindings, ({ one }) => ({
+  run: one(detectorRuns, { fields: [detectorFindings.runId], references: [detectorRuns.id] }),
+  version: one(versions, { fields: [detectorFindings.versionId], references: [versions.id] }),
+  commit: one(commits, { fields: [detectorFindings.commitId], references: [commits.id] }),
+  commitFile: one(commitFiles, { fields: [detectorFindings.commitFileId], references: [commitFiles.id] }),
+  diffBlock: one(diffBlocks, { fields: [detectorFindings.diffBlockId], references: [diffBlocks.id] }),
+  graphNode: one(concernGraphNodes, { fields: [detectorFindings.graphNodeId], references: [concernGraphNodes.id] }),
+}));
 
 export const commentRelations = relations(comments, ({ one, many }) => ({
   version: one(versions, { fields: [comments.versionId], references: [versions.id] }),
