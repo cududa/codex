@@ -1,0 +1,2 @@
+[mcp_servers.prompt_reviews]
+url = "http://127.0.0.1:4177/mcp"

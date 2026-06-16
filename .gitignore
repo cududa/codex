@@ -82,6 +82,7 @@ yarn.lock
 
 # release
 package.json-e
+package-lock.json
 session.ts-e
 CHANGELOG.ignore.md
 
