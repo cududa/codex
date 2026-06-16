@@ -1,70 +1,33 @@
-import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { resolveAnchor } from "./anchors.js";
-import { listReviewFiles } from "./discovery.js";
-import { createReviews, parseTargetSpec } from "./reviews.js";
-import type { CommentStore } from "./store.js";
+import { resolveAnchor, resolveBlockAnchor } from "./anchors.js";
+import { listReviewFiles, listReviews } from "./discovery.js";
+import { createReviews, normalizeBundleName, parseTargetSpec } from "./reviews.js";
+import type { CommentStore, ReviewComment } from "./store.js";
 import type { Workspace } from "./workspace.js";
 
-type Transport = StreamableHTTPServerTransport;
 type ToolResult = {
   isError?: boolean;
   content: Array<{ type: "text"; text: string }>;
 };
 
 export class PromptReviewMcp {
-  private readonly transports = new Map<string, Transport>();
-
   constructor(
     private readonly workspace: Workspace,
     private readonly store: CommentStore,
   ) {}
 
   async handle(req: IncomingMessage, res: ServerResponse, body: unknown): Promise<void> {
-    const sessionId = getHeader(req, "mcp-session-id");
-    let transport: Transport | undefined;
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+      enableJsonResponse: true,
+    });
 
-    if (sessionId !== undefined) {
-      transport = this.transports.get(sessionId);
-    } else if (req.method === "POST" && isInitializeRequest(body)) {
-      transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: randomUUID,
-        onsessioninitialized: (newSessionId) => {
-          if (transport !== undefined) {
-            this.transports.set(newSessionId, transport);
-          }
-        },
-      });
-
-      transport.onclose = () => {
-        if (transport?.sessionId !== undefined) {
-          this.transports.delete(transport.sessionId);
-        }
-      };
-
-      await this.createServer().connect(transport);
-    }
-
-    if (transport === undefined) {
-      res.writeHead(400, { "content-type": "application/json" });
-      res.end(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: -32000,
-            message: "Bad Request: no valid MCP session. Initialize first.",
-          },
-          id: null,
-        }),
-      );
-      return;
-    }
-
+    await this.createServer().connect(transport);
     await transport.handleRequest(req, res, body);
+    await transport.close();
   }
 
   private createServer(): McpServer {
@@ -104,6 +67,10 @@ export class PromptReviewMcp {
           "Generate prompt review markdown files from a commit/ref and explicit named targets. The generated review text is what comments should anchor to.",
         inputSchema: z.object({
           commit: z.string().describe("Commit, tag, branch, or ref to compare with its first parent."),
+          bundle: z
+            .string()
+            .optional()
+            .describe("Optional bundle name. When provided, reviews are written under prompt_reviews/<bundle>/<commit>/."),
           targets: z
             .array(
               z.object({
@@ -120,22 +87,62 @@ export class PromptReviewMcp {
             .describe("Alternative compact target specs like name=path or name=path:start-end."),
         }),
       },
-      safeTool(async ({ commit, targets, targetSpecs }) => {
+      safeTool(async ({ commit, bundle, targets, targetSpecs }) => {
         const reviewTargets = targets ?? targetSpecs?.map(parseTargetSpec) ?? [];
         const result = await createReviews({
           workspace: this.workspace,
           artifactRoot: this.workspace.resolveFile("prompt_reviews").absolutePath,
           commit,
+          bundle,
           targets: reviewTargets,
         });
         const payload = {
           ...result,
+          supportedModes: ["added-only", "deleted-only", "changed"],
           nextAction: {
             tool: "add_review_comment",
             reviewPath: result.outputs[0]?.reviewPath,
             instructions:
-              "Read the generated reviewPath, select exact text from that generated review, then call add_review_comment with selectedText and optional startLine if the text repeats.",
+              "Prefer add_review_comment with reviewPath, blockId, and comment when commenting on an emitted block like change-005. Use selectedText plus optional startLine for narrower exact selections.",
           },
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(payload, null, 2),
+            },
+          ],
+        };
+      }),
+    );
+
+    server.registerTool(
+      "list_reviews",
+      {
+        title: "List generated reviews",
+        description:
+          "List generated prompt review artifacts without regenerating them. Optionally filter by commit prefix or bundle.",
+        inputSchema: z.object({
+          commit: z.string().optional().describe("Optional commit prefix, for example 96836e15ed."),
+          bundle: z.string().optional().describe("Optional bundle name."),
+        }),
+      },
+      safeTool(async ({ commit, bundle }) => {
+        const reviews = await listReviews(this.workspace.resolveFile("prompt_reviews").absolutePath, {
+          commit,
+          bundle,
+        });
+        const comments = await this.store.list();
+        const notes = await this.store.listNotes();
+        const payload = {
+          reviews: reviews.map((review) => ({
+            ...review,
+            commentCount: countComments(comments, review.reviewPath),
+            noteCount: notes.filter(
+              (note) => note.scope.type === "review" && note.scope.filePath === review.reviewPath,
+            ).length,
+          })),
         };
         return {
           content: [
@@ -153,18 +160,36 @@ export class PromptReviewMcp {
       {
         title: "Add anchored review comment",
         description:
-          "Add a comment anchored to selectedText in a generated review file. Provide startLine when the text is not globally unique.",
+          "Add a comment anchored to a generated review file. Prefer blockId for emitted review blocks; use selectedText for exact selections.",
         inputSchema: z.object({
           reviewPath: z.string().describe("Workspace-relative generated .prompt-review.md path."),
-          selectedText: z.string().describe("Exact selected text from the generated review."),
+          selectedText: z
+            .string()
+            .optional()
+            .describe("Exact selected text from the generated review. Required when blockId is omitted."),
+          blockId: z
+            .string()
+            .optional()
+            .describe("Generated block id such as change-005 or same-002. Required when selectedText is omitted."),
+          lineOffset: z
+            .number()
+            .int()
+            .nonnegative()
+            .optional()
+            .describe("Optional zero-based line offset inside blockId for finer anchoring."),
           comment: z.string().describe("Comment body."),
           startLine: z.number().int().positive().optional(),
           author: z.string().optional(),
         }),
       },
-      safeTool(async ({ reviewPath, selectedText, comment, startLine, author }) => {
+      safeTool(async ({ reviewPath, selectedText, blockId, lineOffset, comment, startLine, author }) => {
         const file = await this.workspace.readTextFile(reviewPath);
-        const anchor = resolveAnchor(file.text, selectedText, startLine);
+        const anchor =
+          blockId === undefined
+            ? selectedText === undefined
+              ? { ok: false as const, reason: "selectedText or blockId is required." }
+              : resolveAnchor(file.text, selectedText, startLine)
+            : resolveBlockAnchor(file.text, blockId, lineOffset);
         if (!anchor.ok) {
           return {
             isError: true,
@@ -182,6 +207,7 @@ export class PromptReviewMcp {
           body: comment,
           author,
           anchor: anchor.anchor,
+          blockId,
         });
 
         return {
@@ -199,20 +225,75 @@ export class PromptReviewMcp {
       "list_comments",
       {
         title: "List prompt review comments",
-        description: "List anchored comments, optionally scoped to one file.",
+        description: "List anchored comments, optionally scoped to one file. Use format=compact for review-ready summaries.",
         inputSchema: z.object({
           filePath: z.string().optional(),
+          format: z.enum(["full", "compact"]).optional(),
         }),
       },
-      safeTool(async ({ filePath }) => {
+      safeTool(async ({ filePath, format }) => {
         const relativePath =
           filePath === undefined ? undefined : this.workspace.resolveFile(filePath).relativePath;
         const comments = await this.store.list(relativePath);
+        const notes =
+          relativePath === undefined
+            ? await this.store.listNotes()
+            : await this.store.listNotes({ type: "review", filePath: relativePath });
+        const payload =
+          format === "compact"
+            ? { comments: compactComments(comments), notes }
+            : { comments, notes };
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({ comments }, null, 2),
+              text: JSON.stringify(payload, null, 2),
+            },
+          ],
+        };
+      }),
+    );
+
+    server.registerTool(
+      "add_review_note",
+      {
+        title: "Add review-level note",
+        description:
+          "Add a patch-level note scoped to a review file or bundle. Use this for relationships between hunks or files.",
+        inputSchema: z.object({
+          reviewPath: z.string().optional().describe("Review artifact path for a review-level note."),
+          bundle: z.string().optional().describe("Bundle name for a bundle-level note."),
+          comment: z.string().describe("Note body."),
+          author: z.string().optional(),
+        }),
+      },
+      safeTool(async ({ reviewPath, bundle, comment, author }) => {
+        if ((reviewPath === undefined) === (bundle === undefined)) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(
+                  { ok: false, error: "Provide exactly one of reviewPath or bundle." },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
+
+        const scope =
+          reviewPath === undefined
+            ? { type: "bundle" as const, bundle: normalizeBundleName(bundle ?? "") }
+            : { type: "review" as const, filePath: this.workspace.resolveFile(reviewPath).relativePath };
+        const note = await this.store.addNote({ scope, body: comment, author });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(note, null, 2),
             },
           ],
         };
@@ -241,7 +322,14 @@ export class PromptReviewMcp {
               text: JSON.stringify(
                 {
                   reviews,
-                  tools: ["create_review", "add_review_comment", "list_comments", "get_file"],
+                  tools: [
+                    "create_review",
+                    "list_reviews",
+                    "add_review_comment",
+                    "add_review_note",
+                    "list_comments",
+                    "get_file",
+                  ],
                   reviewTemplate: "prompt-reviews://review/{path}",
                   commentsTemplate: "prompt-reviews://comments/{path}",
                 },
@@ -349,12 +437,29 @@ export class PromptReviewMcp {
   }
 }
 
-function getHeader(req: IncomingMessage, name: string): string | undefined {
-  const value = req.headers[name];
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-  return value;
+function countComments(comments: ReviewComment[], filePath: string): number {
+  return comments.filter((comment) => comment.filePath === filePath).length;
+}
+
+function compactComments(comments: ReviewComment[]): Array<{
+  filePath: string;
+  blockId?: string;
+  line: number;
+  selectedText: string;
+  body: string;
+}> {
+  return comments.map((comment) => ({
+    filePath: comment.filePath,
+    ...(comment.blockId === undefined ? {} : { blockId: comment.blockId }),
+    line: comment.anchor.startLine,
+    selectedText: compactText(comment.anchor.selectedText),
+    body: comment.body,
+  }));
+}
+
+function compactText(value: string): string {
+  const normalized = value.replaceAll(/\s+/g, " ").trim();
+  return normalized.length <= 160 ? normalized : `${normalized.slice(0, 157)}...`;
 }
 
 function encodePath(value: string): string {

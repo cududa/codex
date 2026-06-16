@@ -1,11 +1,13 @@
 import { execFile } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { Workspace } from "./workspace.js";
 
 const execFileAsync = promisify(execFile);
 const schema = "prompt-review/v2";
+export const reviewModes = ["added-only", "deleted-only", "changed"] as const;
+export type ReviewMode = (typeof reviewModes)[number];
 
 export type ReviewTargetInput = {
   name: string;
@@ -18,6 +20,10 @@ export type ReviewOutput = {
   name: string;
   path: string;
   reviewPath: string;
+  bundle?: string;
+  mode: ReviewMode;
+  persisted: boolean;
+  bytes: number;
 };
 
 type CommitInfo = {
@@ -50,6 +56,7 @@ export async function createReviews(input: {
   workspace: Workspace;
   artifactRoot: string;
   commit: string;
+  bundle?: string;
   targets: ReviewTargetInput[];
 }): Promise<{ commit: CommitInfo; outputs: ReviewOutput[] }> {
   if (input.targets.length === 0) {
@@ -57,7 +64,13 @@ export async function createReviews(input: {
   }
 
   const commit = await getCommitInfo(input.workspace.root, input.commit);
-  const commitDir = path.join(input.artifactRoot, commit.shortSha);
+  const bundle = input.bundle === undefined ? undefined : normalizeBundleName(input.bundle);
+  if (input.bundle !== undefined && bundle === "") {
+    throw new Error("bundle must contain at least one filename-safe character.");
+  }
+
+  const commitDir =
+    bundle === undefined ? path.join(input.artifactRoot, commit.shortSha) : path.join(input.artifactRoot, bundle, commit.shortSha);
   await mkdir(commitDir, { recursive: true });
 
   const outputs: ReviewOutput[] = [];
@@ -69,19 +82,25 @@ export async function createReviews(input: {
       throw new Error(`Target path not found before or after commit: ${target.path}`);
     }
 
+    const mode = reviewMode(before, after);
     const beforeLines = selectedLines(before ?? "", target);
     const afterLines = selectedLines(after ?? "", target);
     const lineOffset = (target.startLine ?? 1) - 1;
     const blocks = diffBlocks(beforeLines, afterLines, lineOffset);
     const fileName = `${slugify(target.name)}.prompt-review.md`;
     const absoluteReviewPath = path.join(commitDir, fileName);
-    const reviewText = renderReview(commit, target, blocks);
+    const reviewText = renderReview(commit, target, blocks, mode, bundle);
 
     await writeFile(absoluteReviewPath, reviewText, "utf8");
+    const fileStat = await stat(absoluteReviewPath);
     outputs.push({
       name: target.name,
       path: target.path,
       reviewPath: path.relative(input.workspace.root, absoluteReviewPath).replaceAll("\\", "/"),
+      ...(bundle === undefined ? {} : { bundle }),
+      mode,
+      persisted: true,
+      bytes: fileStat.size,
     });
   }
 
@@ -120,6 +139,10 @@ export function parseTargetSpec(spec: string): ReviewTargetInput {
     startLine,
     endLine,
   };
+}
+
+export function normalizeBundleName(value: string): string {
+  return slugify(value);
 }
 
 function validateTarget(target: ReviewTargetInput): void {
@@ -251,7 +274,13 @@ function opFits(
   return op.tag !== "equal" && opcode.beforeEnd === op.beforeIndex && opcode.afterEnd === op.afterIndex;
 }
 
-function renderReview(commit: CommitInfo, target: ReviewTargetInput, blocks: ReviewBlock[]): string {
+function renderReview(
+  commit: CommitInfo,
+  target: ReviewTargetInput,
+  blocks: ReviewBlock[],
+  mode: ReviewMode,
+  bundle?: string,
+): string {
   const lines = [
     "---",
     `schema: ${schema}`,
@@ -260,10 +289,15 @@ function renderReview(commit: CommitInfo, target: ReviewTargetInput, blocks: Rev
     `shortCommit: ${commit.shortSha}`,
     `subject: ${yamlScalar(commit.subject)}`,
     `target: ${yamlScalar(target.name)}`,
+    `mode: ${mode}`,
     "source:",
     `  before: ${commit.parentSha}:${target.path}`,
     `  after: ${commit.sha}:${target.path}`,
   ];
+
+  if (bundle !== undefined) {
+    lines.push(`bundle: ${yamlScalar(bundle)}`);
+  }
 
   if (target.startLine !== undefined) {
     lines.push("selection:", `  startLine: ${target.startLine}`, `  endLine: ${target.endLine ?? target.startLine}`);
@@ -369,6 +403,16 @@ function rangeForDisplay(start?: number, end?: number): string {
     return "none";
   }
   return start === end ? String(start) : `${start}-${end}`;
+}
+
+function reviewMode(before: string | null, after: string | null): ReviewMode {
+  if (before === null) {
+    return "added-only";
+  }
+  if (after === null) {
+    return "deleted-only";
+  }
+  return "changed";
 }
 
 function slugify(value: string): string {
