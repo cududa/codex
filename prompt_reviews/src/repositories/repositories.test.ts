@@ -435,6 +435,7 @@ function insertCommits(
         id: `${idPrefix}_${ordinal}`,
         versionId,
         sha: `${idPrefix}-sha-${ordinal}`,
+        parentSha: ordinal === firstOrdinal ? null : `${idPrefix}-sha-${ordinal - 1}`,
         ordinal,
         title: `Commit ${ordinal}`,
       };

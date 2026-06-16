@@ -35,6 +35,7 @@ import {
   PlanItemDetailSchema,
   PlanSummarySchema,
   PopulateNextVersionParamsSchema,
+  PopulateNextVersionResponseSchema,
   ProposeDecisionParamsSchema,
   RemainingWorkSchema,
   ReopenCommentParamsSchema,
@@ -231,7 +232,16 @@ const versionDetail = {
 describe("boundary command schemas", () => {
   it("parses representative command payloads", () => {
     const commands = [
-      [PopulateNextVersionParamsSchema, { repositoryId: "repo-1", baseVersionId: "version-0", label: "Next" }],
+      [
+        PopulateNextVersionParamsSchema,
+        {
+          repositoryId: "repo-1",
+          baseVersionId: "version-0",
+          baseRefOrSha: "abc123",
+          targetRef: "upstream/main",
+          label: "Next",
+        },
+      ],
       [ClassifyCommitParamsSchema, { commitId: "commit-1", primaryTagSlug: "goal.initial-steering" }],
       [ClassifyFileParamsSchema, { commitFileId: "cf-1", primaryTagSlug: "prompt.fidelity" }],
       [CreateTaggingParamsSchema, { scope: fileScope, tagSlug: "prompt.fidelity", kind: "secondary", actor: agent }],
@@ -289,6 +299,18 @@ describe("boundary view and response schemas", () => {
   it("parses representative view payloads", () => {
     const responses = [
       [VersionSummarySchema, versionSummary],
+      [
+        PopulateNextVersionResponseSchema,
+        {
+          version: versionSummary,
+          baseSha: "abc123",
+          targetSha: "def456",
+          commitCount: 1,
+          fileCount: 1,
+          diffBlockCount: 1,
+          created: true,
+        },
+      ],
       [VersionDetailSchema, versionDetail],
       [VersionProgressSchema, progress],
       [CommitQueueItemSchema, commitQueueItem],

@@ -1,0 +1,1 @@
+ALTER TABLE `commits` ADD `parent_sha` text;

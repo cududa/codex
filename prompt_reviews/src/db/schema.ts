@@ -63,6 +63,7 @@ export const commits = sqliteTable(
       .notNull()
       .references(() => versions.id, { onDelete: "cascade" }),
     sha: text("sha").notNull(),
+    parentSha: text("parent_sha"),
     ordinal: integer("ordinal", { mode: "number" }).notNull(),
     title: text("title").notNull(),
     message: text("message"),

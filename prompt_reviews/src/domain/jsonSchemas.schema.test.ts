@@ -31,6 +31,7 @@ describe("boundary JSON schema export", () => {
       "PlanItemDetail",
       "PlanSummary",
       "PopulateNextVersionParams",
+      "PopulateNextVersionResponse",
       "ProposeDecisionParams",
       "RemainingWork",
       "ReopenCommentParams",

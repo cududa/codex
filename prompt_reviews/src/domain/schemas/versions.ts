@@ -10,6 +10,8 @@ export const PopulateNextVersionParamsSchema = z
   .object({
     repositoryId: IdSchema,
     baseVersionId: IdSchema.optional(),
+    baseRefOrSha: OptionalTextSchema,
+    targetRef: OptionalTextSchema,
     label: OptionalTextSchema,
   })
   .strict();
@@ -47,6 +49,18 @@ export const VersionSummarySchema = z
   })
   .strict();
 
+export const PopulateNextVersionResponseSchema = z
+  .object({
+    version: VersionSummarySchema,
+    baseSha: NonEmptyTextSchema,
+    targetSha: NonEmptyTextSchema,
+    commitCount: CountSchema,
+    fileCount: CountSchema,
+    diffBlockCount: CountSchema,
+    created: z.boolean(),
+  })
+  .strict();
+
 export const VersionDetailSchema = VersionSummarySchema.extend({
   description: OptionalTextSchema,
   commits: z.array(CommitQueueItemSchema),
@@ -68,6 +82,7 @@ export function paginatedResponseSchema<T extends z.ZodType>(itemSchema: T) {
 }
 
 export type PopulateNextVersionParams = z.infer<typeof PopulateNextVersionParamsSchema>;
+export type PopulateNextVersionResponse = z.infer<typeof PopulateNextVersionResponseSchema>;
 export type CloseVersionParams = z.infer<typeof CloseVersionParamsSchema>;
 export type VersionProgress = z.infer<typeof VersionProgressSchema>;
 export type VersionSummary = z.infer<typeof VersionSummarySchema>;

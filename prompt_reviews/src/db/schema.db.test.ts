@@ -19,6 +19,7 @@ import {
 } from "./schema.js";
 import { seedConcernTags } from "./seedConcernTags.js";
 import {
+  commitRowSchemas,
   commitFileRowSchemas,
   concernTagRowSchemas,
   decisionRowSchemas,
@@ -389,6 +390,13 @@ describe("Drizzle schema and migrations", () => {
     }
 
     expect(versionRowSchemas.select.parse(version)).toEqual(version);
+    expect(commitRowSchemas.insert.parse({
+      versionId: "ver_1",
+      sha: "sha-with-parent",
+      parentSha: "parent-sha",
+      ordinal: 2,
+      title: "Commit with parent",
+    })).toMatchObject({ parentSha: "parent-sha" });
     expect(commitFileRowSchemas.select.parse(commitFile)).toEqual(commitFile);
     expect(concernTagRowSchemas.select.parse(concernTag)).toEqual(concernTag);
     expect(commitFileRowSchemas.insert.parse({

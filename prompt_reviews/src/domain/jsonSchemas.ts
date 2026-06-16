@@ -27,6 +27,7 @@ import {
   PlanItemDetailSchema,
   PlanSummarySchema,
   PopulateNextVersionParamsSchema,
+  PopulateNextVersionResponseSchema,
   ProposeDecisionParamsSchema,
   RemainingWorkSchema,
   ReopenCommentParamsSchema,
@@ -42,6 +43,7 @@ import {
 
 export const boundarySchemas = {
   PopulateNextVersionParams: PopulateNextVersionParamsSchema,
+  PopulateNextVersionResponse: PopulateNextVersionResponseSchema,
   ClassifyCommitParams: ClassifyCommitParamsSchema,
   ClassifyFileParams: ClassifyFileParamsSchema,
   CreateTaggingParams: CreateTaggingParamsSchema,
