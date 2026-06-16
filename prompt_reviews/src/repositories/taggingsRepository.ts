@@ -46,6 +46,14 @@ export function removeTagging(
     .all();
 }
 
+export function removeTaggingsByTargetKind(db: RepositoryDatabase, target: TaggingTarget, kind: TaggingRow["kind"]): TaggingRow[] {
+  return db
+    .delete(taggings)
+    .where(and(eq(taggings.targetType, target.targetType), eq(taggings.targetId, target.targetId), eq(taggings.kind, kind)))
+    .returning()
+    .all();
+}
+
 export function listTaggingsByTarget(db: RepositoryDatabase, target: TaggingTarget): TaggingRow[] {
   return db
     .select()

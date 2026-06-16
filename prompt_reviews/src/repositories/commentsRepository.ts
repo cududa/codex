@@ -17,6 +17,10 @@ export function addComment(db: RepositoryDatabase, values: CommentInsert): Comme
   return db.insert(comments).values(values).returning().get();
 }
 
+export function findCommentById(db: RepositoryDatabase, id: string): CommentRow | undefined {
+  return db.select().from(comments).where(eq(comments.id, id)).get();
+}
+
 export function listCommentsByScopeStatus(db: RepositoryDatabase, filter: CommentScopeFilter): CommentRow[] {
   const statusFilter =
     filter.status === undefined
