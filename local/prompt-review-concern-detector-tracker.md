@@ -62,8 +62,7 @@ Status legend:
       `npm run db:check`, and `npm run typecheck`.
     - 2026-06-16: Final Batch 1 gates passed locally: full `npm test` (35
       files, 152 tests), `npm run db:check`, `npm run typecheck`,
-      `npm run test:structure`, and `npm run build`. Batch 1 is complete and
-      ready for its focused commit.
+      `npm run test:structure`, and `npm run build`. Batch 1 is complete.
     - 2026-06-16: Batch 1 was committed in a focused git commit excluding the
       unrelated `AGENTS.md` worktree change.
 
@@ -102,7 +101,7 @@ Status legend:
       Integrated local validation passed: focused extractor/scanner tests (2
       files, 7 tests), full `npm test` (37 files, 159 tests),
       `npm run test:structure`, `npm run typecheck`, `npm run build`, and
-      `npm run db:check`. Batch 2 is complete and ready for its focused commit.
+      `npm run db:check`. Batch 2 is complete.
     - 2026-06-16: Batch 2 was committed in a focused git commit excluding
       unrelated `AGENTS.md` and `prompt_reviews/REFACTOR.md`.
 
@@ -176,7 +175,9 @@ Status legend:
     - 2026-06-16: Final Batch 3 gates passed locally: focused graph/diff/engine
       tests (5 files, 22 tests), `npm run test:structure`, `npm run typecheck`,
       `npm run db:check`, full `npm test` (42 files, 181 tests), and
-      `npm run build`. Batch 3 is complete and ready for its focused commit.
+      `npm run build`. Batch 3 is complete.
+    - 2026-06-16: Batch 3 graph engine work was committed as `6a32bfd9f2`
+      (`Add concern detector graph engine`).
 
 - [x] Batch 4: ingestion and post-commit automation.
   - Requirements reference: lines 42-56, 925-956, 1057-1073, 1165-1178.
@@ -224,8 +225,9 @@ Status legend:
       untouched. Final Batch 4 gates passed locally: focused post-commit/hook
       Vitest (2 files, 4 tests), `npm run test:structure`,
       `npm run typecheck`, `npm run db:check`, full `npm test` (44 files,
-      186 tests), and `npm run build`. Batch 4 is complete and ready for its
-      focused commit.
+      186 tests), and `npm run build`. Batch 4 is complete.
+    - 2026-06-16: Batch 4 ingestion automation was committed as `8de14c99a0`
+      (`Add concern detector ingestion automation`).
 
 - [x] Batch 5: review and MCP surfacing.
   - Requirements reference: lines 65-75, 958-1003, 1075-1081, 1180-1193.
@@ -256,8 +258,9 @@ Status legend:
       Validation passed: focused web Vitest (3 files, 13 tests),
       `npm run test:structure`, `npm run typecheck`, full `npm test` (47
       files, 200 tests), and `npm run build`. Verified
-      `prompt_reviews/data/prompt_reviews.sqlite` remained untouched. Batch 5
-      is complete in the worktree and remains uncommitted per instruction.
+      `prompt_reviews/data/prompt_reviews.sqlite` remained untouched.
+    - 2026-06-16: Batch 5 review/MCP surfacing was committed as
+      `b90f87ac5c` (`Add detector finding review surfaces`).
 
 - [x] Acceptance pass.
   - Requirements reference: lines 1083-1110.
@@ -279,7 +282,7 @@ Status legend:
       still routes through cached `populateNextVersion` behavior instead of
       forcing a version-ingestion detector rerun. Correction assigned to a
       fresh implementation subagent.
-    - 2026-06-16: Acceptance correction landed in the worktree. Added a
+    - 2026-06-16: Acceptance correction landed. Added a
       version-ingestion rerun helper that finds an existing version and calls
       the stable `drun_version_ingestion_<versionId>` detector path directly,
       plus `npm run detector:rerun -- --mode version-ingestion --version-id <id>`.
@@ -294,8 +297,9 @@ Status legend:
       `npx vitest run src/detector/ingestion/versionIngestionDetector.test.ts`,
       `npm run verify`, `npm run db:check`, and
       `npm run detector:hook:install && npm run detector:hook:check`. The
-      managed local post-commit hook is installed and executable. Acceptance
-      pass is complete and ready for its focused commit.
+      managed local post-commit hook is installed and executable.
+    - 2026-06-16: Acceptance correction was committed as `2463e58f0e`
+      (`Add deterministic detector version rerun`); acceptance pass is complete.
 
 ## Concern Map Reference
 
