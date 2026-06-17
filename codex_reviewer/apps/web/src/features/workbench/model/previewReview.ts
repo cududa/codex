@@ -1,0 +1,233 @@
+import {
+  DiffBlockSchema,
+  ReviewCommitSchema,
+  ReviewFileSchema,
+  ReviewPlanSchema,
+  ThreadedCommentSchema,
+  type DiffBlock,
+  type ReviewCommit,
+  type ReviewFile,
+  type ReviewPlan,
+  type ThreadedComment,
+} from "@prompt-reviews/contracts";
+
+const now = "2026-06-17T12:00:00.000Z";
+
+export const previewCommits = [
+  ReviewCommitSchema.parse({
+    id: "commit-a",
+    versionId: "version-preview",
+    sha: "3c2e924d81",
+    title: "Add fresh review persistence",
+    message: "Create direct review tables and migrations for the target domain.",
+    authorName: "OpenAI",
+    committedAt: now,
+    reviewMark: "DONE",
+    concernAreas: ["tool-affordances", "permission-defaults"],
+    localChangeRefs: [
+      {
+        id: "local-change-a",
+        sha: "1234567",
+        title: "Preserve local approval boundaries",
+        linkedBy: { type: "human", id: "human-1", displayName: "Human reviewer" },
+        linkedAt: now,
+      },
+    ],
+    agentReviews: [],
+    humanApproval: null,
+    fileCount: 3,
+    unresolvedCommentCount: 1,
+  }),
+  ReviewCommitSchema.parse({
+    id: "commit-b",
+    versionId: "version-preview",
+    sha: "c18423695a",
+    title: "Wire Hono API to review contracts",
+    reviewMark: "PASS",
+    concernAreas: ["hidden-context"],
+    localChangeRefs: [],
+    agentReviews: [],
+    humanApproval: null,
+    fileCount: 2,
+    unresolvedCommentCount: 0,
+  }),
+  ReviewCommitSchema.parse({
+    id: "commit-c",
+    versionId: "version-preview",
+    sha: "e92f9d2476",
+    title: "Add canonical review contracts",
+    reviewMark: "FLAG",
+    concernAreas: ["harness-prompts", "context-compaction"],
+    localChangeRefs: [],
+    agentReviews: [],
+    humanApproval: null,
+    fileCount: 4,
+    unresolvedCommentCount: 2,
+  }),
+] satisfies ReviewCommit[];
+
+export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
+  [
+    "commit-a",
+    [
+      ReviewFileSchema.parse({
+        id: "file-a",
+        commitId: "commit-a",
+        path: "codex_reviewer/apps/api/src/db/schema/core.ts",
+        changeKind: "added",
+        reviewMark: "DONE",
+        localChangeRefs: [
+          {
+            id: "local-change-file-a",
+            sha: "1234567",
+            linkedBy: { type: "human", id: "human-1", displayName: "Human reviewer" },
+            linkedAt: now,
+          },
+        ],
+        agentReviews: [],
+        humanApproval: null,
+        unresolvedCommentCount: 1,
+      }),
+      ReviewFileSchema.parse({
+        id: "file-b",
+        commitId: "commit-a",
+        path: "codex_reviewer/apps/api/src/db/migrations/0001-core.ts",
+        changeKind: "added",
+        reviewMark: "PASS",
+        localChangeRefs: [],
+        agentReviews: [],
+        humanApproval: null,
+        unresolvedCommentCount: 0,
+      }),
+      ReviewFileSchema.parse({
+        id: "file-c",
+        commitId: "commit-a",
+        path: "codex_reviewer/apps/api/src/db/schema.test.ts",
+        changeKind: "added",
+        reviewMark: "MODIFY",
+        localChangeRefs: [],
+        agentReviews: [],
+        humanApproval: null,
+        unresolvedCommentCount: 0,
+      }),
+    ],
+  ],
+  [
+    "commit-b",
+    [
+      ReviewFileSchema.parse({
+        id: "file-d",
+        commitId: "commit-b",
+        path: "codex_reviewer/apps/api/src/routes/review.ts",
+        changeKind: "modified",
+        reviewMark: null,
+        localChangeRefs: [],
+        agentReviews: [],
+        humanApproval: null,
+        unresolvedCommentCount: 0,
+      }),
+    ],
+  ],
+  [
+    "commit-c",
+    [
+      ReviewFileSchema.parse({
+        id: "file-e",
+        commitId: "commit-c",
+        path: "codex_reviewer/packages/contracts/src/review/review-actions.ts",
+        changeKind: "modified",
+        reviewMark: "FLAG",
+        localChangeRefs: [],
+        agentReviews: [],
+        humanApproval: null,
+        unresolvedCommentCount: 2,
+      }),
+    ],
+  ],
+]);
+
+export const previewDiffBlocksByFileId = new Map<string, DiffBlock[]>([
+  [
+    "file-a",
+    [
+      DiffBlockSchema.parse({
+        id: "diff-a",
+        fileId: "file-a",
+        heading: "review_versions table",
+        oldStartLine: 1,
+        oldEndLine: 1,
+        newStartLine: 1,
+        newEndLine: 10,
+        patch: [
+          "@@ -0,0 +1,10 @@",
+          "+export const reviewVersions = sqliteTable(\"review_versions\", {",
+          "+  id: text(\"id\").primaryKey(),",
+          "+  label: text(\"label\").notNull(),",
+          "+  repositoryId: text(\"repository_id\").notNull(),",
+          "+  state: text(\"state\").notNull().default(\"open\"),",
+          "+  createdAt: text(\"created_at\").notNull(),",
+          "+});",
+        ].join("\n"),
+      }),
+    ],
+  ],
+  [
+    "file-e",
+    [
+      DiffBlockSchema.parse({
+        id: "diff-b",
+        fileId: "file-e",
+        heading: "human approval rules",
+        oldStartLine: 40,
+        oldEndLine: 46,
+        newStartLine: 40,
+        newEndLine: 52,
+        patch: [
+          "@@ -40,6 +40,12 @@",
+          " export const HumanApprovalSchema = z.object({",
+          "-  approvedMark: ReviewMarkSchema,",
+          "+  approvedMark: FinalReviewMarkSchema,",
+          "+  localChangeRefs: z.array(LocalChangeRefSchema),",
+          "+}).superRefine((approval, context) => {",
+          "+  if (approval.approvedMark === \"DONE\" && approval.localChangeRefs.length === 0) {",
+          "+    context.addIssue({ code: \"custom\", message: \"DONE requires evidence\" });",
+          "+  }",
+          " });",
+        ].join("\n"),
+      }),
+    ],
+  ],
+]);
+
+export const previewComments = [
+  ThreadedCommentSchema.parse({
+    id: "comment-a",
+    scope: { type: "file", fileId: "file-a" },
+    anchor: { kind: "scope" },
+    threadId: "thread-a",
+    parentCommentId: null,
+    bodyMarkdown: "Confirm the migration runner keeps this schema direct and boring.",
+    state: "open",
+    author: { type: "agent", id: "agent-1", displayName: "Review agent" },
+    createdAt: now,
+  }),
+  ThreadedCommentSchema.parse({
+    id: "comment-b",
+    scope: { type: "commit", commitId: "commit-c" },
+    anchor: { kind: "scope" },
+    threadId: "thread-b",
+    parentCommentId: null,
+    bodyMarkdown: "This area still needs a focused pass before approval.",
+    state: "open",
+    author: { type: "human", id: "human-1", displayName: "Human reviewer" },
+    createdAt: now,
+  }),
+] satisfies ThreadedComment[];
+
+export const previewPlan = ReviewPlanSchema.parse({
+  id: "plan-a",
+  scope: { type: "commit", commitId: "commit-a" },
+  bodyMarkdown: "1. Verify direct tables.\n2. Link local adaptation commits.\n3. Approve once comments are resolved.",
+  createdBy: { type: "human", id: "human-1", displayName: "Human reviewer" },
+  createdAt: now,
+}) satisfies ReviewPlan;

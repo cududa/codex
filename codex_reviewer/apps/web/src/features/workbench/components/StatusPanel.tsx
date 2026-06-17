@@ -1,7 +1,6 @@
 import { Activity, Box, FileCode2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AppMetadataResponse, HealthResponse } from "@/entities/app/types";
-import { Panel } from "@/shared/ui/Panel";
 
 type StatusPanelProps = {
   health: HealthResponse | undefined;
@@ -10,10 +9,10 @@ type StatusPanelProps = {
 
 export function StatusPanel({ health, metadata }: StatusPanelProps) {
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
       <Metric icon={<Activity className="size-4" />} label="API" value={health?.ok === true ? "healthy" : "pending"} />
       <Metric icon={<Box className="size-4" />} label="Contracts" value={metadata?.contractsPackage ?? "pending"} />
-      <Metric icon={<FileCode2 className="size-4" />} label="Status" value={metadata?.status ?? "pending"} />
+      <Metric icon={<FileCode2 className="size-4" />} label="State" value={metadata?.status ?? "pending"} />
     </div>
   );
 }
@@ -26,12 +25,10 @@ type MetricProps = {
 
 function Metric({ icon, label, value }: MetricProps) {
   return (
-    <Panel className="p-4">
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        {icon}
-        {label}
-      </div>
-      <div className="mt-2 truncate text-xl font-semibold text-slate-950">{value}</div>
-    </Panel>
+    <div className="flex min-w-0 items-center gap-2 text-sm">
+      <span className="shrink-0 text-slate-500">{icon}</span>
+      <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
+      <span className="min-w-0 truncate font-medium text-slate-950">{value}</span>
+    </div>
   );
 }
