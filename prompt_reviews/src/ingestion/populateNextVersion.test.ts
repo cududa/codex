@@ -214,7 +214,6 @@ describe("populateNextVersion", () => {
     expect(touchedCommitIds).toEqual(new Set([commits[1]?.id]));
     expect(findings.every((finding) => finding.targetType === "diff_block")).toBe(true);
     expect(findings.every((finding) => finding.path === "docs/goal-template.md")).toBe(true);
-    expect(findings.every((finding) => finding.confidence === "high")).toBe(true);
     expect(findings.some((finding) => finding.marker === "create_goal")).toBe(true);
     expect(
       listConcernGraphNodes(database.db, { sourceKind: "text_scanner" }).some(

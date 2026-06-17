@@ -57,12 +57,6 @@ export type PlanStatus = (typeof planStatuses)[number];
 export const planItemStatuses = ["todo", "in_progress", "blocked", "complete", "abandoned"] as const;
 export type PlanItemStatus = (typeof planItemStatuses)[number];
 
-export const riskLevels = ["low", "medium", "high", "critical"] as const;
-export type RiskLevel = (typeof riskLevels)[number];
-
-export const confidenceLevels = ["low", "medium", "high"] as const;
-export type ConfidenceLevel = (typeof confidenceLevels)[number];
-
 export const reviewEntityScopeTypes = ["version", "commit", "commit_file", "diff_block"] as const;
 export type ReviewEntityScopeType = (typeof reviewEntityScopeTypes)[number];
 

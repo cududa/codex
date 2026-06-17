@@ -17,13 +17,11 @@ import {
   addTagging,
   findCommitById,
   findCommitFileById,
-  findClassificationMetadataByTarget,
   findConcernTagById,
   findConcernTagBySlug,
   listPrimaryTaggingsByTarget,
   listTaggingsByTarget,
   removeTaggingsByTargetKind,
-  upsertClassificationMetadata,
   type ConcernTagRow,
   type TaggingRow,
   type TaggingTarget,
@@ -121,22 +119,10 @@ function replaceTargetClassification(
   removeTaggingsByTargetKind(context.db, target, "primary");
   removeTaggingsByTargetKind(context.db, target, "secondary");
 
-  addTagging(context.db, toTaggingInsert(context, target, primaryTag, "primary", command.rationale, actor));
+  addTagging(context.db, toTaggingInsert(context, target, primaryTag, "primary", actor));
   for (const tag of secondaryTags) {
-    addTagging(context.db, toTaggingInsert(context, target, tag, "secondary", command.rationale, actor));
+    addTagging(context.db, toTaggingInsert(context, target, tag, "secondary", actor));
   }
-  upsertClassificationMetadata(context.db, {
-    targetType: target.targetType,
-    targetId: target.targetId,
-    summary: command.summary ?? null,
-    riskLevel: command.riskLevel ?? null,
-    confidence: command.confidence ?? null,
-    updatedByActorType: actor.type,
-    updatedByActorId: actor.id ?? null,
-    updatedByDisplayName: actor.displayName ?? null,
-    createdAt: context.now(),
-    updatedAt: context.now(),
-  });
 
   const primaryTaggings = listPrimaryTaggingsByTarget(context.db, target);
   if (primaryTaggings.length !== 1) {
@@ -155,7 +141,6 @@ function toTaggingInsert(
   target: TaggingTarget,
   tag: ConcernTagRow,
   kind: TaggingRow["kind"],
-  rationale: string | undefined,
   actor: ActorRef,
 ) {
   return {
@@ -163,7 +148,6 @@ function toTaggingInsert(
     targetType: target.targetType,
     targetId: target.targetId,
     kind,
-    rationale,
     createdByActorType: actor.type,
     createdByActorId: actor.id,
     createdByDisplayName: actor.displayName,
@@ -193,26 +177,21 @@ function toTaggingView(context: ServiceContext, row: TaggingRow): TaggingView {
     scope: taggingScope(row),
     tag: toConcernTagView(context, tag),
     kind: row.kind,
-    rationale: row.rationale ?? undefined,
     createdBy: actorRef(row.createdByActorType, row.createdByActorId, row.createdByDisplayName),
     createdAt: row.createdAt,
   });
 }
 
 function toClassificationView(context: ServiceContext, target: TaggingTarget): ClassificationView {
-  const metadata = findClassificationMetadataByTarget(context.db, target);
-  if (metadata === undefined) {
-    throw invariantFailed("Classification metadata is missing after classification.", target);
-  }
-
+  const taggings = listTaggingsByTarget(context.db, target);
   return ClassificationViewSchema.parse({
     scope: taggingScopeTarget(target),
-    taggings: listTaggingsByTarget(context.db, target).map((tagging) => toTaggingView(context, tagging)),
-    summary: metadata.summary ?? undefined,
-    riskLevel: metadata.riskLevel ?? undefined,
-    confidence: metadata.confidence ?? undefined,
-    updatedBy: actorRef(metadata.updatedByActorType, metadata.updatedByActorId, metadata.updatedByDisplayName),
-    updatedAt: metadata.updatedAt ?? metadata.createdAt,
+    taggings: taggings.map((tagging) => toTaggingView(context, tagging)),
+    updatedBy:
+      taggings[0] === undefined
+        ? defaultClassificationActor
+        : actorRef(taggings[0].createdByActorType, taggings[0].createdByActorId, taggings[0].createdByDisplayName),
+    updatedAt: taggings.reduce((latest, tagging) => Math.max(latest, tagging.createdAt), 0),
   });
 }
 

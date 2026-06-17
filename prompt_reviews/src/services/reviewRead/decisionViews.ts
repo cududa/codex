@@ -23,7 +23,6 @@ export function toDecisionSummary(row: DecisionRow): DecisionSummary {
     scope: decisionScope(row),
     status: row.status,
     outcome: row.outcome,
-    rationale: row.rationale,
     proposedBy: actorRef(row.proposedByActorType, row.proposedByActorId, row.proposedByDisplayName),
     finalizedBy: finalizedByActor(row),
     createdAt: row.createdAt,

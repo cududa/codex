@@ -1,19 +1,3 @@
-CREATE TABLE `classification_metadata` (
-	`id` text PRIMARY KEY NOT NULL,
-	`target_type` text NOT NULL,
-	`target_id` text NOT NULL,
-	`summary` text,
-	`risk_level` text,
-	`confidence` text,
-	`updated_by_actor_type` text NOT NULL,
-	`updated_by_actor_id` text,
-	`updated_by_display_name` text,
-	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
-	`updated_at` integer
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX `classification_metadata_target_unique` ON `classification_metadata` (`target_type`,`target_id`);--> statement-breakpoint
-CREATE INDEX `classification_metadata_target_idx` ON `classification_metadata` (`target_type`,`target_id`);--> statement-breakpoint
 CREATE TABLE `plan_diff_blocks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`plan_id` text NOT NULL,

@@ -221,9 +221,6 @@ function seedUnrelatedFinding(): { runId: string; findingKey: string } {
       evidenceKind: "path",
       title: "Unrelated finding",
       summary: "Existing finding should remain.",
-      rationale: "Local graph refresh should only clear its own run findings.",
-      riskLevel: "low",
-      confidence: "low",
       evidenceJson: "[]",
     },
   ]);

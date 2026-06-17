@@ -77,16 +77,12 @@ const tagging = {
   scope: fileScope,
   tag,
   kind: "primary",
-  rationale: "This file changes goal setup.",
   createdBy: agent,
   createdAt: 1,
 };
 const classification = {
   scope: fileScope,
   taggings: [tagging],
-  summary: "Prompt steering change with low blast radius.",
-  riskLevel: "low",
-  confidence: "high",
   updatedBy: agent,
   updatedAt: 1,
 };
@@ -108,7 +104,6 @@ const decisionSummary = {
   scope: decisionScope,
   status: "accepted",
   outcome: "accept_with_watch",
-  rationale: "The behavior is acceptable with follow-up monitoring.",
   proposedBy: agent,
   finalizedBy: human,
   createdAt: 4,
@@ -116,8 +111,6 @@ const decisionSummary = {
 };
 const decisionDetail = {
   ...decisionSummary,
-  riskLevel: "medium",
-  confidence: "high",
   updatedAt: 6,
 };
 const planItem = {
@@ -243,10 +236,7 @@ const detectorFinding = {
   evidenceKind: "symbol",
   title: "Mapped concern surface changed",
   summary: "A mapped harness prompt path changed.",
-  rationale: "The changed file and symbol are seeded harness prompt surfaces.",
-  riskLevel: "medium",
-  confidence: "high",
-  evidence: [{ nodeKey: "harness-prompts:file:codex-rs/core/src/client.rs", reason: "Seed path matched." }],
+  evidence: [{ nodeKey: "harness-prompts:file:codex-rs/core/src/client.rs" }],
   createdAt: 2,
 };
 const detectorFindingSummary = {
@@ -254,8 +244,6 @@ const detectorFindingSummary = {
   targetType: "commit_file",
   targetId: "cf-1",
   count: 1,
-  highestRiskLevel: "medium",
-  highestConfidence: "high",
   evidenceSummaries: ["A mapped harness prompt path changed."],
 };
 const fileQueueItem = {
@@ -314,7 +302,6 @@ const nextAction = {
   type: "close_version",
   label: "Close version",
   targetId: "version-1",
-  reason: "All work is complete.",
 };
 const remainingWork = {
   kind: "version_closure",
@@ -370,9 +357,6 @@ describe("boundary command schemas", () => {
         {
           commitId: "commit-1",
           primaryTagSlug: "goal.initial-steering",
-          summary: "Prompt steering change.",
-          riskLevel: "low",
-          confidence: "high",
         },
       ],
       [ClassifyFileParamsSchema, { commitFileId: "cf-1", primaryTagSlug: "prompt.fidelity" }],
@@ -385,11 +369,11 @@ describe("boundary command schemas", () => {
         { commitFileId: "cf-1", status: "patch_required", reason: "Needs patch.", actor: human },
       ],
       [CreateTaggingParamsSchema, { scope: fileScope, tagSlug: "prompt.fidelity", kind: "secondary", actor: agent }],
-      [DeleteTaggingParamsSchema, { taggingId: "tagging-1", actor: human, reason: "Replaced by primary tag." }],
+      [DeleteTaggingParamsSchema, { taggingId: "tagging-1", actor: human }],
       [AddCommentParamsSchema, { scope: fileScope, anchor: { kind: "scope" }, body: "Please verify.", author: agent }],
-      [ResolveCommentParamsSchema, { commentId: "comment-1", status: "resolved", resolution: "Done.", actor: human }],
-      [ReopenCommentParamsSchema, { commentId: "comment-1", reason: "Regression returned.", actor: agent }],
-      [ProposeDecisionParamsSchema, { scope: decisionScope, outcome: "accept", rationale: "Looks good.", proposedBy: agent }],
+      [ResolveCommentParamsSchema, { commentId: "comment-1", status: "resolved", actor: human }],
+      [ReopenCommentParamsSchema, { commentId: "comment-1", actor: human }],
+      [ProposeDecisionParamsSchema, { scope: decisionScope, outcome: "accept", proposedBy: agent }],
       [UpdateDecisionParamsSchema, { decisionId: "decision-1", outcome: "needs_tests", actor: agent }],
       [FinalizeDecisionParamsSchema, { decisionId: "decision-1", status: "accepted", finalizer: human }],
       [
@@ -522,13 +506,11 @@ describe("boundary view and response schemas", () => {
       resolvedCommentStatus: ResolveCommentParamsSchema.safeParse({
         commentId: "comment-1",
         status: commentResolutionStatuses[0],
-        resolution: "Done.",
         actor: human,
       }).success,
       decision: ProposeDecisionParamsSchema.safeParse({
         scope: decisionScope,
         outcome: decisionOutcomes[0],
-        rationale: "Accepted.",
         proposedBy: agent,
       }).success,
     }).toEqual({

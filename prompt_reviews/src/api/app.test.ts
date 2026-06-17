@@ -57,8 +57,6 @@ const commitFindingSummary: DetectorFindingSummary = {
   targetType: "commit",
   targetId: "commit-1",
   count: 1,
-  highestRiskLevel: "medium",
-  highestConfidence: "high",
   evidenceSummaries: ["Commit touches a mapped prompt review surface."],
 };
 
@@ -67,8 +65,6 @@ const fileFindingSummary: DetectorFindingSummary = {
   targetType: "commit_file",
   targetId: "file-1",
   count: 1,
-  highestRiskLevel: "medium",
-  highestConfidence: "high",
   evidenceSummaries: ["File overlaps a mapped prompt builder."],
 };
 
@@ -119,10 +115,7 @@ const fileDetectorFinding: DetectorFinding = {
   evidenceKind: "symbol",
   title: "Mapped prompt surface changed",
   summary: "File overlaps a mapped prompt builder.",
-  rationale: "The detector matched a mapped prompt concern surface.",
-  riskLevel: "medium",
-  confidence: "high",
-  evidence: [{ nodeKey: "harness-prompts:file:src/prompt.ts", path: file.path, reason: "Seed path matched." }],
+  evidence: [{ nodeKey: "harness-prompts:file:src/prompt.ts", path: file.path }],
   createdAt: 100,
 };
 
@@ -141,7 +134,6 @@ const tagging: TaggingView = {
   scope: { type: "commit_file", commitFileId: file.id },
   tag,
   kind: "primary",
-  rationale: "Prompt text changed.",
   createdBy: agent,
   createdAt: 100,
 };
@@ -171,11 +163,8 @@ const decision: DecisionDetail = {
   scope: { type: "commit_file", commitFileId: file.id },
   status: "proposed",
   outcome: "accept",
-  rationale: "Looks intentional.",
   proposedBy: agent,
   createdAt: 100,
-  riskLevel: "low",
-  confidence: "high",
   updatedAt: 100,
 };
 
@@ -184,7 +173,6 @@ const decisionSummary: DecisionSummary = {
   scope: decision.scope,
   status: decision.status,
   outcome: decision.outcome,
-  rationale: decision.rationale,
   proposedBy: decision.proposedBy,
   createdAt: decision.createdAt,
 };
@@ -335,7 +323,7 @@ describe("prompt reviews API scaffold", () => {
       {
         method: "PATCH",
         url: "/api/commits/commit-1/classification",
-        payload: { primaryTagSlug: tag.slug, secondaryTagSlugs: [], rationale: "Relevant." },
+        payload: { primaryTagSlug: tag.slug, secondaryTagSlugs: [] },
         schema: ClassificationViewSchema,
       },
       {
@@ -347,7 +335,7 @@ describe("prompt reviews API scaffold", () => {
       {
         method: "PATCH",
         url: "/api/commit-files/file-1/classification",
-        payload: { primaryTagSlug: tag.slug, rationale: "Relevant." },
+        payload: { primaryTagSlug: tag.slug },
         schema: ClassificationViewSchema,
       },
       { method: "GET", url: "/api/concern-tags", schema: z.object({ tags: z.array(ConcernTagViewSchema) }) },
@@ -375,13 +363,13 @@ describe("prompt reviews API scaffold", () => {
       {
         method: "PATCH",
         url: "/api/comments/comment-1/resolve",
-        payload: { status: "resolved", resolution: "Handled.", actor: human },
+        payload: { status: "resolved", actor: human },
         schema: CommentDetailSchema,
       },
       {
         method: "PATCH",
         url: "/api/comments/comment-1/reopen",
-        payload: { reason: "Needs another look.", actor: human },
+        payload: { actor: human },
         schema: CommentDetailSchema,
       },
       {
@@ -390,7 +378,6 @@ describe("prompt reviews API scaffold", () => {
         payload: {
           scope: { type: "commit_file", commitFileId: file.id },
           outcome: "accept",
-          rationale: decision.rationale,
           proposedBy: agent,
         },
         status: 201,
@@ -399,13 +386,13 @@ describe("prompt reviews API scaffold", () => {
       {
         method: "PATCH",
         url: "/api/decisions/decision-1",
-        payload: { outcome: "accept_with_watch", rationale: "Watch this.", actor: human },
+        payload: { outcome: "accept_with_watch", actor: human },
         schema: DecisionDetailSchema,
       },
       {
         method: "POST",
         url: "/api/decisions/decision-1/finalize",
-        payload: { status: "accepted", finalizer: human, rationale: "Approved." },
+        payload: { status: "accepted", finalizer: human },
         schema: DecisionDetailSchema,
       },
       {
@@ -478,7 +465,6 @@ describe("prompt reviews API scaffold", () => {
     await expectStatus("POST", "/api/decisions/decision-1/finalize", 403, {
       status: "accepted",
       finalizer: agent,
-      rationale: "Agent cannot finalize.",
     });
     await expectStatus("POST", "/api/plans/plan-1/complete", 409, {
       completedBy: human,
@@ -500,9 +486,6 @@ function createFakeContext(): PromptReviewsApiContext {
   const classification = {
     scope: { type: "commit_file", commitFileId: file.id },
     taggings: [tagging],
-    summary: "Classified.",
-    riskLevel: "low",
-    confidence: "high",
     updatedBy: agent,
     updatedAt: 100,
   } satisfies z.infer<typeof ClassificationViewSchema>;
@@ -597,7 +580,7 @@ function createFakeContext(): PromptReviewsApiContext {
         return comment;
       },
       resolveComment() {
-        return { ...comment, status: "resolved", resolvedAt: 101, resolvedBy: human, resolution: "Handled." };
+        return { ...comment, status: "resolved", resolvedAt: 101, resolvedBy: human };
       },
       reopenComment() {
         return comment;

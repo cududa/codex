@@ -1,20 +1,14 @@
 import { z } from "zod";
-import { confidenceLevels, riskLevels, tagKinds } from "../enums.js";
-import { ActorRefSchema, IdSchema, NonEmptyTextSchema, OptionalTextSchema, SlugSchema, UnixSecondsSchema } from "./actors.js";
+import { tagKinds } from "../enums.js";
+import { ActorRefSchema, IdSchema, NonEmptyTextSchema, SlugSchema, UnixSecondsSchema } from "./actors.js";
 import { ReviewEntityScopeSchema } from "./scopes.js";
 
 export const TagKindSchema = z.enum(tagKinds);
-export const ClassificationRiskLevelSchema = z.enum(riskLevels);
-export const ClassificationConfidenceLevelSchema = z.enum(confidenceLevels);
 
 export const ClassificationFieldsSchema = z
   .object({
     primaryTagSlug: SlugSchema,
     secondaryTagSlugs: z.array(SlugSchema).optional(),
-    rationale: OptionalTextSchema,
-    summary: OptionalTextSchema,
-    riskLevel: ClassificationRiskLevelSchema.optional(),
-    confidence: ClassificationConfidenceLevelSchema.optional(),
   })
   .strict();
 
@@ -36,7 +30,6 @@ export const TaggingViewSchema = z
     scope: ReviewEntityScopeSchema,
     tag: ConcernTagViewSchema,
     kind: TagKindSchema,
-    rationale: OptionalTextSchema,
     createdBy: ActorRefSchema,
     createdAt: UnixSecondsSchema,
   })
@@ -46,9 +39,6 @@ export const ClassificationViewSchema = z
   .object({
     scope: ReviewEntityScopeSchema,
     taggings: z.array(TaggingViewSchema),
-    summary: OptionalTextSchema,
-    riskLevel: ClassificationRiskLevelSchema.optional(),
-    confidence: ClassificationConfidenceLevelSchema.optional(),
     updatedBy: ActorRefSchema,
     updatedAt: UnixSecondsSchema,
   })
@@ -59,7 +49,6 @@ export const CreateTaggingParamsSchema = z
     scope: ReviewEntityScopeSchema,
     tagSlug: SlugSchema,
     kind: TagKindSchema,
-    rationale: OptionalTextSchema,
     actor: ActorRefSchema,
   })
   .strict();
@@ -68,7 +57,6 @@ export const DeleteTaggingParamsSchema = z
   .object({
     taggingId: IdSchema,
     actor: ActorRefSchema,
-    reason: OptionalTextSchema,
   })
   .strict();
 

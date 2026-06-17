@@ -60,7 +60,6 @@ export type LegacyCommentInput = LegacyActorInput & {
   body: string;
   createdAt?: string;
   status?: CommentStatus;
-  resolution?: string;
   anchor?: LegacyAnchorInput;
 };
 
@@ -80,7 +79,6 @@ export type LegacyCommentCommand = {
   body: string;
   createdAt?: number;
   status: CommentStatus;
-  resolution?: string;
   author: ActorRef;
   target: LegacyResolvedTarget;
 };

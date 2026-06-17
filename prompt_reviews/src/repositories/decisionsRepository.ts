@@ -26,12 +26,9 @@ export type DecisionUpdate = Partial<
     DecisionRow,
     | "status"
     | "outcome"
-    | "rationale"
     | "finalizedByActorType"
     | "finalizedByActorId"
     | "finalizedByDisplayName"
-    | "riskLevel"
-    | "confidence"
     | "updatedAt"
     | "finalizedAt"
   >

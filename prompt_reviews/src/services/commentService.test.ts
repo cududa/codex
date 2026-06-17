@@ -60,7 +60,6 @@ describe("comment service", () => {
       anchor: { kind: "range", commitFileId: file.id, side: "new", startLine: 3, endLine: 5 },
       updatedAt: 7_000,
       resolvedBy: undefined,
-      resolution: undefined,
     });
   });
 
@@ -91,7 +90,6 @@ describe("comment service", () => {
       service.resolveComment({
         commentId: "com_mixed_parent",
         status: "resolved",
-        resolution: "Cannot resolve corrupt row.",
         actor: human,
       }),
     ).toThrow(PromptReviewServiceError);
@@ -115,7 +113,6 @@ describe("comment service", () => {
     const resolved = service.resolveComment({
       commentId: added.id,
       status: "resolved",
-      resolution: "Verified by focused review.",
       actor: human,
     });
 
@@ -125,13 +122,12 @@ describe("comment service", () => {
       resolvedAt: 7_001,
       updatedAt: 7_001,
       resolvedBy: human,
-      resolution: "Verified by focused review.",
     });
     expect(findCommitFileById(database.db, file.id)?.reviewStatus).toBe("accepted");
     expect(findCommitById(database.db, commit.id)?.reviewStatus).toBe("accepted");
   });
 
-  it("reopens comments by clearing resolution fields and refreshing affected status", () => {
+  it("reopens comments by clearing resolver fields and refreshing affected status", () => {
     const { file } = seedAcceptedFile("comment_reopen");
     const service = createCommentService(context);
     const added = service.addComment({
@@ -144,7 +140,6 @@ describe("comment service", () => {
     service.resolveComment({
       commentId: added.id,
       status: "resolved",
-      resolution: "Closed once.",
       actor: human,
     });
     expect(findCommitFileById(database.db, file.id)?.reviewStatus).toBe("accepted");
@@ -152,8 +147,7 @@ describe("comment service", () => {
     now = 7_002;
     const reopened = service.reopenComment({
       commentId: added.id,
-      reason: "Regression returned.",
-      actor: agent,
+      actor: human,
     });
 
     expect(reopened).toEqual({
@@ -162,7 +156,6 @@ describe("comment service", () => {
       updatedAt: 7_002,
       resolvedAt: undefined,
       resolvedBy: undefined,
-      resolution: undefined,
     });
     expect(findCommitFileById(database.db, file.id)?.reviewStatus).toBe("blocked");
   });
@@ -217,7 +210,6 @@ function seedAcceptedFile(id: string): { commit: CommitRow; file: CommitFileRow 
     commitFileId: file.id,
     status: "accepted",
     outcome: "accept",
-    rationale: "Human accepted.",
     proposedByActorType: "human",
     finalizedByActorType: "human",
     finalizedAt: 6_900,

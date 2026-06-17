@@ -304,16 +304,12 @@ export function listDetectorFindingSummariesByVersion(
         targetType: row.targetType,
         targetId: row.targetId,
         count: 1,
-        highestRiskLevel: row.riskLevel,
-        highestConfidence: row.confidence,
         evidenceSummaries: [row.summary],
       });
       continue;
     }
 
     existing.count += 1;
-    existing.highestRiskLevel = higherRisk(existing.highestRiskLevel, row.riskLevel);
-    existing.highestConfidence = higherConfidence(existing.highestConfidence, row.confidence);
     addEvidenceSummary(existing.evidenceSummaries, row.summary);
   }
 
@@ -336,20 +332,4 @@ export function deleteDetectorRunsByVersion(db: RepositoryDatabase, versionId: s
     return [];
   }
   return db.delete(detectorRuns).where(inArray(detectorRuns.id, runIds.map((row) => row.id))).returning().all();
-}
-
-function higherRisk(
-  left: DetectorFindingSummary["highestRiskLevel"],
-  right: DetectorFindingSummary["highestRiskLevel"],
-): DetectorFindingSummary["highestRiskLevel"] {
-  const order = { low: 0, medium: 1, high: 2, critical: 3 } as const;
-  return order[right] > order[left] ? right : left;
-}
-
-function higherConfidence(
-  left: DetectorFindingSummary["highestConfidence"],
-  right: DetectorFindingSummary["highestConfidence"],
-): DetectorFindingSummary["highestConfidence"] {
-  const order = { low: 0, medium: 1, high: 2 } as const;
-  return order[right] > order[left] ? right : left;
 }

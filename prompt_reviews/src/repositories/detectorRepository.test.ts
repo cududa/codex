@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { classificationMetadata, taggings } from "../db/schema.js";
+import { taggings } from "../db/schema.js";
 import { createTempPromptReviewsDatabase, type TempPromptReviewsDatabase } from "../test-support/db.js";
 import {
   bulkInsertCommitFiles,
@@ -193,9 +193,6 @@ describe("detector repositories", () => {
         evidenceKind: "symbol",
         title: "Goal continuation surface changed",
         summary: "A mapped continuation path changed.",
-        rationale: "The changed symbol controls active-goal continuation.",
-        riskLevel: "high",
-        confidence: "medium",
         evidenceJson: JSON.stringify([{ nodeKey: graphNode.nodeKey, reason: "Seed path matched." }]),
       },
       {
@@ -219,9 +216,6 @@ describe("detector repositories", () => {
         evidenceKind: "marker",
         title: "Goal continuation diff block changed",
         summary: "A mapped continuation diff block changed.",
-        rationale: "The diff block overlaps a seeded continuation prompt marker.",
-        riskLevel: "medium",
-        confidence: "high",
         evidenceJson: JSON.stringify([{ nodeKey: graphNode.nodeKey, reason: "Diff block overlaps seed path." }]),
       },
     ]);
@@ -238,8 +232,6 @@ describe("detector repositories", () => {
         targetType: "commit_file",
         targetId: file.id,
         count: 1,
-        highestRiskLevel: "high",
-        highestConfidence: "medium",
         evidenceSummaries: ["A mapped continuation path changed."],
       },
       {
@@ -247,13 +239,10 @@ describe("detector repositories", () => {
         targetType: "diff_block",
         targetId: block.id,
         count: 1,
-        highestRiskLevel: "medium",
-        highestConfidence: "high",
         evidenceSummaries: ["A mapped continuation diff block changed."],
       },
     ]);
     expect(database.db.select().from(taggings).all()).toEqual([]);
-    expect(database.db.select().from(classificationMetadata).all()).toEqual([]);
 
     const replacement = replaceDetectorFindingsForRun(database.db, run.id, [
       {
@@ -268,9 +257,6 @@ describe("detector repositories", () => {
         evidenceKind: "path",
         title: "Goal continuation commit changed",
         summary: "A mapped continuation commit changed.",
-        rationale: "The commit touches a mapped continuation path.",
-        riskLevel: "low",
-        confidence: "high",
       },
     ]);
 
@@ -295,9 +281,6 @@ describe("detector repositories", () => {
         evidenceKind: "path",
         title: "Harness prompt version finding",
         summary: "Version contains mapped prompt changes.",
-        rationale: "The version includes a mapped harness prompt path.",
-        riskLevel: "medium",
-        confidence: "high",
       },
     ]);
 

@@ -43,7 +43,7 @@ export function exportMarkdownReport(context: RootServiceContext, options: Expor
         }
       }
       for (const decision of file.review.decisions) {
-        lines.push(`  - Decision ${decision.id} [${decision.status}/${decision.outcome}]: ${singleLine(decision.rationale)}`);
+        lines.push(`  - Decision ${decision.id} [${decision.status}/${decision.outcome}]`);
       }
       for (const plan of file.review.plans) {
         lines.push(`  - Plan ${plan.id} [${plan.status}]: ${singleLine(plan.title)}`);
@@ -53,7 +53,7 @@ export function exportMarkdownReport(context: RootServiceContext, options: Expor
       lines.push(`- Commit comment ${comment.id} [${comment.status}]: ${singleLine(comment.body)}`);
     }
     for (const decision of detail.decisions) {
-      lines.push(`- Commit decision ${decision.id} [${decision.status}/${decision.outcome}]: ${singleLine(decision.rationale)}`);
+      lines.push(`- Commit decision ${decision.id} [${decision.status}/${decision.outcome}]`);
     }
     lines.push("");
   }

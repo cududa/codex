@@ -187,7 +187,6 @@ function seedAcceptedVersion(id: string): { version: VersionRow; commit: CommitR
     commitFileId: seeded.file.id,
     status: "accepted",
     outcome: "accept",
-    rationale: "Accepted.",
     proposedByActorType: "human",
     finalizedByActorType: "human",
     finalizedAt: 9_900,

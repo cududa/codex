@@ -227,8 +227,8 @@ export function WorkbenchPage() {
             onFocusFile={() => setReviewFocus("file")}
             onLocateComment={locateComment}
             onPropose={(input) => proposeDecisionMutation.mutateAsync(input)}
-            onReopen={(commentId, reason) => reopenCommentMutation.mutateAsync({ commentId, reason })}
-            onResolve={(commentId, resolution) => resolveCommentMutation.mutateAsync({ commentId, resolution })}
+            onReopen={(commentId) => reopenCommentMutation.mutateAsync({ commentId })}
+            onResolve={(commentId) => resolveCommentMutation.mutateAsync({ commentId })}
             onUpdateItem={(input) => updatePlanItemMutation.mutateAsync(input)}
             onUpdatePlan={(input) => updatePlanMutation.mutateAsync(input)}
             planError={

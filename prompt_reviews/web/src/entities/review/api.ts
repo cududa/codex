@@ -198,23 +198,21 @@ export async function addComment(input: {
   return CommentDetailSchema.parse(payload);
 }
 
-export async function resolveComment(commentId: string, resolution: string): Promise<CommentDetail> {
+export async function resolveComment(commentId: string): Promise<CommentDetail> {
   const payload = await requestJson<unknown>(`/api/comments/${encodeURIComponent(commentId)}/resolve`, {
     method: "PATCH",
     body: JSON.stringify({
       status: "resolved",
-      resolution,
       actor: humanUserActor,
     }),
   });
   return CommentDetailSchema.parse(payload);
 }
 
-export async function reopenComment(commentId: string, reason: string): Promise<CommentDetail> {
+export async function reopenComment(commentId: string): Promise<CommentDetail> {
   const payload = await requestJson<unknown>(`/api/comments/${encodeURIComponent(commentId)}/reopen`, {
     method: "PATCH",
     body: JSON.stringify({
-      reason: reason.trim().length === 0 ? undefined : reason,
       actor: humanUserActor,
     }),
   });
@@ -228,12 +226,9 @@ export async function proposeDecision(input: {
     | "accept_with_watch"
     | "patch_required"
     | "reject_for_local_build"
-    | "needs_tests"
-    | "needs_policy_decision"
-    | "blocked_on_context";
-  rationale: string;
-  riskLevel?: "low" | "medium" | "high" | "critical";
-  confidence?: "low" | "medium" | "high";
+      | "needs_tests"
+      | "needs_policy_decision"
+      | "blocked_on_context";
 }): Promise<DecisionDetail> {
   const payload = await requestJson<unknown>("/api/decisions", {
     method: "POST",

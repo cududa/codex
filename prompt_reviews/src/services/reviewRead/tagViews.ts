@@ -45,7 +45,6 @@ export function toTaggingView(context: ServiceContext, row: TaggingRow): Tagging
     scope: taggingScope(row),
     tag: toConcernTagView(context, tag),
     kind: row.kind,
-    rationale: row.rationale ?? undefined,
     createdBy: actorRef(row.createdByActorType, row.createdByActorId, row.createdByDisplayName),
     createdAt: row.createdAt,
   });

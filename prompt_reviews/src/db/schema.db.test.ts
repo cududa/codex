@@ -3,7 +3,6 @@ import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   comments,
-  classificationMetadata,
   commitFiles,
   commits,
   concernGraphEdges,
@@ -26,7 +25,6 @@ import {
 import { seedConcernTags } from "./seedConcernTags.js";
 import {
   commitRowSchemas,
-  classificationMetadataRowSchemas,
   commitFileRowSchemas,
   concernTagRowSchemas,
   concernGraphEdgeRowSchemas,
@@ -64,7 +62,6 @@ const expectedUniqueIndexes = [
   "concern_graph_edges_nodes_kind_unique",
   "detector_findings_run_key_unique",
   "taggings_tag_target_unique",
-  "classification_metadata_target_unique",
   "plan_items_plan_ordinal_unique",
   "plan_comments_plan_comment_unique",
   "plan_decisions_plan_decision_unique",
@@ -364,7 +361,6 @@ describe("Drizzle schema and migrations", () => {
       scope: "commit_file",
       commitFileId: "file_modified",
       outcome: "accept",
-      rationale: "Looks okay",
       proposedByActorType: "human",
     }).run();
     database.db.insert(plans).values({
@@ -470,13 +466,9 @@ describe("Drizzle schema and migrations", () => {
       evidenceKind: "symbol",
       title: "Mapped concern surface changed",
       summary: "A mapped harness prompt path changed.",
-      rationale: "The changed file and symbol are seeded harness prompt surfaces.",
-      riskLevel: "medium",
-      confidence: "high",
     }).run();
 
     expect(database.db.select().from(taggings).all()).toEqual([]);
-    expect(database.db.select().from(classificationMetadata).all()).toEqual([]);
     expectConstraintFailure(() => {
       database.db.insert(concernGraphNodes).values({
         id: "cgn_duplicate",
@@ -510,9 +502,6 @@ describe("Drizzle schema and migrations", () => {
         evidenceKind: "path",
         title: "Duplicate",
         summary: "Duplicate.",
-        rationale: "Duplicate finding key.",
-        riskLevel: "medium",
-        confidence: "high",
       }).run();
     });
     expectConstraintFailure(() => {
@@ -527,9 +516,6 @@ describe("Drizzle schema and migrations", () => {
         evidenceKind: "path",
         title: "Wrong scope",
         summary: "Scope fields do not match.",
-        rationale: "Scope fields do not match.",
-        riskLevel: "medium",
-        confidence: "high",
       }).run();
     });
   });
@@ -582,9 +568,6 @@ describe("Drizzle schema and migrations", () => {
       evidenceKind: "path",
       title: "Mapped concern surface changed",
       summary: "A mapped path changed.",
-      rationale: "The changed path is mapped.",
-      riskLevel: "medium",
-      confidence: "high",
     }).run();
     const version = database.db.select().from(versions).get();
     const commitFile = database.db.select().from(commitFiles).get();
@@ -631,17 +614,8 @@ describe("Drizzle schema and migrations", () => {
       scope: "commit_file",
       commitFileId: "file_modified",
       outcome: "mystery",
-      rationale: "Nope",
       proposedByActorType: "human",
     }).success).toBe(false);
-    expect(classificationMetadataRowSchemas.insert.parse({
-      targetType: "commit_file",
-      targetId: "file_modified",
-      summary: "Classified target.",
-      riskLevel: "low",
-      confidence: "high",
-      updatedByActorType: "agent",
-    })).toMatchObject({ targetType: "commit_file", riskLevel: "low", confidence: "high" });
     expect(concernGraphNodeRowSchemas.insert.safeParse({
       concernSlug: "harness-prompts",
       nodeKey: "missing-evidence",
@@ -650,17 +624,14 @@ describe("Drizzle schema and migrations", () => {
     }).success).toBe(true);
     expect(detectorFindingRowSchemas.insert.safeParse({
       runId: "drun_schema",
-      findingKey: "bad-risk",
+      findingKey: "bad-target",
       concernSlug: "harness-prompts",
-      targetType: "commit",
+      targetType: "unknown",
       targetId: "cmt_1",
       commitId: "cmt_1",
       evidenceKind: "path",
-      title: "Bad risk",
-      summary: "Bad risk.",
-      rationale: "Bad risk should fail enum validation.",
-      riskLevel: "surprising",
-      confidence: "high",
+      title: "Bad target",
+      summary: "Bad target.",
     }).success).toBe(false);
   });
 

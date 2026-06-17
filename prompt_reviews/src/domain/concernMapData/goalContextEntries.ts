@@ -169,7 +169,7 @@ export const goalAndCompactionConcernEntries = [
     expansionEdgeTypes: ["calls", "called_by", "registers", "dispatches", "persists", "serializes", "configures"],
     falsePositiveExclusions: [
       "Generated schema-only diffs are supporting unless they reveal a wire shape change without matching source.",
-      "Visual formatting of goal status is low confidence unless it changes commands, user actions, or available states.",
+      "Visual formatting of goal status is low signal unless it changes commands, user actions, or available states.",
       "Generic tool registry changes are excluded unless they affect goal tools.",
     ],
     fixtureExpectations: [

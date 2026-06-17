@@ -1,7 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import {
   comments,
-  classificationMetadata,
   commitFiles,
   commits,
   concernGraphEdges,
@@ -49,11 +48,6 @@ export const concernTagRowSchemas = {
 export const taggingRowSchemas = {
   select: createSelectSchema(taggings),
   insert: createInsertSchema(taggings),
-};
-
-export const classificationMetadataRowSchemas = {
-  select: createSelectSchema(classificationMetadata),
-  insert: createInsertSchema(classificationMetadata),
 };
 
 export const concernGraphNodeRowSchemas = {

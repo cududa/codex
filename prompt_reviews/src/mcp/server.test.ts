@@ -57,8 +57,6 @@ const commitFindingSummary = {
   targetType: "commit",
   targetId: "commit-1",
   count: 1,
-  highestRiskLevel: "medium",
-  highestConfidence: "high",
   evidenceSummaries: ["Commit touches a mapped prompt review surface."],
 } satisfies z.infer<typeof DetectorFindingSummarySchema>;
 
@@ -67,8 +65,6 @@ const fileFindingSummary = {
   targetType: "commit_file",
   targetId: "file-1",
   count: 1,
-  highestRiskLevel: "medium",
-  highestConfidence: "high",
   evidenceSummaries: ["File overlaps a mapped prompt builder."],
 } satisfies z.infer<typeof DetectorFindingSummarySchema>;
 
@@ -117,10 +113,7 @@ const fileDetectorFinding = {
   evidenceKind: "symbol",
   title: "Mapped prompt surface changed",
   summary: "File overlaps a mapped prompt builder.",
-  rationale: "The detector matched a mapped prompt concern surface.",
-  riskLevel: "medium",
-  confidence: "high",
-  evidence: [{ nodeKey: "harness-prompts:file:codex-rs/core/src/prompt.rs", path: file.path, reason: "Seed path matched." }],
+  evidence: [{ nodeKey: "harness-prompts:file:codex-rs/core/src/prompt.rs", path: file.path }],
   createdAt: 100,
 } satisfies z.infer<typeof DetectorFindingSchema>;
 
@@ -152,14 +145,11 @@ const classification = {
       scope: { type: "commit_file", commitFileId: file.id },
       tag,
       kind: "primary",
-      rationale: "Prompt text changed.",
       createdBy: agent,
       createdAt: 100,
     },
   ],
   summary: "Classified.",
-  riskLevel: "medium",
-  confidence: "high",
   updatedBy: agent,
   updatedAt: 100,
 } satisfies z.infer<typeof ClassificationViewSchema>;
@@ -189,11 +179,8 @@ const decision = {
   scope: { type: "commit_file", commitFileId: file.id },
   status: "proposed",
   outcome: "accept_with_watch",
-  rationale: "Intentional but worth watching.",
   proposedBy: agent,
   createdAt: 100,
-  riskLevel: "medium",
-  confidence: "high",
   updatedAt: 100,
 } satisfies z.infer<typeof DecisionDetailSchema>;
 
@@ -202,7 +189,6 @@ const decisionSummary = {
   scope: decision.scope,
   status: decision.status,
   outcome: decision.outcome,
-  rationale: decision.rationale,
   proposedBy: decision.proposedBy,
   createdAt: decision.createdAt,
 };
@@ -321,7 +307,6 @@ describe("prompt review MCP tools", () => {
         input: {
           scope: { type: "commit_file", commitFileId: file.id },
           outcome: "accept_with_watch",
-          rationale: decision.rationale,
           proposedBy: agent,
         },
         schema: DecisionDetailSchema.passthrough(),
@@ -418,7 +403,6 @@ describe("prompt review MCP tools", () => {
     const proposed = await executePromptReviewMcpTool(context, tool("propose_decision"), {
       scope: { type: "commit_file", commitFileId: file.id },
       outcome: "accept",
-      rationale: "Agent can propose.",
       proposedBy: agent,
     });
     expect(proposed.isError).toBeUndefined();
@@ -427,7 +411,6 @@ describe("prompt review MCP tools", () => {
       decisionId: decision.id,
       status: "accepted",
       finalizer: agent,
-      rationale: "Agent cannot finalize.",
     });
     expect(finalized.isError).toBe(true);
   });
@@ -550,7 +533,7 @@ function createFakeContext(options: { populateCalls?: unknown[]; planState?: { c
     },
     comments: {
       addComment: () => comment,
-      resolveComment: () => ({ ...comment, status: "resolved", resolvedBy: human, resolvedAt: 101, resolution: "Handled." }),
+      resolveComment: () => ({ ...comment, status: "resolved", resolvedBy: human, resolvedAt: 101 }),
       reopenComment: () => comment,
       supersedeComment: () => {
         throw new Error("Unsupported.");

@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
   comments,
-  classificationMetadata,
   commitFiles,
   commits,
   concernGraphEdges,
@@ -65,8 +64,6 @@ export const concernTagRelations = relations(concernTags, ({ one, many }) => ({
 export const taggingRelations = relations(taggings, ({ one }) => ({
   tag: one(concernTags, { fields: [taggings.tagId], references: [concernTags.id] }),
 }));
-
-export const classificationMetadataRelations = relations(classificationMetadata, () => ({}));
 
 export const concernGraphNodeRelations = relations(concernGraphNodes, ({ many }) => ({
   outgoingEdges: many(concernGraphEdges, { relationName: "concernGraphEdgesFromNode" }),

@@ -92,7 +92,6 @@ function resolveCommentInTransaction(
   const now = context.now();
   const updated = updateCommentLifecycleFields(context.db, existing.id, {
     status: command.status,
-    resolution: command.resolution,
     resolvedByActorType: command.actor.type,
     resolvedByActorId: command.actor.id ?? null,
     resolvedByDisplayName: command.actor.displayName ?? null,
@@ -116,7 +115,6 @@ function reopenCommentInTransaction(
 
   const updated = updateCommentLifecycleFields(context.db, existing.id, {
     status: "open",
-    resolution: null,
     resolvedByActorType: null,
     resolvedByActorId: null,
     resolvedByDisplayName: null,
@@ -287,7 +285,6 @@ function toCommentDetail(row: CommentRow): CommentDetail {
       row.resolvedByActorType === null
         ? undefined
         : actorRef(row.resolvedByActorType, row.resolvedByActorId, row.resolvedByDisplayName),
-    resolution: row.resolution ?? undefined,
   });
 }
 

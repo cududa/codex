@@ -187,7 +187,7 @@ export function getRemainingWork(context: ServiceContext, params: VersionScopedP
     remainingWork.push(
       RemainingWorkSchema.parse({
         kind: "comment",
-        label: "Open comments need resolution",
+        label: "Open comments need review",
         count: openComments.length,
         targetIds: openComments.map((comment) => comment.id),
         blockingComments: openComments,

@@ -153,8 +153,7 @@ export function useAddCommentMutation(versionId: string | null, commitId: string
 export function useResolveCommentMutation(versionId: string | null, commitId: string | null, fileId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { commentId: string; resolution: string }) =>
-      resolveComment(input.commentId, input.resolution),
+    mutationFn: (input: { commentId: string }) => resolveComment(input.commentId),
     onSuccess: async () => invalidateReviewQueries(queryClient, { versionId, commitId, fileId }),
   });
 }
@@ -162,7 +161,7 @@ export function useResolveCommentMutation(versionId: string | null, commitId: st
 export function useReopenCommentMutation(versionId: string | null, commitId: string | null, fileId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { commentId: string; reason: string }) => reopenComment(input.commentId, input.reason),
+    mutationFn: (input: { commentId: string }) => reopenComment(input.commentId),
     onSuccess: async () => invalidateReviewQueries(queryClient, { versionId, commitId, fileId }),
   });
 }
@@ -181,8 +180,7 @@ export function useFinalizeDecisionMutation(versionId: string | null, commitId: 
     mutationFn: (input: {
       decisionId: string;
       status: "accepted" | "rejected" | "superseded";
-      rationale?: string;
-    }) => finalizeDecision(input.decisionId, { status: input.status, rationale: input.rationale }),
+    }) => finalizeDecision(input.decisionId, { status: input.status }),
     onSuccess: async () => invalidateReviewQueries(queryClient, { versionId, commitId, fileId }),
   });
 }

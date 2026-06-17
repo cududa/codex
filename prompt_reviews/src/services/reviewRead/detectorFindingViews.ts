@@ -63,8 +63,6 @@ export function summarizeDetectorFindings(
           targetType: target.targetType,
           targetId: target.targetId,
           count: 1,
-          highestRiskLevel: row.riskLevel,
-          highestConfidence: row.confidence,
           evidenceSummaries: [row.summary],
         }),
       );
@@ -72,8 +70,6 @@ export function summarizeDetectorFindings(
     }
 
     existing.count += 1;
-    existing.highestRiskLevel = higherRisk(existing.highestRiskLevel, row.riskLevel);
-    existing.highestConfidence = higherConfidence(existing.highestConfidence, row.confidence);
     addEvidenceSummary(existing.evidenceSummaries, row.summary);
   }
 
@@ -102,9 +98,6 @@ export function toDetectorFindingView(row: DetectorFindingRow): DetectorFinding 
     evidenceKind: row.evidenceKind,
     title: row.title,
     summary: row.summary,
-    rationale: row.rationale,
-    riskLevel: row.riskLevel,
-    confidence: row.confidence,
     evidence: parseEvidence(row),
     createdAt: row.createdAt,
   });
@@ -163,7 +156,6 @@ function parseEvidence(row: DetectorFindingRow): DetectorFindingEvidence[] {
       symbol: optionalString(item.symbol),
       marker: optionalString(item.marker),
       edgeKind: optionalString(item.edgeKind),
-      reason: typeof item.reason === "string" && item.reason.trim().length > 0 ? item.reason : row.summary,
     });
   });
 }
@@ -176,20 +168,4 @@ function addEvidenceSummary(summaries: string[], summary: string): void {
   if (!summaries.includes(summary) && summaries.length < evidenceSummaryLimit) {
     summaries.push(summary);
   }
-}
-
-function higherRisk(
-  left: DetectorFindingSummary["highestRiskLevel"],
-  right: DetectorFindingSummary["highestRiskLevel"],
-): DetectorFindingSummary["highestRiskLevel"] {
-  const order = { low: 0, medium: 1, high: 2, critical: 3 } as const;
-  return order[right] > order[left] ? right : left;
-}
-
-function higherConfidence(
-  left: DetectorFindingSummary["highestConfidence"],
-  right: DetectorFindingSummary["highestConfidence"],
-): DetectorFindingSummary["highestConfidence"] {
-  const order = { low: 0, medium: 1, high: 2 } as const;
-  return order[right] > order[left] ? right : left;
 }

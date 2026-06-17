@@ -31,8 +31,6 @@ describe("review detector finding UI", () => {
 
     expect(html).toContain("1 finding");
     expect(html).toContain("harness-prompts");
-    expect(html).toContain("high risk");
-    expect(html).toContain("medium confidence");
     expect(html).toContain("Prompt wording changed");
   });
 
@@ -70,10 +68,8 @@ describe("review detector finding UI", () => {
 
     expect(html).toContain("Diff block detector findings");
     expect(html).toContain("Prompt wording changed");
-    expect(html).toContain("The system prompt text changed near a goal instruction.");
     expect(html).toContain("path: codex-rs/core/src/prompt.rs");
     expect(html).toContain("symbol: BASE_INSTRUCTIONS");
-    expect(html).toContain("seed node matched prompt marker");
   });
 });
 
@@ -83,8 +79,6 @@ function detectorSummary(targetType: "commit" | "commit_file", targetId: string)
     targetType,
     targetId,
     count: 1,
-    highestRiskLevel: "high",
-    highestConfidence: "medium",
     evidenceSummaries: ["Prompt wording changed"],
   };
 }
@@ -111,16 +105,12 @@ function detectorFinding(): DetectorFinding {
     evidenceKind: "diff_block",
     title: "Prompt wording changed",
     summary: "Prompt wording changed",
-    rationale: "The system prompt text changed near a goal instruction.",
-    riskLevel: "high",
-    confidence: "medium",
     evidence: [
       {
         nodeKey: "symbol:BASE_INSTRUCTIONS",
         path: "codex-rs/core/src/prompt.rs",
         symbol: "BASE_INSTRUCTIONS",
         marker: "goal",
-        reason: "seed node matched prompt marker",
       },
     ],
     createdAt: 1,

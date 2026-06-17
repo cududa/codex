@@ -2,7 +2,6 @@ import { Tags } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { CommitDetail, CommitFileDetail, ConcernTagView } from "@/entities/review/types";
 import { Button } from "@/shared/ui/Button";
-import { TextArea } from "@/shared/ui/TextArea";
 
 type ClassificationPanelProps = {
   tags: ConcernTagView[];
@@ -17,9 +16,6 @@ type ClassificationPanelProps = {
 type ClassificationInput = {
   primaryTagSlug: string;
   secondaryTagSlugs?: string[];
-  rationale?: string;
-  riskLevel?: "low" | "medium" | "high" | "critical";
-  confidence?: "low" | "medium" | "high";
 };
 
 export function ClassificationPanel({
@@ -42,9 +38,6 @@ export function ClassificationPanel({
 
   const [primaryTagSlug, setPrimaryTagSlug] = useState("");
   const [secondaryTagSlugs, setSecondaryTagSlugs] = useState<Set<string>>(new Set());
-  const [rationale, setRationale] = useState("");
-  const [riskLevel, setRiskLevel] = useState<"low" | "medium" | "high" | "critical" | "">("");
-  const [confidence, setConfidence] = useState<"low" | "medium" | "high" | "">("");
 
   useEffect(() => {
     setPrimaryTagSlug(currentPrimary);
@@ -69,9 +62,6 @@ export function ClassificationPanel({
           const input: ClassificationInput = {
             primaryTagSlug,
             secondaryTagSlugs: [...secondaryTagSlugs].filter((slug) => slug !== primaryTagSlug),
-            rationale: optionalText(rationale),
-            riskLevel: riskLevel || undefined,
-            confidence: confidence || undefined,
           };
           void (file === undefined ? onClassifyCommit(input) : onClassifyFile(input));
         }}
@@ -114,50 +104,11 @@ export function ClassificationPanel({
             </label>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm"
-            disabled={target === undefined}
-            onChange={(event) => setRiskLevel(event.target.value as typeof riskLevel)}
-            value={riskLevel}
-            aria-label="Risk"
-          >
-            <option value="">Risk</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
-          </select>
-          <select
-            className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm"
-            disabled={target === undefined}
-            onChange={(event) => setConfidence(event.target.value as typeof confidence)}
-            value={confidence}
-            aria-label="Confidence"
-          >
-            <option value="">Confidence</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-        <TextArea
-          className="min-h-20"
-          disabled={target === undefined}
-          onChange={(event) => setRationale(event.target.value)}
-          placeholder="Rationale"
-          value={rationale}
-        />
         {error === undefined ? null : <div className="text-sm text-red-700">{error}</div>}
         <Button disabled={!canSubmit} type="submit">
-          Save classification
+          Save tags
         </Button>
       </form>
     </section>
   );
-}
-
-function optionalText(value: string): string | undefined {
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? undefined : trimmed;
 }

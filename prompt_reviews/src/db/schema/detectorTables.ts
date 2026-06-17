@@ -4,13 +4,11 @@ import {
   concernGraphEdgeKinds,
   concernGraphNodeKinds,
   concernGraphSourceKinds,
-  confidenceLevels,
   detectorFindingEvidenceKinds,
   detectorRunKinds,
   detectorRunStatuses,
   diffSides,
   reviewEntityScopeTypes,
-  riskLevels,
 } from "../../domain/enums.js";
 import {
   commitFiles,
@@ -143,9 +141,6 @@ export const detectorFindings = sqliteTable(
     evidenceKind: text("evidence_kind", { enum: detectorFindingEvidenceKinds }).notNull(),
     title: text("title").notNull(),
     summary: text("summary").notNull(),
-    rationale: text("rationale").notNull(),
-    riskLevel: text("risk_level", { enum: riskLevels }).notNull(),
-    confidence: text("confidence", { enum: confidenceLevels }).notNull(),
     evidenceJson: text("evidence_json").notNull().default("[]"),
     createdAt: createdAtColumn(),
   },

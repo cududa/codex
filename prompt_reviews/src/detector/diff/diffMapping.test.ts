@@ -197,7 +197,6 @@ describe("detector diff mapping", () => {
         endLine: 12,
         newStartLine: 12,
         newEndLine: 12,
-        reason: "changed_line_range_overlaps_source_range",
       },
     ]);
 

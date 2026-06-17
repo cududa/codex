@@ -149,13 +149,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "resolution": {
-          "name": "resolution",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "resolved_by_actor_type": {
           "name": "resolved_by_actor_type",
           "type": "text",
@@ -888,13 +881,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "rationale": {
-          "name": "rationale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "proposed_by_actor_type": {
           "name": "proposed_by_actor_type",
           "type": "text",
@@ -932,20 +918,6 @@
         },
         "finalized_by_display_name": {
           "name": "finalized_by_display_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "risk_level": {
-          "name": "risk_level",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "confidence": {
-          "name": "confidence",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -1731,13 +1703,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "rationale": {
-          "name": "rationale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "created_by_actor_type": {

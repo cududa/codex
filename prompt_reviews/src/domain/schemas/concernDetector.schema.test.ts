@@ -73,10 +73,7 @@ describe("concern detector schemas", () => {
       evidenceKind: "symbol",
       title: "Harness prompt surface changed",
       summary: "Responses instructions builder changed in a mapped path.",
-      rationale: "The changed file and symbol are seeded harness prompt surfaces.",
-      riskLevel: "medium",
-      confidence: "high",
-      evidence: [{ nodeKey: node.nodeKey, path: node.path, reason: "Seed path matched." }],
+      evidence: [{ nodeKey: node.nodeKey, path: node.path }],
       createdAt: 5,
     };
     const summary = {
@@ -84,8 +81,6 @@ describe("concern detector schemas", () => {
       targetType: "commit_file",
       targetId: "file_1",
       count: 1,
-      highestRiskLevel: "medium",
-      highestConfidence: "high",
       evidenceSummaries: ["Responses instructions builder changed in a mapped path."],
     };
 
@@ -146,9 +141,6 @@ describe("concern detector schemas", () => {
         evidenceKind: "path",
         title: "Finding",
         summary: "Summary",
-        rationale: "Rationale",
-        riskLevel: "medium",
-        confidence: "high",
         evidence: [],
         legacyReviewPath: "old-artifact",
       }).success,

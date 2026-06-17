@@ -217,7 +217,6 @@ function createTagging(context: RootServiceContext, params: unknown): TaggingVie
       targetType: target.targetType,
       targetId: target.targetId,
       kind: command.kind,
-      rationale: command.rationale ?? null,
       createdByActorType: command.actor.type,
       createdByActorId: command.actor.id ?? null,
       createdByDisplayName: command.actor.displayName ?? null,

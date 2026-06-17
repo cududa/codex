@@ -13,9 +13,6 @@ type DetectorFindingPanelProps = {
   variant?: "panel" | "band";
 };
 
-const riskRank = { low: 0, medium: 1, high: 2, critical: 3 } as const;
-const confidenceRank = { low: 0, medium: 1, high: 2 } as const;
-
 export function DetectorSummaryChips({ summaries }: DetectorSummaryChipsProps) {
   if (summaries.length === 0) {
     return null;
@@ -24,14 +21,6 @@ export function DetectorSummaryChips({ summaries }: DetectorSummaryChipsProps) {
   const totalCount = summaries.reduce((total, summary) => total + summary.count, 0);
   const concernSlugs = unique(summaries.map((summary) => summary.concernSlug));
   const evidenceSummary = summaries.flatMap((summary) => summary.evidenceSummaries)[0];
-  const highestRisk = maxByRank(
-    summaries.map((summary) => summary.highestRiskLevel),
-    riskRank,
-  );
-  const highestConfidence = maxByRank(
-    summaries.map((summary) => summary.highestConfidence),
-    confidenceRank,
-  );
 
   return (
     <>
@@ -39,10 +28,6 @@ export function DetectorSummaryChips({ summaries }: DetectorSummaryChipsProps) {
         {totalCount} {totalCount === 1 ? "finding" : "findings"}
       </SignalChip>
       <SignalChip>{compactConcernList(concernSlugs)}</SignalChip>
-      <SignalChip tone={highestRisk === "critical" || highestRisk === "high" ? "warn" : "neutral"}>
-        {highestRisk} risk
-      </SignalChip>
-      <SignalChip>{highestConfidence} confidence</SignalChip>
       {evidenceSummary === undefined ? null : <SignalChip>{evidenceSummary}</SignalChip>}
     </>
   );
@@ -73,15 +58,10 @@ export function DetectorFindingPanel({ findings, title, variant = "panel" }: Det
           <li className="grid gap-1 border-t border-amber-200 pt-2 first:border-t-0 first:pt-0" key={finding.findingKey}>
             <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-amber-950">
               <SignalChip tone="detector">{finding.concernSlug}</SignalChip>
-              <SignalChip tone={finding.riskLevel === "critical" || finding.riskLevel === "high" ? "warn" : "neutral"}>
-                {finding.riskLevel} risk
-              </SignalChip>
-              <SignalChip>{finding.confidence} confidence</SignalChip>
               <SignalChip>{finding.evidenceKind.replaceAll("_", " ")}</SignalChip>
               {lineLabel(finding) === undefined ? null : <SignalChip>{lineLabel(finding)}</SignalChip>}
             </div>
             <p className="text-xs font-medium text-slate-950">{finding.summary}</p>
-            <p className="text-xs leading-5 text-slate-700">{finding.rationale}</p>
             <FindingMetadata finding={finding} />
             <FindingEvidence finding={finding} />
           </li>
@@ -124,9 +104,8 @@ function FindingEvidence({ finding }: { finding: DetectorFinding }) {
   return (
     <ul className="grid gap-1 text-[11px] leading-4 text-slate-600">
       {evidence.map((item) => (
-        <li key={`${item.nodeKey ?? item.path ?? item.symbol ?? item.marker ?? "evidence"}:${item.reason}`}>
-          {item.reason}
-          {item.symbol === undefined ? null : ` · ${item.symbol}`}
+        <li key={`${item.nodeKey ?? item.path ?? item.symbol ?? item.marker ?? "evidence"}`}>
+          {item.symbol === undefined ? null : item.symbol}
           {item.marker === undefined ? null : ` · ${item.marker}`}
           {item.path === undefined ? null : ` · ${item.path}`}
         </li>
@@ -174,10 +153,6 @@ function lineLabel(finding: DetectorFinding): string | undefined {
   return finding.startLine === finding.endLine
     ? `${prefix}${finding.startLine}`
     : `${prefix}${finding.startLine}-${finding.endLine}`;
-}
-
-function maxByRank<T extends string>(values: readonly T[], rank: Record<T, number>): T {
-  return values.reduce((current, value) => (rank[value] > rank[current] ? value : current), values[0]);
 }
 
 function unique<T>(values: readonly T[]): T[] {

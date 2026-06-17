@@ -17,7 +17,6 @@ import {
   createPlan,
   createPlanItem,
   createVersion,
-  findClassificationMetadataByTarget,
   findConcernTagBySlug,
   findDetectorRunById,
   listCommentsByScopeStatus,
@@ -29,7 +28,6 @@ import {
   listPlansByTarget,
   listTaggingsByTarget,
   seedConcernTagsRepository,
-  upsertClassificationMetadata,
 } from "../../repositories/index.js";
 import { runDetector } from "./runDetector.js";
 import type { DetectorCommitInput } from "./types.js";
@@ -86,7 +84,6 @@ describe("detector runner", () => {
       side: "new",
       startLine: 20,
       endLine: 20,
-      confidence: "high",
     });
     expect(result.findings[0]?.graphNodeId).toEqual(result.graphNodes.find((row) => row.nodeKey === "goal-seed")?.id);
     expect(findDetectorRunById(database.db, "drun_persist")?.summaryJson).toBe(
@@ -141,7 +138,6 @@ describe("detector runner", () => {
       commitFileId: newTarget.file.id,
       diffBlockId: newTarget.block.id,
       graphNodeKey: "new-helper",
-      confidence: "high",
     });
     expect(listDetectorFindingsByRun(database.db, "drun_rerun").map((row) => row.graphNodeKey)).toEqual([
       "new-helper",
@@ -166,20 +162,8 @@ describe("detector runner", () => {
       targetType: "commit_file",
       targetId: file.id,
       kind: "primary",
-      rationale: "Human classification should survive detector refresh.",
       createdByActorType: "human",
       createdAt: 101,
-    });
-    upsertClassificationMetadata(database.db, {
-      id: "clf_detector_guard",
-      targetType: "commit_file",
-      targetId: file.id,
-      summary: "Existing classification.",
-      riskLevel: "medium",
-      confidence: "high",
-      updatedByActorType: "human",
-      createdAt: 102,
-      updatedAt: 103,
     });
     addComment(database.db, {
       id: "com_detector_guard",
@@ -195,7 +179,6 @@ describe("detector runner", () => {
       scope: "commit_file",
       commitFileId: file.id,
       outcome: "accept_with_watch",
-      rationale: "Existing decision.",
       proposedByActorType: "human",
       createdAt: 105,
     });
@@ -286,13 +269,10 @@ describe("detector runner", () => {
       commitFileId: laterFile.id,
       diffBlockId: laterBlock.id,
       graphNodeKey: "expanded-helper",
-      confidence: "medium",
-      riskLevel: "medium",
     });
     expect(JSON.parse(result.findings[0]?.evidenceJson ?? "[]")).toMatchObject([
       {
         nodeKey: "expanded-helper",
-        reason: "medium confidence because changed lines overlap a expanded goal-continuation graph node.",
       },
     ]);
   });
@@ -459,10 +439,6 @@ function reviewArtifacts(commitFileId: string, planId: string): unknown {
   return {
     comments: listCommentsByScopeStatus(database.db, { scope: "commit_file", targetId: commitFileId }),
     taggings: listTaggingsByTarget(database.db, { targetType: "commit_file", targetId: commitFileId }),
-    classification: findClassificationMetadataByTarget(database.db, {
-      targetType: "commit_file",
-      targetId: commitFileId,
-    }),
     decisions: listDecisionsByTarget(database.db, { scope: "commit_file", targetId: commitFileId }),
     plans: listPlansByTarget(database.db, { scope: "commit_file", targetId: commitFileId }),
     planItems: listPlanItems(database.db, planId),

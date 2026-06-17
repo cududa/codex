@@ -61,7 +61,6 @@ describe("review read service", () => {
       commitId: commit.id,
       status: "accepted",
       outcome: "accept_with_watch",
-      rationale: "Commit is acceptable with monitoring.",
       proposedByActorType: "agent",
       finalizedByActorType: "human",
       finalizedAt: 202,
@@ -126,7 +125,6 @@ describe("review read service", () => {
       commitFileId: file.id,
       status: "accepted",
       outcome: "accept",
-      rationale: "File is accepted.",
       proposedByActorType: "human",
       finalizedByActorType: "human",
       finalizedAt: 303,
@@ -204,10 +202,7 @@ describe("review read service", () => {
         evidenceKind: "symbol",
         title: "Prompt surface changed",
         summary: "File overlaps a mapped prompt builder.",
-        rationale: "The detector matched a mapped prompt concern surface.",
-        riskLevel: "medium",
-        confidence: "high",
-        evidenceJson: JSON.stringify([{ nodeKey: "harness-prompts:file:src/detector_views.ts", reason: "Seed path matched." }]),
+        evidenceJson: JSON.stringify([{ nodeKey: "harness-prompts:file:src/detector_views.ts" }]),
       },
       {
         id: "dfnd_detector_block",
@@ -228,10 +223,7 @@ describe("review read service", () => {
         evidenceKind: "marker",
         title: "Hidden context marker changed",
         summary: "Diff block overlaps a mapped hidden context marker.",
-        rationale: "The detector matched a mapped hidden-context concern surface.",
-        riskLevel: "high",
-        confidence: "medium",
-        evidenceJson: JSON.stringify([{ marker: "<hidden-context>", reason: "Marker matched." }]),
+        evidenceJson: JSON.stringify([{ marker: "<hidden-context>" }]),
       },
     ]);
 
@@ -247,7 +239,6 @@ describe("review read service", () => {
           targetType: "commit",
           targetId: commit.id,
           count: 1,
-          highestConfidence: "high",
           evidenceSummaries: ["File overlaps a mapped prompt builder."],
         },
         {
@@ -255,7 +246,6 @@ describe("review read service", () => {
           targetType: "commit",
           targetId: commit.id,
           count: 1,
-          highestRiskLevel: "high",
           evidenceSummaries: ["Diff block overlaps a mapped hidden context marker."],
         },
       ],
@@ -279,7 +269,7 @@ describe("review read service", () => {
           id: "dfnd_detector_file",
           concernSlug: "harness-prompts",
           target: { type: "commit_file", commitFileId: file.id },
-          evidence: [{ nodeKey: "harness-prompts:file:src/detector_views.ts", reason: "Seed path matched." }],
+          evidence: [{ nodeKey: "harness-prompts:file:src/detector_views.ts" }],
         },
       ],
       diffBlocks: [
@@ -290,7 +280,7 @@ describe("review read service", () => {
               id: "dfnd_detector_block",
               concernSlug: "hidden-context",
               target: { type: "diff_block", diffBlockId: block.id },
-              evidence: [{ marker: "<hidden-context>", reason: "Marker matched." }],
+              evidence: [{ marker: "<hidden-context>" }],
             },
           ],
         },
@@ -479,7 +469,6 @@ describe("review read service", () => {
       commitId: decidedCommit.id,
       status: "accepted",
       outcome: "accept",
-      rationale: "Commit accepted.",
       proposedByActorType: "human",
       finalizedByActorType: "human",
       finalizedAt: 501,
@@ -490,7 +479,6 @@ describe("review read service", () => {
       commitFileId: decidedFile.id,
       status: "accepted",
       outcome: "accept",
-      rationale: "File accepted.",
       proposedByActorType: "human",
       finalizedByActorType: "human",
       finalizedAt: 502,
@@ -516,7 +504,6 @@ describe("review read service", () => {
       scope: { type: "commit_file", commitFileId: file.id },
       tagSlug: "goal.initial-steering",
       kind: "primary",
-      rationale: "Initial primary.",
       actor: agent,
     });
     const replacement = service.createTagging({
@@ -540,7 +527,7 @@ describe("review read service", () => {
       }),
     ).toThrow(PromptReviewServiceError);
 
-    const deleted = service.deleteTagging({ taggingId: replacement.id, actor: human, reason: "Reclassify later." });
+    const deleted = service.deleteTagging({ taggingId: replacement.id, actor: human });
 
     expect(deleted.id).toBe(replacement.id);
     expect(listTaggingsByTarget(database.db, { targetType: "commit_file", targetId: file.id })).toEqual([]);
@@ -554,7 +541,6 @@ describe("review read service", () => {
       service.deleteTagging({
         taggingId: "tgg_missing",
         actor: human,
-        reason: "No longer applies.",
       }),
     ).toThrow(PromptReviewServiceError);
 
@@ -562,7 +548,6 @@ describe("review read service", () => {
       service.deleteTagging({
         taggingId: "tgg_missing",
         actor: human,
-        reason: "No longer applies.",
       });
     } catch (error) {
       expect(error).toBeInstanceOf(PromptReviewServiceError);

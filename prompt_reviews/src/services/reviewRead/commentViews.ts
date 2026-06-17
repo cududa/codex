@@ -69,7 +69,6 @@ export function toCommentDetail(context: ServiceContext, row: CommentRow): Comme
       row.resolvedByActorType === null
         ? undefined
         : actorRef(row.resolvedByActorType, row.resolvedByActorId, row.resolvedByDisplayName),
-    resolution: row.resolution ?? undefined,
   });
 }
 

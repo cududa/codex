@@ -8,8 +8,6 @@ import {
   detectorRunKinds,
   detectorRunStatuses,
   diffSides,
-  riskLevels,
-  confidenceLevels,
   reviewEntityScopeTypes,
 } from "../../enums.js";
 import {
@@ -30,8 +28,6 @@ export const DetectorRunKindSchema = z.enum(detectorRunKinds);
 export const DetectorRunStatusSchema = z.enum(detectorRunStatuses);
 export const DetectorFindingEvidenceKindSchema = z.enum(detectorFindingEvidenceKinds);
 export const DetectorFindingTargetTypeSchema = z.enum(reviewEntityScopeTypes);
-export const DetectorRiskLevelSchema = z.enum(riskLevels);
-export const DetectorConfidenceSchema = z.enum(confidenceLevels);
 export const DetectorFindingSideSchema = z.enum(diffSides);
 const ExactNonEmptyTextSchema = z.string().min(1);
 
@@ -151,7 +147,6 @@ export const DetectorFindingEvidenceSchema = z
     symbol: OptionalTextSchema,
     marker: OptionalTextSchema,
     edgeKind: ConcernGraphEdgeKindSchema.optional(),
-    reason: NonEmptyTextSchema,
   })
   .strict();
 
@@ -177,9 +172,6 @@ export const DetectorFindingSchema = z
     evidenceKind: DetectorFindingEvidenceKindSchema,
     title: NonEmptyTextSchema,
     summary: NonEmptyTextSchema,
-    rationale: NonEmptyTextSchema,
-    riskLevel: DetectorRiskLevelSchema,
-    confidence: DetectorConfidenceSchema,
     evidence: z.array(DetectorFindingEvidenceSchema),
     createdAt: UnixSecondsSchema.optional(),
   })
@@ -195,8 +187,6 @@ export const DetectorFindingSummarySchema = z
     targetType: DetectorFindingTargetTypeSchema,
     targetId: IdSchema,
     count: CountSchema,
-    highestRiskLevel: DetectorRiskLevelSchema,
-    highestConfidence: DetectorConfidenceSchema,
     evidenceSummaries: z.array(NonEmptyTextSchema),
   })
   .strict();

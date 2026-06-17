@@ -1,9 +1,4 @@
-import type {
-  ConfidenceLevel,
-  DetectorFindingEvidenceKind,
-  ReviewEntityScopeType,
-  RiskLevel,
-} from "../../domain/enums.js";
+import type { DetectorFindingEvidenceKind, ReviewEntityScopeType } from "../../domain/enums.js";
 import type { DetectorFindingInsert } from "../../repositories/detectorRepository.js";
 import { mapSourceRangeToDiff, type CommitFileDiffMappingInput, type DiffLineMapping } from "../diff/diffMapping.js";
 import type { ConcernGraphBuildNode } from "../graph/index.js";
@@ -18,8 +13,6 @@ type MatchedFile = {
   commit: DetectorCommitInput;
   file: DetectorCommitFileInput;
 };
-
-type FindingConfidence = Extract<ConfidenceLevel, "low" | "medium" | "high">;
 
 export function buildDetectorFindings(input: BuildDetectorFindingsInput): DetectorFindingInsert[] {
   const findings = sortedGraphNodes(input.graph.nodes).flatMap((node) => findingsForNode(input.runId, node, input.commits));
@@ -39,14 +32,14 @@ function findingsForNode(
   const range = lineRangeForNode(node);
   return matches.flatMap(({ commit, file }) => {
     if (range === null) {
-      return [findingFromMapping(runId, node, commit, file, pathOnlyMapping(file), "low")];
+      return [findingFromMapping(runId, node, commit, file, pathOnlyMapping(file))];
     }
 
     return mapSourceRangeToDiff(diffMappingFile(file), {
       path: node.path ?? "",
       startLine: range.startLine,
       endLine: range.endLine,
-    }).map((mapping) => findingFromMapping(runId, node, commit, file, mapping, confidenceForMapping(node, mapping)));
+    }).map((mapping) => findingFromMapping(runId, node, commit, file, mapping));
   });
 }
 
@@ -56,11 +49,9 @@ function findingFromMapping(
   commit: DetectorCommitInput,
   file: DetectorCommitFileInput,
   mapping: DiffLineMapping,
-  confidence: FindingConfidence,
 ): DetectorFindingInsert {
   const target = targetForMapping(mapping);
   const path = mapping.path ?? node.path ?? file.newPath ?? file.oldPath ?? null;
-  const rationale = rationaleFor(node, mapping, confidence);
   return {
     runId,
     versionId: commit.versionId ?? null,
@@ -81,10 +72,7 @@ function findingFromMapping(
     evidenceKind: evidenceKindFor(node, mapping),
     title: titleFor(node),
     summary: summaryFor(node, mapping),
-    rationale,
-    riskLevel: riskLevelForConfidence(confidence),
-    confidence,
-    evidenceJson: JSON.stringify(evidenceFor(node, mapping, rationale)),
+    evidenceJson: JSON.stringify(evidenceFor(node, mapping)),
   };
 }
 
@@ -151,13 +139,6 @@ function rangeFromUnknown(value: unknown): SourceLineRange | null {
   return { startLine, endLine };
 }
 
-function confidenceForMapping(node: ConcernGraphBuildNode, mapping: DiffLineMapping): FindingConfidence {
-  if (mapping.mappingKind === "path_only") {
-    return "low";
-  }
-  return node.isSeed ? "high" : "medium";
-}
-
 function targetForMapping(mapping: DiffLineMapping): { targetType: ReviewEntityScopeType; targetId: string } {
   if (mapping.diffBlockId !== null) {
     return { targetType: "diff_block", targetId: mapping.diffBlockId };
@@ -184,16 +165,6 @@ function evidenceKindFor(node: ConcernGraphBuildNode, mapping: DiffLineMapping):
   return "graph_node";
 }
 
-function riskLevelForConfidence(confidence: FindingConfidence): RiskLevel {
-  if (confidence === "high") {
-    return "high";
-  }
-  if (confidence === "medium") {
-    return "medium";
-  }
-  return "low";
-}
-
 function titleFor(node: ConcernGraphBuildNode): string {
   return `${node.concernSlug} source graph node touched`;
 }
@@ -206,21 +177,13 @@ function summaryFor(node: ConcernGraphBuildNode, mapping: DiffLineMapping): stri
   return `Changed file path matches ${descriptor}.`;
 }
 
-function rationaleFor(node: ConcernGraphBuildNode, mapping: DiffLineMapping, confidence: FindingConfidence): string {
-  if (mapping.mappingKind === "changed_lines") {
-    return `${confidence} confidence because changed lines overlap a ${node.isSeed ? "seeded" : "expanded"} ${node.concernSlug} graph node.`;
-  }
-  return "low confidence because the changed file matches the graph node path without line-level overlap.";
-}
-
-function evidenceFor(node: ConcernGraphBuildNode, mapping: DiffLineMapping, rationale: string): unknown[] {
+function evidenceFor(node: ConcernGraphBuildNode, mapping: DiffLineMapping): unknown[] {
   return [
     withoutUndefined({
       nodeKey: node.nodeKey,
       path: mapping.path ?? node.path,
       symbol: node.symbol,
       marker: node.marker,
-      reason: rationale,
       mappingKey: mapping.mappingKey,
       mappingKind: mapping.mappingKind,
       mappingReason: mapping.reason,

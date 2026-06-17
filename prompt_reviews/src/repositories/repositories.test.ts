@@ -18,7 +18,6 @@ import {
   deletePlanDecisionLinks,
   deletePlanDiffBlockLinks,
   findActiveDecisionByTarget,
-  findClassificationMetadataByTarget,
   findDecisionById,
   findConcernTagById,
   findConcernTagBySlug,
@@ -50,7 +49,6 @@ import {
   listVersionsMissingActiveDecision,
   removeTagging,
   seedConcernTagsRepository,
-  upsertClassificationMetadata,
   updateCommentLifecycleFields,
   updateCommitFileReviewFields,
   updateCommitFileStatusOverride,
@@ -280,7 +278,6 @@ describe("tagging and comment repositories", () => {
       targetType: "commit_file",
       targetId: file.id,
       kind: "primary",
-      rationale: "Primary concern.",
       createdByActorType: "human",
     });
     const updated = addTagging(database.db, {
@@ -289,29 +286,13 @@ describe("tagging and comment repositories", () => {
       targetType: "commit_file",
       targetId: file.id,
       kind: "secondary",
-      rationale: "Downgraded.",
       createdByActorType: "agent",
     });
 
     expect(primary.id).toBe("tgg_primary");
-    expect(updated).toMatchObject({ id: "tgg_primary", kind: "secondary", rationale: "Downgraded." });
+    expect(updated).toMatchObject({ id: "tgg_primary", kind: "secondary" });
     expect(listTaggingsByTarget(database.db, { targetType: "commit_file", targetId: file.id })).toEqual([updated]);
     expect(listPrimaryTaggingsByTarget(database.db, { targetType: "commit_file", targetId: file.id })).toEqual([]);
-    const metadata = upsertClassificationMetadata(database.db, {
-      targetType: "commit_file",
-      targetId: file.id,
-      summary: "Repository metadata round trip.",
-      riskLevel: "medium",
-      confidence: "high",
-      updatedByActorType: "agent",
-      updatedByActorId: "agent-1",
-      createdAt: 201,
-      updatedAt: 202,
-    });
-
-    expect(findClassificationMetadataByTarget(database.db, { targetType: "commit_file", targetId: file.id })).toEqual(
-      metadata,
-    );
     expect(removeTagging(database.db, updated)).toEqual([updated]);
   });
 
@@ -344,7 +325,6 @@ describe("tagging and comment repositories", () => {
 
     const resolved = updateCommentLifecycleFields(database.db, open.id, {
       status: "resolved",
-      resolution: "Handled.",
       resolvedByActorType: "human",
       resolvedAt: 500,
       updatedAt: 501,
@@ -353,7 +333,6 @@ describe("tagging and comment repositories", () => {
     expect(resolved).toMatchObject({
       id: open.id,
       status: "resolved",
-      resolution: "Handled.",
       resolvedAt: 500,
       updatedAt: 501,
     });
@@ -375,21 +354,18 @@ describe("decision and plan repositories", () => {
       scope: "commit_file",
       commitFileId: fileOne.id,
       outcome: "needs_tests",
-      rationale: "Needs targeted tests.",
       proposedByActorType: "agent",
     });
     const accepted = updateDecision(database.db, decision.id, {
       status: "accepted",
       finalizedByActorType: "human",
-      riskLevel: "medium",
-      confidence: "high",
       finalizedAt: 600,
       updatedAt: 601,
     });
 
     expect(findDecisionById(database.db, decision.id)).toEqual(accepted);
     expect(findActiveDecisionByTarget(database.db, { scope: "commit_file", targetId: fileOne.id })).toBeUndefined();
-    expect(accepted).toMatchObject({ id: decision.id, status: "accepted", riskLevel: "medium" });
+    expect(accepted).toMatchObject({ id: decision.id, status: "accepted" });
     expect(listCommitFilesMissingActiveDecision(database.db, { commitId: commitOne.id }).map((row) => row.id)).toEqual([
       fileOne.id,
       fileTwo.id,
@@ -400,7 +376,6 @@ describe("decision and plan repositories", () => {
       scope: "commit",
       commitId: commitOne.id,
       outcome: "accept",
-      rationale: "Commit is covered.",
       proposedByActorType: "human",
     });
     createDecision(database.db, {
@@ -408,7 +383,6 @@ describe("decision and plan repositories", () => {
       scope: "version",
       versionId: version.id,
       outcome: "accept",
-      rationale: "Version is covered.",
       proposedByActorType: "human",
     });
 
@@ -463,7 +437,6 @@ describe("decision and plan repositories", () => {
       scope: "commit_file",
       commitFileId: file.id,
       outcome: "accept",
-      rationale: "Plan link decision.",
       proposedByActorType: "human",
     });
     addPlanCommentLink(database.db, {

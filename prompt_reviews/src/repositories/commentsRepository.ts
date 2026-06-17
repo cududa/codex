@@ -75,7 +75,6 @@ export function listOpenCommentsByVersion(db: RepositoryDatabase, versionId: str
 
 export type CommentLifecycleUpdate = {
   status?: CommentStatus;
-  resolution?: string | null;
   resolvedByActorType?: CommentRow["resolvedByActorType"];
   resolvedByActorId?: string | null;
   resolvedByDisplayName?: string | null;

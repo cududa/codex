@@ -102,8 +102,8 @@ describe("review queue service", () => {
       {
         type: "plan",
         label: "Blocked item",
-        targetId: "pli_blocked",
         reason: "Waiting on context.",
+        targetId: "pli_blocked",
       },
     ]);
   });
@@ -147,7 +147,7 @@ function seedQueue(): {
     id: "com_open",
     scope: "commit_file",
     commitFileId: commented.id,
-    body: "Needs resolution.",
+    body: "Needs review.",
     status: "open",
     authorActorType: "agent",
   });
@@ -211,7 +211,6 @@ function acceptFile(fileId: string): void {
     commitFileId: fileId,
     status: "accepted",
     outcome: "accept",
-    rationale: "Accepted.",
     proposedByActorType: "human",
     finalizedByActorType: "human",
     finalizedAt: 900,

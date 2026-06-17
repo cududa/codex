@@ -2,7 +2,6 @@ import { CheckCircle2, Gavel, UserCheck } from "lucide-react";
 import { useState } from "react";
 import type { CommitDetail, CommitFileDetail, DecisionScope } from "@/entities/review/types";
 import { Button } from "@/shared/ui/Button";
-import { TextArea } from "@/shared/ui/TextArea";
 
 type DecisionPanelProps = {
   commit: CommitDetail | undefined;
@@ -20,14 +19,10 @@ type DecisionPanelProps = {
       | "needs_tests"
       | "needs_policy_decision"
       | "blocked_on_context";
-    rationale: string;
-    riskLevel?: "low" | "medium" | "high" | "critical";
-    confidence?: "low" | "medium" | "high";
   }) => Promise<unknown>;
   onFinalize: (input: {
     decisionId: string;
     status: "accepted" | "rejected" | "superseded";
-    rationale?: string;
   }) => Promise<unknown>;
 };
 
@@ -44,8 +39,6 @@ export function DecisionPanel({
   const proposed = decisions.filter((decision) => decision.status === "proposed");
   const finalized = decisions.filter((decision) => decision.status !== "proposed");
   const [outcome, setOutcome] = useState("accept");
-  const [rationale, setRationale] = useState("");
-  const [finalRationale, setFinalRationale] = useState("Finalized by human reviewer.");
 
   return (
     <section className="grid gap-3 border-b border-slate-200 p-4">
@@ -57,14 +50,13 @@ export function DecisionPanel({
         className="grid gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          if (scope === null || rationale.trim().length === 0) {
+          if (scope === null) {
             return;
           }
           void onPropose({
             scope,
             outcome: outcome as Parameters<DecisionPanelProps["onPropose"]>[0]["outcome"],
-            rationale: rationale.trim(),
-          }).then(() => setRationale(""));
+          });
         }}
       >
         <select
@@ -82,32 +74,15 @@ export function DecisionPanel({
           <option value="needs_policy_decision">Needs policy decision</option>
           <option value="blocked_on_context">Blocked on context</option>
         </select>
-        <TextArea
-          className="min-h-20"
-          disabled={scope === null}
-          onChange={(event) => setRationale(event.target.value)}
-          placeholder="Decision rationale"
-          value={rationale}
-        />
-        <Button disabled={scope === null || rationale.trim().length === 0 || isSubmitting} type="submit">
+        <Button disabled={scope === null || isSubmitting} type="submit">
           Propose decision
         </Button>
       </form>
-      <label className="grid gap-1 text-xs font-medium text-slate-600">
-        Finalization rationale
-        <input
-          className="h-9 rounded-md border border-slate-300 px-2 text-sm text-slate-950"
-          onChange={(event) => setFinalRationale(event.target.value)}
-          value={finalRationale}
-        />
-      </label>
       {error === undefined ? null : <div className="text-sm text-red-700">{error}</div>}
       <DecisionList
         decisions={proposed}
         emptyLabel="No proposed decisions."
-        onFinalize={(decisionId, status) =>
-          onFinalize({ decisionId, status, rationale: finalRationale.trim() || undefined })
-        }
+        onFinalize={(decisionId, status) => onFinalize({ decisionId, status })}
       />
       <div>
         <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -144,7 +119,6 @@ function DecisionList({
               {actorLabel(decision.proposedBy)}
             </span>
           </div>
-          <p className="mb-2 whitespace-pre-wrap text-sm text-slate-950">{decision.rationale}</p>
           {decision.finalizedBy === undefined ? null : (
             <div className="mb-2 text-xs font-medium text-slate-600">
               Human finalizer: {actorLabel(decision.finalizedBy)}

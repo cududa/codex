@@ -1,12 +1,10 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { ReviewEntityScopeType } from "../domain/enums.js";
-import { classificationMetadata, concernTags, taggings } from "../db/schema.js";
+import { concernTags, taggings } from "../db/schema.js";
 import type { RepositoryDatabase } from "./database.js";
 
 export type TaggingRow = typeof taggings.$inferSelect;
 export type TaggingInsert = typeof taggings.$inferInsert;
-export type ClassificationMetadataRow = typeof classificationMetadata.$inferSelect;
-export type ClassificationMetadataInsert = typeof classificationMetadata.$inferInsert;
 
 export type TaggingTarget = {
   targetType: ReviewEntityScopeType;
@@ -21,7 +19,6 @@ export function addTagging(db: RepositoryDatabase, values: TaggingInsert): Taggi
       target: [taggings.tagId, taggings.targetType, taggings.targetId],
       set: {
         kind: values.kind,
-        rationale: values.rationale ?? null,
         createdByActorType: values.createdByActorType,
         createdByActorId: values.createdByActorId ?? null,
         createdByDisplayName: values.createdByDisplayName ?? null,
@@ -127,38 +124,4 @@ export function listPrimaryTaggingsByTarget(db: RepositoryDatabase, target: Tagg
       ),
     )
     .all();
-}
-
-export function upsertClassificationMetadata(
-  db: RepositoryDatabase,
-  values: ClassificationMetadataInsert,
-): ClassificationMetadataRow {
-  return db
-    .insert(classificationMetadata)
-    .values(values)
-    .onConflictDoUpdate({
-      target: [classificationMetadata.targetType, classificationMetadata.targetId],
-      set: {
-        summary: values.summary ?? null,
-        riskLevel: values.riskLevel ?? null,
-        confidence: values.confidence ?? null,
-        updatedByActorType: values.updatedByActorType,
-        updatedByActorId: values.updatedByActorId ?? null,
-        updatedByDisplayName: values.updatedByDisplayName ?? null,
-        updatedAt: values.updatedAt ?? values.createdAt,
-      },
-    })
-    .returning()
-    .get();
-}
-
-export function findClassificationMetadataByTarget(
-  db: RepositoryDatabase,
-  target: TaggingTarget,
-): ClassificationMetadataRow | undefined {
-  return db
-    .select()
-    .from(classificationMetadata)
-    .where(and(eq(classificationMetadata.targetType, target.targetType), eq(classificationMetadata.targetId, target.targetId)))
-    .get();
 }

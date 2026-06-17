@@ -72,7 +72,6 @@ describe("repository query helpers", () => {
       scope: "commit_file",
       commitFileId: file.id,
       outcome: "accept",
-      rationale: "Looks good.",
       proposedByActorType: "human",
     });
     const acceptedDecision = updateDecision(database.db, decision.id, {

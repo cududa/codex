@@ -25,8 +25,8 @@ type CommentsPanelProps = {
   actionError?: string;
   onAddComment: (input: { scope: ReviewEntityScope; anchor: SourceAnchor; body: string }) => Promise<unknown>;
   onLocateComment: (comment: CommentDetail) => void;
-  onResolve: (commentId: string, resolution: string) => Promise<unknown>;
-  onReopen: (commentId: string, reason: string) => Promise<unknown>;
+  onResolve: (commentId: string) => Promise<unknown>;
+  onReopen: (commentId: string) => Promise<unknown>;
 };
 
 type CommentDisplay = CommentSummary & Partial<Pick<CommentDetail, "anchor" | "location" | "updatedAt">>;
@@ -46,7 +46,6 @@ export function CommentsPanel({
   onReopen,
 }: CommentsPanelProps) {
   const [body, setBody] = useState("");
-  const [resolution, setResolution] = useState("Resolved by human review.");
   const [filter, setFilter] = useState<CommentFilter>("selection");
   const comments: CommentDisplay[] = useMemo(
     () => uniqueComments([...(file?.review.comments ?? []), ...(commit?.comments ?? []), ...versionComments]),
@@ -110,14 +109,6 @@ export function CommentsPanel({
           Add comment
         </Button>
       </form>
-      <label className="grid gap-1 text-xs font-medium text-slate-600">
-        Resolution note
-        <input
-          className="h-9 rounded-md border border-slate-300 px-2 text-sm text-slate-950"
-          onChange={(event) => setResolution(event.target.value)}
-          value={resolution}
-        />
-      </label>
       {actionError === undefined ? null : <div className="text-sm text-red-700">{actionError}</div>}
       <div className="grid gap-2">
         {visibleComments.length === 0 ? (
@@ -154,7 +145,7 @@ export function CommentsPanel({
                 {comment.status === "open" ? (
                   <Button
                     className="h-8"
-                    onClick={() => onResolve(comment.id, resolution.trim() || "Resolved by human review.")}
+                    onClick={() => onResolve(comment.id)}
                     type="button"
                     variant="secondary"
                   >
@@ -164,7 +155,7 @@ export function CommentsPanel({
                 ) : (
                   <Button
                     className="h-8"
-                    onClick={() => onReopen(comment.id, "Reopened by human reviewer.")}
+                    onClick={() => onReopen(comment.id)}
                     type="button"
                     variant="secondary"
                   >

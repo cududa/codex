@@ -198,13 +198,11 @@ describe("prompt reviews API with a temp database", () => {
 
     const resolved = await injectJson("PATCH", `/api/comments/${comment.id}/resolve`, {
       status: "resolved",
-      resolution: "Reviewed the changed wording.",
       actor: human,
     });
     expect(resolved).toMatchObject({ id: comment.id, status: "resolved", resolvedBy: human });
 
     const reopened = await injectJson("PATCH", `/api/comments/${comment.id}/reopen`, {
-      reason: "Need one more pass.",
       actor: human,
     });
     expect(reopened).toMatchObject({ id: comment.id, status: "open" });
@@ -212,10 +210,7 @@ describe("prompt reviews API with a temp database", () => {
     const decision = await injectJson("POST", "/api/decisions", {
       scope: { type: "commit_file", commitFileId: seeded.firstFileId },
       outcome: "accept_with_watch",
-      rationale: "Intentional but worth tracking in downstream prompts.",
       proposedBy: agent,
-      riskLevel: "medium",
-      confidence: "high",
     }, 201);
     expect(decision).toMatchObject({
       scope: { type: "commit_file", commitFileId: seeded.firstFileId },
@@ -226,13 +221,11 @@ describe("prompt reviews API with a temp database", () => {
     await expectStatus("POST", `/api/decisions/${decision.id}/finalize`, 403, {
       status: "accepted",
       finalizer: agent,
-      rationale: "Agents cannot finalize decisions.",
     });
 
     const finalized = await injectJson("POST", `/api/decisions/${decision.id}/finalize`, {
       status: "accepted",
       finalizer: human,
-      rationale: "Human accepted with watch.",
     });
     expect(finalized).toMatchObject({ id: decision.id, status: "accepted", finalizedBy: human });
 
@@ -439,10 +432,6 @@ async function classifyCommit(commitId: string): Promise<void> {
   await injectJson("PATCH", `/api/commits/${commitId}/classification`, {
     primaryTagSlug: tagSlug,
     secondaryTagSlugs: [],
-    rationale: "Prompt contract changed.",
-    summary: "Commit affects prompt review behavior.",
-    riskLevel: "medium",
-    confidence: "high",
   });
 }
 
@@ -450,10 +439,6 @@ async function classifyFile(commitFileId: string): Promise<void> {
   await injectJson("PATCH", `/api/commit-files/${commitFileId}/classification`, {
     primaryTagSlug: tagSlug,
     secondaryTagSlugs: [],
-    rationale: "File contains changed prompt wording.",
-    summary: "File needs human prompt review.",
-    riskLevel: "medium",
-    confidence: "high",
   });
 }
 

@@ -7,7 +7,7 @@ const goalsPath = "codex-rs/core/src/goals.rs";
 const toolPath = "codex-rs/core/src/tools/registry.rs";
 
 describe("detector finding builder", () => {
-  it("emits a high-confidence diff block finding when changed lines overlap a seeded node", () => {
+  it("emits a diff block finding when changed lines overlap a seeded node", () => {
     const findings = buildDetectorFindings({
       runId: "drun_overlap_seed",
       graph: graph([node("seed-goal", { isSeed: true, path: goalsPath, symbol: "GoalRuntimeState", startLine: 10 })]),
@@ -31,12 +31,10 @@ describe("detector finding builder", () => {
       endLine: 10,
       symbol: "GoalRuntimeState",
       evidenceKind: "diff_block",
-      riskLevel: "high",
-      confidence: "high",
     });
   });
 
-  it("emits medium confidence when changed lines overlap an expanded node", () => {
+  it("emits a finding when changed lines overlap an expanded node", () => {
     const findings = buildDetectorFindings({
       runId: "drun_overlap_expanded",
       graph: graph([node("expanded-helper", { isSeed: false, path: goalsPath, symbol: "prepare_goal_summary", startLine: 30 })]),
@@ -51,12 +49,10 @@ describe("detector finding builder", () => {
       side: "new",
       startLine: 30,
       endLine: 30,
-      riskLevel: "medium",
-      confidence: "medium",
     });
   });
 
-  it("emits a low-confidence commit-file finding for path-only fallback", () => {
+  it("emits a commit-file finding for path-only fallback", () => {
     const findings = buildDetectorFindings({
       runId: "drun_path_only",
       graph: graph([node("path-seed", { isSeed: true, path: toolPath })]),
@@ -74,8 +70,6 @@ describe("detector finding builder", () => {
       startLine: null,
       endLine: null,
       evidenceKind: "path",
-      riskLevel: "low",
-      confidence: "low",
     });
   });
 

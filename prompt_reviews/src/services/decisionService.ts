@@ -76,12 +76,9 @@ function proposeDecisionInTransaction(context: ServiceContext, command: ProposeD
     ...scopeColumns(command.scope),
     status: "proposed",
     outcome: command.outcome,
-    rationale: command.rationale,
     proposedByActorType: command.proposedBy.type,
     proposedByActorId: command.proposedBy.id ?? null,
     proposedByDisplayName: command.proposedBy.displayName ?? null,
-    riskLevel: command.riskLevel ?? null,
-    confidence: command.confidence ?? null,
     createdAt: now,
     updatedAt: now,
   });
@@ -99,9 +96,6 @@ function updateDecisionInTransaction(context: ServiceContext, command: UpdateDec
 
   const updated = updateDecisionRow(context.db, existing.id, {
     outcome: command.outcome,
-    rationale: command.rationale,
-    riskLevel: command.riskLevel,
-    confidence: command.confidence,
     updatedAt: context.now(),
   });
   if (updated === undefined) {
@@ -126,7 +120,6 @@ function finalizeDecisionInTransaction(context: ServiceContext, command: Finaliz
   const now = context.now();
   const updated = updateDecisionRow(context.db, existing.id, {
     status: command.status,
-    rationale: command.rationale ?? existing.rationale,
     finalizedByActorType: command.finalizer.type,
     finalizedByActorId: command.finalizer.id ?? null,
     finalizedByDisplayName: command.finalizer.displayName ?? null,
@@ -241,7 +234,6 @@ function toDecisionDetail(row: DecisionRow): DecisionDetail {
     scope: decisionScope(row),
     status: row.status,
     outcome: row.outcome,
-    rationale: row.rationale,
     proposedBy: actorRef(row.proposedByActorType, row.proposedByActorId, row.proposedByDisplayName),
     finalizedBy:
       row.finalizedByActorType === null
@@ -249,8 +241,6 @@ function toDecisionDetail(row: DecisionRow): DecisionDetail {
         : actorRef(row.finalizedByActorType, row.finalizedByActorId, row.finalizedByDisplayName),
     createdAt: row.createdAt,
     finalizedAt: row.finalizedAt ?? undefined,
-    riskLevel: row.riskLevel ?? undefined,
-    confidence: row.confidence ?? undefined,
     updatedAt: row.updatedAt ?? undefined,
   });
 }

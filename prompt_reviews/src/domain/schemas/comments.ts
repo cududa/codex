@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { commentResolutionStatuses, commentStatuses } from "../enums.js";
-import { ActorRefSchema, IdSchema, NonEmptyTextSchema, OptionalTextSchema, PositiveLineNumberSchema, UnixSecondsSchema } from "./actors.js";
+import {
+  ActorRefSchema,
+  HumanActorRefSchema,
+  IdSchema,
+  NonEmptyTextSchema,
+  OptionalTextSchema,
+  PositiveLineNumberSchema,
+  UnixSecondsSchema,
+} from "./actors.js";
 import { ReviewEntityScopeSchema, SourceAnchorSchema } from "./scopes.js";
 
 export const CommentStatusSchema = z.enum(commentStatuses);
@@ -46,16 +54,14 @@ export const ResolveCommentParamsSchema = z
   .object({
     commentId: IdSchema,
     status: CommentResolutionStatusSchema,
-    resolution: NonEmptyTextSchema,
-    actor: ActorRefSchema,
+    actor: HumanActorRefSchema,
   })
   .strict();
 
 export const ReopenCommentParamsSchema = z
   .object({
     commentId: IdSchema,
-    reason: OptionalTextSchema,
-    actor: ActorRefSchema,
+    actor: HumanActorRefSchema,
   })
   .strict();
 
@@ -108,7 +114,6 @@ export const CommentDetailSchema = CommentSummarySchema.extend({
   location: CommentLocationSchema.optional(),
   updatedAt: UnixSecondsSchema.optional(),
   resolvedBy: ActorRefSchema.optional(),
-  resolution: OptionalTextSchema,
 });
 
 export type AddCommentParams = z.infer<typeof AddCommentParamsSchema>;

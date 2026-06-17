@@ -167,19 +167,13 @@ describe("structured review api client", () => {
     const fetchMock = mockJsonResponse({
       scope: { type: "commit_file", commitFileId: "file-1" },
       taggings: [],
-      summary: "Classified by reviewer",
       updatedBy: { type: "human", id: "local-user", displayName: "Human reviewer" },
       updatedAt: 7,
-      riskLevel: "medium",
-      confidence: "high",
     });
 
     await classifyFile("file-1", {
       primaryTagSlug: "prompt.contract",
       secondaryTagSlugs: ["prompt.workflow"],
-      rationale: "Structured concern",
-      riskLevel: "medium",
-      confidence: "high",
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -189,9 +183,6 @@ describe("structured review api client", () => {
         body: JSON.stringify({
           primaryTagSlug: "prompt.contract",
           secondaryTagSlugs: ["prompt.workflow"],
-          rationale: "Structured concern",
-          riskLevel: "medium",
-          confidence: "high",
         }),
       }),
     );
@@ -254,8 +245,6 @@ function detectorFindingSummary(targetType: "commit_file" | "diff_block", target
     targetType,
     targetId,
     count: 1,
-    highestRiskLevel: "high",
-    highestConfidence: "medium",
     evidenceSummaries: ["Prompt wording changed"],
   };
 }
@@ -282,16 +271,12 @@ function detectorFinding(targetType: "commit_file" | "diff_block", targetId: str
     evidenceKind: "diff_block",
     title: "Prompt wording changed",
     summary: "Prompt wording changed",
-    rationale: "The system prompt text changed near a goal instruction.",
-    riskLevel: "high",
-    confidence: "medium",
     evidence: [
       {
         nodeKey: "symbol:BASE_INSTRUCTIONS",
         path: "src/app.ts",
         symbol: "BASE_INSTRUCTIONS",
         marker: "goal",
-        reason: "seed node matched prompt marker",
       },
     ],
     createdAt: 1,

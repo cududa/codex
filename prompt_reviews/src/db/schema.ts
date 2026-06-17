@@ -1,5 +1,4 @@
 export {
-  classificationMetadata,
   comments,
   commitFiles,
   commits,
@@ -18,7 +17,6 @@ export {
 } from "./schema/reviewTables.js";
 export { concernGraphEdges, concernGraphNodes, detectorFindings, detectorRuns } from "./schema/detectorTables.js";
 import {
-  classificationMetadata,
   comments,
   commitFiles,
   commits,
@@ -43,7 +41,6 @@ export const schemaTables = [
   diffBlocks,
   concernTags,
   taggings,
-  classificationMetadata,
   concernGraphNodes,
   concernGraphEdges,
   detectorRuns,

@@ -42,10 +42,7 @@ describe("decision service", () => {
     const decision = service.proposeDecision({
       scope: { type: "commit_file", commitFileId: file.id },
       outcome: "accept",
-      rationale: "Agent thinks this is safe.",
       proposedBy: agent,
-      riskLevel: "low",
-      confidence: "high",
     });
 
     expect(decision).toEqual({
@@ -53,13 +50,10 @@ describe("decision service", () => {
       scope: { type: "commit_file", commitFileId: file.id },
       status: "proposed",
       outcome: "accept",
-      rationale: "Agent thinks this is safe.",
       proposedBy: agent,
       finalizedBy: undefined,
       createdAt: 8_000,
       finalizedAt: undefined,
-      riskLevel: "low",
-      confidence: "high",
       updatedAt: 8_000,
     });
   });
@@ -70,7 +64,6 @@ describe("decision service", () => {
     const proposed = service.proposeDecision({
       scope: { type: "commit_file", commitFileId: file.id },
       outcome: "needs_tests",
-      rationale: "Needs a targeted test.",
       proposedBy: human,
     });
 
@@ -78,16 +71,12 @@ describe("decision service", () => {
     const updated = service.updateDecision({
       decisionId: proposed.id,
       outcome: "accept_with_watch",
-      rationale: "Covered by nearby regression tests.",
       actor: human,
-      confidence: "medium",
     });
 
     expect(updated).toEqual({
       ...proposed,
       outcome: "accept_with_watch",
-      rationale: "Covered by nearby regression tests.",
-      confidence: "medium",
       updatedAt: 8_001,
     });
   });
@@ -98,7 +87,6 @@ describe("decision service", () => {
     const proposed = service.proposeDecision({
       scope: { type: "commit_file", commitFileId: file.id },
       outcome: "accept",
-      rationale: "Agent proposal.",
       proposedBy: agent,
     });
 
@@ -107,7 +95,6 @@ describe("decision service", () => {
         decisionId: proposed.id,
         status: "accepted",
         finalizer: agent,
-        rationale: "Agent tried to finalize.",
       });
       throw new Error("Expected agent finalization to fail.");
     } catch (error) {
@@ -122,7 +109,6 @@ describe("decision service", () => {
     const proposed = service.proposeDecision({
       scope: { type: "commit_file", commitFileId: file.id },
       outcome: "patch_required",
-      rationale: "Patch needed.",
       proposedBy: agent,
     });
 
@@ -131,13 +117,11 @@ describe("decision service", () => {
       decisionId: proposed.id,
       status: "accepted",
       finalizer: human,
-      rationale: "Human agrees patch is required.",
     });
 
     expect(finalized).toEqual({
       ...proposed,
       status: "accepted",
-      rationale: "Human agrees patch is required.",
       finalizedBy: human,
       finalizedAt: 8_001,
       updatedAt: 8_001,
@@ -151,7 +135,6 @@ describe("decision service", () => {
     const proposed = service.proposeDecision({
       scope: { type: "commit_file", commitFileId: file.id },
       outcome: "accept",
-      rationale: "Ready.",
       proposedBy: agent,
     });
 
@@ -161,7 +144,6 @@ describe("decision service", () => {
       decisionId: proposed.id,
       status: "accepted",
       finalizer: human,
-      rationale: "Accepted by reviewer.",
     });
 
     expect(findCommitFileById(database.db, file.id)?.reviewStatus).toBe("accepted");
@@ -175,13 +157,11 @@ describe("decision service", () => {
     const first = service.proposeDecision({
       scope: { type: "commit_file", commitFileId: file.id },
       outcome: "accept",
-      rationale: "First.",
       proposedBy: human,
     });
     const second = service.proposeDecision({
       scope: { type: "commit_file", commitFileId: file.id },
       outcome: "accept_with_watch",
-      rationale: "Second.",
       proposedBy: human,
     });
 

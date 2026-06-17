@@ -102,7 +102,6 @@ describe("status service", () => {
       service.overrideFileStatus({
         commitFileId: file.id,
         status: "blocked",
-        reason: "",
         actor: { type: "human", id: "reviewer" },
       }),
     ).toThrow(PromptReviewServiceError);
@@ -281,7 +280,6 @@ function acceptFile(fileId: string, outcome: DecisionOutcome): void {
     commitFileId: fileId,
     status: "accepted",
     outcome,
-    rationale: "Human-final decision.",
     proposedByActorType: "human",
     finalizedByActorType: "human",
     finalizedAt: 900,

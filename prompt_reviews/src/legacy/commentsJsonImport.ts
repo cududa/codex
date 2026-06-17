@@ -142,7 +142,6 @@ export function importLegacyCommentCommand(
     if (row !== undefined && command.status !== "open") {
       updateCommentLifecycleFields(context.db, row.id, {
         status: command.status,
-        resolution: command.resolution ?? "Imported resolved legacy comment.",
         resolvedByActorType: "human",
         resolvedByActorId: null,
         resolvedByDisplayName: "Legacy import",
@@ -195,7 +194,6 @@ async function buildLegacyCommentCommand(
     body: comment.body,
     createdAt: parseCreatedAt(comment.createdAt),
     status: comment.status ?? "open",
-    resolution: comment.resolution,
     author: actorFromLegacyAuthor(comment.author),
     target: resolveLegacyCommentTarget(db, review, comment.anchor, { legacyId: comment.id }),
   };
@@ -234,7 +232,6 @@ function parseLegacyComment(
       createdAt: readString(object.createdAt),
       author: readString(object.author),
       status: readCommentStatus(object.status),
-      resolution: readString(object.resolution),
       anchor: parseAnchor(object.anchor),
     },
   ];
