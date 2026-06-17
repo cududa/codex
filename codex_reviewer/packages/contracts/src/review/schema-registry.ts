@@ -1,4 +1,10 @@
 import { AgentReviewSchema, HumanApprovalSchema, ReviewEventSchema } from "./review-actions.js";
+import {
+  ConcernAreasResponseSchema,
+  ReviewBootstrapResponseSchema,
+  ReviewMarksResponseSchema,
+  ReviewSchemaCatalogResponseSchema,
+} from "./api.js";
 import { ConcernAreaSchema, ConcernAreaSelectionSchema, ConcernAreaSlugSchema } from "./concern-areas.js";
 import { DecisionNoteSchema } from "./decision-notes.js";
 import { DiffBlockSchema, ReviewCommitSchema, ReviewFileSchema, ReviewVersionSchema } from "./reviewables.js";
@@ -11,6 +17,7 @@ import { ThreadedCommentSchema } from "./threaded-comments.js";
 
 export const reviewSchemas = {
   AgentReview: AgentReviewSchema,
+  ConcernAreasResponse: ConcernAreasResponseSchema,
   ConcernArea: ConcernAreaSchema,
   ConcernAreaSelection: ConcernAreaSelectionSchema,
   ConcernAreaSlug: ConcernAreaSlugSchema,
@@ -24,7 +31,10 @@ export const reviewSchemas = {
   ReviewLedger: ReviewLedgerSchema,
   ReviewLedgerEntry: ReviewLedgerEntrySchema,
   ReviewMark: ReviewMarkSchema,
+  ReviewBootstrapResponse: ReviewBootstrapResponseSchema,
+  ReviewMarksResponse: ReviewMarksResponseSchema,
   ReviewPlan: ReviewPlanSchema,
+  ReviewSchemaCatalogResponse: ReviewSchemaCatalogResponseSchema,
   ReviewScope: ReviewScopeSchema,
   ReviewVersion: ReviewVersionSchema,
   ThreadedComment: ThreadedCommentSchema,

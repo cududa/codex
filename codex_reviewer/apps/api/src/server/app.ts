@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger as requestLogger } from "hono/logger";
 import { handleApiError } from "../middleware/error-handler.js";
+import { createReviewRoutes } from "../routes/review.js";
 import type { ApiBindings, ApiDependencies } from "./types.js";
 
 export function createApiApp(dependencies: ApiDependencies) {
@@ -45,6 +46,7 @@ export function createApiApp(dependencies: ApiDependencies) {
       }),
     ),
   );
+  app.route("/api/review", createReviewRoutes());
 
   return app;
 }

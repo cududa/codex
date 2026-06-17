@@ -5,6 +5,7 @@ import {
   ConcernAreaSelectionSchema,
   HumanApprovalSchema,
   LocalChangeRefSchema,
+  ReviewBootstrapResponseSchema,
   ReviewCommitSchema,
   ReviewFileSchema,
   ReviewLedgerEntrySchema,
@@ -12,6 +13,7 @@ import {
   concernAreaSlugs,
   concernAreas,
   requireConcernArea,
+  reviewMarkDefinitions,
   reviewSchemas,
 } from "./index.js";
 
@@ -72,6 +74,39 @@ describe("review contracts", () => {
         "permission-defaults",
       ]),
     ).toThrow();
+  });
+
+  it("defines canonical review mark metadata", () => {
+    expect(reviewMarkDefinitions).toEqual([
+      {
+        mark: "PASS",
+        label: "Pass",
+        description: "Reviewed and no local adaptation is required.",
+        isFinal: true,
+        requiresLocalChangeRefs: false,
+      },
+      {
+        mark: "FLAG",
+        label: "Flag",
+        description: "Investigation is required before the review can resolve to pass or modify.",
+        isFinal: false,
+        requiresLocalChangeRefs: false,
+      },
+      {
+        mark: "MODIFY",
+        label: "Modify",
+        description: "The upstream change requires intentional local adaptation before approval.",
+        isFinal: false,
+        requiresLocalChangeRefs: false,
+      },
+      {
+        mark: "DONE",
+        label: "Done",
+        description: "Required local adaptation is complete and linked to local commit evidence.",
+        isFinal: true,
+        requiresLocalChangeRefs: true,
+      },
+    ]);
   });
 
   it("rejects DONE commits without linked local change evidence", () => {
@@ -214,6 +249,7 @@ describe("review contracts", () => {
   it("describes canonical schema fields directly on the Zod schemas", () => {
     expect(ConcernAreaSchema.description).toContain("canonical concern area");
     expect(ConcernAreaSchema.shape.slug.description).toContain("Stable concern area slug");
+    expect(ReviewBootstrapResponseSchema.shape.reviewMarks.description).toContain("Canonical review marks");
     expect(LocalChangeRefSchema.shape.sha.description).toContain("Local commit SHA");
     expect(Object.keys(reviewSchemas)).toContain("ReviewCommit");
   });
