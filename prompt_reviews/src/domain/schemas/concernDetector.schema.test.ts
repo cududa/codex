@@ -86,6 +86,7 @@ describe("concern detector schemas", () => {
       count: 1,
       highestRiskLevel: "medium",
       highestConfidence: "high",
+      evidenceSummaries: ["Responses instructions builder changed in a mapped path."],
     };
 
     expect(ConcernGraphNodeSchema.parse(node)).toEqual(node);

@@ -6,6 +6,7 @@ import type { CommitFileDetail, ReviewEntityScope, SourceAnchor } from "@/entiti
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/Button";
 import { TextArea } from "@/shared/ui/TextArea";
+import { DetectorFindingPanel } from "./detector/DetectorFindings";
 import type { ReviewCommentTarget } from "../model/commentTargets";
 import { targetLabel, targetToCommentInput } from "../model/commentTargets";
 import {
@@ -53,6 +54,7 @@ export function DiffBlockViewer({
           actionError={actionError}
           blockIndex={index}
           commentTarget={commentTarget}
+          detectorFindings={block.detectorFindings}
           file={file}
           isSubmitting={isSubmitting}
           key={block.id}
@@ -72,6 +74,7 @@ type DiffBlockCardProps = {
   actionError?: string;
   blockIndex: number;
   commentTarget: ReviewCommentTarget | null;
+  detectorFindings: CommitFileDetail["diffBlocks"][number]["detectorFindings"];
   file: CommitFileDetail;
   isSubmitting: boolean;
   model: MonacoDiffBlockModel;
@@ -86,6 +89,7 @@ function DiffBlockCard({
   actionError,
   blockIndex,
   commentTarget,
+  detectorFindings,
   file,
   isSubmitting,
   model,
@@ -138,6 +142,7 @@ function DiffBlockCard({
           </Button>
         </div>
       </div>
+      <DetectorFindingPanel findings={detectorFindings} title="Diff block detector findings" variant="band" />
       <div className="border-b border-slate-200" style={{ height: model.height }}>
         <DiffEditor
           height="100%"

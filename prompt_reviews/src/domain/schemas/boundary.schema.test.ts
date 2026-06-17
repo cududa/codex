@@ -161,6 +161,7 @@ const diffBlock = {
   taggings: [tagging],
   comments: [commentSummary],
   decision: decisionSummary,
+  detectorFindings: [],
 };
 const concernSeedPath = {
   path: "codex-rs/core/src/client.rs",
@@ -255,6 +256,7 @@ const detectorFindingSummary = {
   count: 1,
   highestRiskLevel: "medium",
   highestConfidence: "high",
+  evidenceSummaries: ["A mapped harness prompt path changed."],
 };
 const fileQueueItem = {
   id: "cf-1",
@@ -265,6 +267,7 @@ const fileQueueItem = {
   status: "accepted_with_watch",
   primaryTagSlug: "goal.initial-steering",
   secondaryTagSlugs: ["prompt.fidelity"],
+  detectorFindingSummaries: [detectorFindingSummary],
 };
 const fileReview = {
   file: fileQueueItem,
@@ -275,6 +278,7 @@ const fileReview = {
 };
 const fileDetail = {
   ...fileQueueItem,
+  detectorFindings: [detectorFinding],
   diffBlocks: [diffBlock],
   review: {
     taggings: [tagging],
@@ -294,6 +298,7 @@ const commitQueueItem = {
   primaryTagSlug: "goal.initial-steering",
   secondaryTagSlugs: ["prompt.fidelity"],
   fileCount: 1,
+  detectorFindingSummaries: [detectorFindingSummary],
 };
 const commitDetail = {
   ...commitQueueItem,

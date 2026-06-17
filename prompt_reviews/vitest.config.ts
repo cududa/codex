@@ -14,7 +14,7 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: false,
-    include: ["src/**/*.test.ts", "web/src/features/review-workspace/model/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "web/src/**/*.test.ts", "web/src/**/*.test.tsx"],
     passWithNoTests: false,
   },
 });

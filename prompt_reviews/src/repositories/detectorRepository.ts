@@ -246,6 +246,48 @@ export function listDetectorFindingsByTarget(
     .all();
 }
 
+export function listDetectorFindingsByCommitIds(db: RepositoryDatabase, commitIds: readonly string[]): DetectorFindingRow[] {
+  if (commitIds.length === 0) {
+    return [];
+  }
+  return db
+    .select()
+    .from(detectorFindings)
+    .where(inArray(detectorFindings.commitId, [...commitIds]))
+    .orderBy(asc(detectorFindings.commitId), asc(detectorFindings.concernSlug), asc(detectorFindings.findingKey))
+    .all();
+}
+
+export function listDetectorFindingsByCommitFileIds(
+  db: RepositoryDatabase,
+  commitFileIds: readonly string[],
+): DetectorFindingRow[] {
+  if (commitFileIds.length === 0) {
+    return [];
+  }
+  return db
+    .select()
+    .from(detectorFindings)
+    .where(inArray(detectorFindings.commitFileId, [...commitFileIds]))
+    .orderBy(asc(detectorFindings.commitFileId), asc(detectorFindings.concernSlug), asc(detectorFindings.findingKey))
+    .all();
+}
+
+export function listDetectorFindingsByDiffBlockIds(
+  db: RepositoryDatabase,
+  diffBlockIds: readonly string[],
+): DetectorFindingRow[] {
+  if (diffBlockIds.length === 0) {
+    return [];
+  }
+  return db
+    .select()
+    .from(detectorFindings)
+    .where(inArray(detectorFindings.diffBlockId, [...diffBlockIds]))
+    .orderBy(asc(detectorFindings.diffBlockId), asc(detectorFindings.concernSlug), asc(detectorFindings.findingKey))
+    .all();
+}
+
 export function listDetectorFindingSummariesByVersion(
   db: RepositoryDatabase,
   versionId: string,
@@ -264,6 +306,7 @@ export function listDetectorFindingSummariesByVersion(
         count: 1,
         highestRiskLevel: row.riskLevel,
         highestConfidence: row.confidence,
+        evidenceSummaries: [row.summary],
       });
       continue;
     }
@@ -271,6 +314,7 @@ export function listDetectorFindingSummariesByVersion(
     existing.count += 1;
     existing.highestRiskLevel = higherRisk(existing.highestRiskLevel, row.riskLevel);
     existing.highestConfidence = higherConfidence(existing.highestConfidence, row.confidence);
+    addEvidenceSummary(existing.evidenceSummaries, row.summary);
   }
 
   return [...groups.values()].sort((left, right) =>
@@ -278,6 +322,12 @@ export function listDetectorFindingSummariesByVersion(
     left.targetType.localeCompare(right.targetType) ||
     left.targetId.localeCompare(right.targetId),
   );
+}
+
+function addEvidenceSummary(summaries: string[], summary: string): void {
+  if (!summaries.includes(summary) && summaries.length < 5) {
+    summaries.push(summary);
+  }
 }
 
 export function deleteDetectorRunsByVersion(db: RepositoryDatabase, versionId: string): DetectorRunRow[] {

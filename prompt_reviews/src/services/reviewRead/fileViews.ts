@@ -10,12 +10,20 @@ import {
   listDiffBlocksByCommitFile,
   listTagSlugsByTargets,
   type CommitFileRow,
+  type DetectorFindingRow,
   type DiffBlockRow,
   type TargetTagSlugs,
 } from "../../repositories/index.js";
 import type { ServiceContext } from "../serviceContext.js";
 import { targetComments, toCommentSummary } from "./commentViews.js";
 import { targetDecisions, toDecisionSummary } from "./decisionViews.js";
+import {
+  detectorFindingsByCommitFileId,
+  detectorFindingsByDiffBlockId,
+  detectorFindingsForTarget,
+  summarizeDetectorFindings,
+  toDetectorFindingView,
+} from "./detectorFindingViews.js";
 import { targetPlans, toPlanSummary } from "./planViews.js";
 import { targetTaggings } from "./tagViews.js";
 
@@ -30,10 +38,17 @@ export function toCommitFileQueueItem(context: ServiceContext, row: CommitFileRo
 export function toCommitFileQueueItems(context: ServiceContext, rows: readonly CommitFileRow[]): CommitFileQueueItem[] {
   const fileIds = rows.map((row) => row.id);
   const tagSlugsByTarget = listTagSlugsByTargets(context.db, "commit_file", fileIds);
-  return rows.map((row) => toCommitFileQueueItemWithSummary(row, tagSlugsByTarget.get(row.id)));
+  const findingsByFileId = detectorFindingsByCommitFileId(context, fileIds);
+  return rows.map((row) =>
+    toCommitFileQueueItemWithSummary(row, tagSlugsByTarget.get(row.id), findingsByFileId.get(row.id) ?? []),
+  );
 }
 
-function toCommitFileQueueItemWithSummary(row: CommitFileRow, tagSlugs: TargetTagSlugs | undefined): CommitFileQueueItem {
+function toCommitFileQueueItemWithSummary(
+  row: CommitFileRow,
+  tagSlugs: TargetTagSlugs | undefined,
+  detectorFindingRows: readonly DetectorFindingRow[],
+): CommitFileQueueItem {
   return CommitFileQueueItemSchema.parse({
     id: row.id,
     commitId: row.commitId,
@@ -43,13 +58,23 @@ function toCommitFileQueueItemWithSummary(row: CommitFileRow, tagSlugs: TargetTa
     status: row.reviewStatus,
     primaryTagSlug: tagSlugs?.primary,
     secondaryTagSlugs: tagSlugs?.secondary ?? [],
+    detectorFindingSummaries: summarizeDetectorFindings(detectorFindingRows, {
+      targetType: "commit_file",
+      targetId: row.id,
+    }),
   });
 }
 
 export function toCommitFileDetail(context: ServiceContext, row: CommitFileRow): CommitFileDetail {
+  const blocks = listDiffBlocksByCommitFile(context.db, row.id);
+  const findingsByBlockId = detectorFindingsByDiffBlockId(
+    context,
+    blocks.map((block) => block.id),
+  );
   return CommitFileDetailSchema.parse({
     ...toCommitFileQueueItem(context, row),
-    diffBlocks: listDiffBlocksByCommitFile(context.db, row.id).map((block) => toDiffBlockView(context, block)),
+    detectorFindings: detectorFindingsForTarget(context, { targetType: "commit_file", targetId: row.id }),
+    diffBlocks: blocks.map((block) => toDiffBlockView(context, block, findingsByBlockId.get(block.id) ?? [])),
     review: {
       taggings: targetTaggings(context, { targetType: "commit_file", targetId: row.id }),
       comments: targetComments(context, "commit_file", row.id).map(toCommentSummary),
@@ -59,7 +84,11 @@ export function toCommitFileDetail(context: ServiceContext, row: CommitFileRow):
   });
 }
 
-function toDiffBlockView(context: ServiceContext, row: DiffBlockRow): DiffBlockView {
+function toDiffBlockView(
+  context: ServiceContext,
+  row: DiffBlockRow,
+  detectorFindingRows: readonly DetectorFindingRow[],
+): DiffBlockView {
   return DiffBlockViewSchema.parse({
     id: row.id,
     commitFileId: row.commitFileId,
@@ -72,5 +101,6 @@ function toDiffBlockView(context: ServiceContext, row: DiffBlockRow): DiffBlockV
     taggings: targetTaggings(context, { targetType: "diff_block", targetId: row.id }),
     comments: targetComments(context, "diff_block", row.id).map(toCommentSummary),
     decision: undefined,
+    detectorFindings: detectorFindingRows.map(toDetectorFindingView),
   });
 }

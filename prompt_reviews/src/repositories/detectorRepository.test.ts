@@ -240,6 +240,7 @@ describe("detector repositories", () => {
         count: 1,
         highestRiskLevel: "high",
         highestConfidence: "medium",
+        evidenceSummaries: ["A mapped continuation path changed."],
       },
       {
         concernSlug: "goal-continuation",
@@ -248,6 +249,7 @@ describe("detector repositories", () => {
         count: 1,
         highestRiskLevel: "medium",
         highestConfidence: "high",
+        evidenceSummaries: ["A mapped continuation diff block changed."],
       },
     ]);
     expect(database.db.select().from(taggings).all()).toEqual([]);

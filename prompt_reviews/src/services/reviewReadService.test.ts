@@ -7,12 +7,14 @@ import {
   bulkInsertCommits,
   bulkInsertDiffBlocks,
   createDecision,
+  createDetectorRun,
   createPlan,
   createVersion,
   findCommitFileById,
   findConcernTagBySlug,
   listTaggingsByTarget,
   seedConcernTagsRepository,
+  replaceDetectorFindingsForRun,
   type CommitFileRow,
   type CommitRow,
   type DiffBlockRow,
@@ -20,6 +22,7 @@ import {
 import { CommitDetailSchema, CommitFileDetailSchema } from "../domain/schemas/index.js";
 import { PromptReviewServiceError } from "./errors.js";
 import { createReviewReadService } from "./reviewReadService.js";
+import { createReviewQueueService } from "./reviewQueueService.js";
 import { createServiceContext, type RootServiceContext } from "./serviceContext.js";
 
 let database: TempPromptReviewsDatabase;
@@ -158,6 +161,7 @@ describe("review read service", () => {
         ],
         comments: [expect.objectContaining({ id: "com_block_detail" })],
         decision: undefined,
+        detectorFindings: [],
       },
     ]);
     expect(detail.review).toMatchObject({
@@ -165,6 +169,132 @@ describe("review read service", () => {
       comments: [{ id: "com_file_detail" }],
       decisions: [{ id: "dec_file_detail" }],
       plans: [{ id: "pln_file_detail" }],
+    });
+  });
+
+  it("surfaces detector finding summaries and full file/diff-block findings without changing review state", () => {
+    const { versionId, commit, file, block } = seedReviewGraph("detector_views");
+    const run = createDetectorRun(database.db, {
+      id: "drun_detector_views",
+      versionId,
+      repositoryId: "codex",
+      runKind: "version_ingestion",
+      status: "succeeded",
+      concernMapVersion: 1,
+      startedAt: 901,
+      completedAt: 902,
+      summaryJson: "{}",
+    });
+    replaceDetectorFindingsForRun(database.db, run.id, [
+      {
+        id: "dfnd_detector_file",
+        runId: run.id,
+        versionId,
+        commitId: commit.id,
+        commitFileId: file.id,
+        findingKey: "detector:file",
+        concernSlug: "harness-prompts",
+        targetType: "commit_file",
+        targetId: file.id,
+        path: file.newPath,
+        side: "new",
+        startLine: 5,
+        endLine: 8,
+        symbol: "build_prompt",
+        evidenceKind: "symbol",
+        title: "Prompt surface changed",
+        summary: "File overlaps a mapped prompt builder.",
+        rationale: "The detector matched a mapped prompt concern surface.",
+        riskLevel: "medium",
+        confidence: "high",
+        evidenceJson: JSON.stringify([{ nodeKey: "harness-prompts:file:src/detector_views.ts", reason: "Seed path matched." }]),
+      },
+      {
+        id: "dfnd_detector_block",
+        runId: run.id,
+        versionId,
+        commitId: commit.id,
+        commitFileId: file.id,
+        diffBlockId: block.id,
+        findingKey: "detector:block",
+        concernSlug: "hidden-context",
+        targetType: "diff_block",
+        targetId: block.id,
+        path: file.newPath,
+        side: "new",
+        startLine: 6,
+        endLine: 7,
+        marker: "<hidden-context>",
+        evidenceKind: "marker",
+        title: "Hidden context marker changed",
+        summary: "Diff block overlaps a mapped hidden context marker.",
+        rationale: "The detector matched a mapped hidden-context concern surface.",
+        riskLevel: "high",
+        confidence: "medium",
+        evidenceJson: JSON.stringify([{ marker: "<hidden-context>", reason: "Marker matched." }]),
+      },
+    ]);
+
+    const read = createReviewReadService(context);
+    const queue = createReviewQueueService(context);
+
+    expect(read.listCommits({ versionId }).data[0]).toMatchObject({
+      id: commit.id,
+      status: "unreviewed",
+      detectorFindingSummaries: [
+        {
+          concernSlug: "harness-prompts",
+          targetType: "commit",
+          targetId: commit.id,
+          count: 1,
+          highestConfidence: "high",
+          evidenceSummaries: ["File overlaps a mapped prompt builder."],
+        },
+        {
+          concernSlug: "hidden-context",
+          targetType: "commit",
+          targetId: commit.id,
+          count: 1,
+          highestRiskLevel: "high",
+          evidenceSummaries: ["Diff block overlaps a mapped hidden context marker."],
+        },
+      ],
+    });
+    expect(queue.listRemainingCommits({ versionId }).data[0]?.detectorFindingSummaries).toHaveLength(2);
+    expect(read.getCommitDetail(commit.id).queuedFiles[0]).toMatchObject({
+      id: file.id,
+      detectorFindingSummaries: [
+        expect.objectContaining({ concernSlug: "harness-prompts", targetType: "commit_file", targetId: file.id }),
+        expect.objectContaining({ concernSlug: "hidden-context", targetType: "commit_file", targetId: file.id }),
+      ],
+    });
+    expect(queue.listRemainingFiles({ commitId: commit.id }).data[0]?.detectorFindingSummaries).toHaveLength(2);
+
+    const detail = read.getCommitFileDetail(file.id);
+    expect(detail).toMatchObject({
+      id: file.id,
+      status: "unreviewed",
+      detectorFindings: [
+        {
+          id: "dfnd_detector_file",
+          concernSlug: "harness-prompts",
+          target: { type: "commit_file", commitFileId: file.id },
+          evidence: [{ nodeKey: "harness-prompts:file:src/detector_views.ts", reason: "Seed path matched." }],
+        },
+      ],
+      diffBlocks: [
+        {
+          id: block.id,
+          detectorFindings: [
+            {
+              id: "dfnd_detector_block",
+              concernSlug: "hidden-context",
+              target: { type: "diff_block", diffBlockId: block.id },
+              evidence: [{ marker: "<hidden-context>", reason: "Marker matched." }],
+            },
+          ],
+        },
+      ],
     });
   });
 

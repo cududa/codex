@@ -72,8 +72,11 @@ describe("structured review api client", () => {
           patch: "@@ -3,2 +3,3 @@\n-old\n+new",
           taggings: [],
           comments: [],
+          detectorFindings: [],
         },
       ],
+      detectorFindingSummaries: [],
+      detectorFindings: [],
       review: {
         taggings: [],
         comments: [],
@@ -85,6 +88,47 @@ describe("structured review api client", () => {
     const detail = await getCommitFileDetail("file-1");
     expect(detail.path).toBe("src/app.ts");
     expect(detail.diffBlocks[0]?.patch).toContain("@@");
+  });
+
+  it("keeps detector findings available in review payloads without treating them as tags", async () => {
+    mockJsonResponse({
+      id: "file-1",
+      commitId: "commit-1",
+      path: "src/app.ts",
+      changeType: "modified",
+      status: "reviewing",
+      primaryTagSlug: "prompt.contract",
+      secondaryTagSlugs: [],
+      detectorFindingSummaries: [detectorFindingSummary("commit_file", "file-1")],
+      detectorFindings: [detectorFinding("commit_file", "file-1")],
+      diffBlocks: [
+        {
+          id: "block-1",
+          commitFileId: "file-1",
+          heading: "contract update",
+          oldStartLine: 3,
+          oldEndLine: 4,
+          newStartLine: 3,
+          newEndLine: 5,
+          patch: "@@ -3,2 +3,3 @@\n-old\n+new",
+          taggings: [],
+          comments: [],
+          detectorFindings: [detectorFinding("diff_block", "block-1")],
+        },
+      ],
+      review: {
+        taggings: [],
+        comments: [],
+        decisions: [],
+        plans: [],
+      },
+    });
+
+    const detail = await getCommitFileDetail("file-1");
+    expect(detail.detectorFindingSummaries).toHaveLength(1);
+    expect(detail.detectorFindings[0]?.concernSlug).toBe("harness-prompts");
+    expect(detail.diffBlocks[0]?.detectorFindings[0]?.target).toEqual({ type: "diff_block", diffBlockId: "block-1" });
+    expect(detail.review.taggings).toEqual([]);
   });
 
   it("parses paginated commit lists with canonical metadata", async () => {
@@ -188,6 +232,7 @@ function commitQueueItem(id: string) {
     status: "unreviewed",
     secondaryTagSlugs: [],
     fileCount: 1,
+    detectorFindingSummaries: [],
   };
 }
 
@@ -199,6 +244,57 @@ function commitFileQueueItem(id: string) {
     changeType: "modified",
     status: "unreviewed",
     secondaryTagSlugs: [],
+    detectorFindingSummaries: [],
+  };
+}
+
+function detectorFindingSummary(targetType: "commit_file" | "diff_block", targetId: string) {
+  return {
+    concernSlug: "harness-prompts",
+    targetType,
+    targetId,
+    count: 1,
+    highestRiskLevel: "high",
+    highestConfidence: "medium",
+    evidenceSummaries: ["Prompt wording changed"],
+  };
+}
+
+function detectorFinding(targetType: "commit_file" | "diff_block", targetId: string) {
+  return {
+    id: `finding-${targetId}`,
+    runId: "run-1",
+    versionId: "version-1",
+    commitId: "commit-1",
+    commitFileId: "file-1",
+    diffBlockId: targetType === "diff_block" ? targetId : null,
+    graphNodeId: "node-1",
+    graphNodeKey: "symbol:BASE_INSTRUCTIONS",
+    findingKey: `finding-key-${targetId}`,
+    concernSlug: "harness-prompts",
+    target: targetType === "diff_block" ? { type: "diff_block", diffBlockId: targetId } : { type: "commit_file", commitFileId: targetId },
+    path: "src/app.ts",
+    side: "new",
+    startLine: 3,
+    endLine: 5,
+    symbol: "BASE_INSTRUCTIONS",
+    marker: "goal",
+    evidenceKind: "diff_block",
+    title: "Prompt wording changed",
+    summary: "Prompt wording changed",
+    rationale: "The system prompt text changed near a goal instruction.",
+    riskLevel: "high",
+    confidence: "medium",
+    evidence: [
+      {
+        nodeKey: "symbol:BASE_INSTRUCTIONS",
+        path: "src/app.ts",
+        symbol: "BASE_INSTRUCTIONS",
+        marker: "goal",
+        reason: "seed node matched prompt marker",
+      },
+    ],
+    createdAt: 1,
   };
 }
 

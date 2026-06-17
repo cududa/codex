@@ -47,6 +47,7 @@ describe("review queue service", () => {
           primaryTagSlug: undefined,
           secondaryTagSlugs: [],
           fileCount: allFiles.length,
+          detectorFindingSummaries: [],
         },
       ],
       nextCursor: null,

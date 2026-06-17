@@ -1,6 +1,4 @@
 import {
-  CommitFileQueueItemSchema,
-  CommitQueueItemSchema,
   CommentSummarySchema,
   PlanSummarySchema,
   RemainingWorkSchema,
@@ -16,24 +14,20 @@ import {
 } from "../domain/schemas/index.js";
 import {
   findVersionById,
-  countCommitFilesByCommitIds,
-  listCommitFilesByVersion,
   listIncompleteAcceptedPlansByVersion,
   listPlanItems,
   listOpenCommentsByVersion,
   listRemainingCommitFilesByCommit,
   listRemainingCommitFilesByVersion,
   listRemainingCommitsByVersion,
-  listTagSlugsByTargets,
   listTaggedCommitFilesMissingHumanAcceptedDecisionByVersion,
   listUntaggedCommitFilesByVersion,
   type CommentRow,
-  type CommitFileRow,
-  type CommitRow,
   type PlanRow,
-  type TargetTagSlugs,
 } from "../repositories/index.js";
 import { invariantFailed, notFound, validationFailed } from "./errors.js";
+import { toCommitQueueItems } from "./reviewRead/commitViews.js";
+import { toCommitFileQueueItems } from "./reviewRead/fileViews.js";
 import type { ServiceContext } from "./serviceContext.js";
 
 export type ListRemainingCommitsParams = {
@@ -249,47 +243,6 @@ export function getRemainingWork(context: ServiceContext, params: VersionScopedP
   }
 
   return remainingWork;
-}
-
-function toCommitQueueItems(context: ServiceContext, rows: readonly CommitRow[]): CommitQueueItem[] {
-  const commitIds = rows.map((row) => row.id);
-  const fileCounts = countCommitFilesByCommitIds(context.db, commitIds);
-  const tagSlugsByTarget = listTagSlugsByTargets(context.db, "commit", commitIds);
-  return rows.map((row) => toCommitQueueItem(row, fileCounts.get(row.id) ?? 0, tagSlugsByTarget.get(row.id)));
-}
-
-function toCommitQueueItem(row: CommitRow, fileCount: number, tagSlugs: TargetTagSlugs | undefined): CommitQueueItem {
-  return CommitQueueItemSchema.parse({
-    id: row.id,
-    versionId: row.versionId,
-    sha: row.sha,
-    title: row.title,
-    authorName: row.authorName ?? undefined,
-    committedAt: row.committedAt ?? undefined,
-    status: row.reviewStatus,
-    primaryTagSlug: tagSlugs?.primary,
-    secondaryTagSlugs: tagSlugs?.secondary ?? [],
-    fileCount,
-  });
-}
-
-function toCommitFileQueueItems(context: ServiceContext, rows: readonly CommitFileRow[]): CommitFileQueueItem[] {
-  const fileIds = rows.map((row) => row.id);
-  const tagSlugsByTarget = listTagSlugsByTargets(context.db, "commit_file", fileIds);
-  return rows.map((row) => toCommitFileQueueItem(row, tagSlugsByTarget.get(row.id)));
-}
-
-function toCommitFileQueueItem(row: CommitFileRow, tagSlugs: TargetTagSlugs | undefined): CommitFileQueueItem {
-  return CommitFileQueueItemSchema.parse({
-    id: row.id,
-    commitId: row.commitId,
-    path: row.newPath ?? row.oldPath,
-    oldPath: row.oldPath ?? undefined,
-    changeType: row.changeType,
-    status: row.reviewStatus,
-    primaryTagSlug: tagSlugs?.primary,
-    secondaryTagSlugs: tagSlugs?.secondary ?? [],
-  });
 }
 
 function toCommentSummary(row: CommentRow): CommentSummary {

@@ -1,6 +1,7 @@
 import { FileCode2, MessageSquare, MoveRight } from "lucide-react";
 import type { CommitFileDetail, CommitFileQueueItem } from "@/entities/review/types";
 import { cn } from "@/shared/lib/cn";
+import { DetectorSummaryChips } from "./detector/DetectorFindings";
 
 type FileQueueProps = {
   files: CommitFileQueueItem[];
@@ -64,6 +65,7 @@ export function FileQueue({
                 <Chip label={file.primaryTagSlug ?? "untagged"} />
                 {missingDecisionIds.has(file.id) ? <Chip tone="warn" label="missing decision" /> : null}
                 {unresolvedComments > 0 ? <Chip icon label={`${unresolvedComments} comments`} /> : null}
+                <DetectorSummaryChips summaries={file.detectorFindingSummaries} />
               </span>
             </button>
           );

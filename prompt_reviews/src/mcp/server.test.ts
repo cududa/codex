@@ -11,6 +11,8 @@ import {
   CommitFileDetailSchema,
   CommitFileQueueItemSchema,
   CommitQueueItemSchema,
+  DetectorFindingSchema,
+  DetectorFindingSummarySchema,
   CompletePlanParamsSchema,
   CreatePlanParamsSchema,
   DecisionDetailSchema,
@@ -50,6 +52,26 @@ const version = {
   },
 } satisfies z.infer<typeof VersionSummarySchema>;
 
+const commitFindingSummary = {
+  concernSlug: "harness-prompts",
+  targetType: "commit",
+  targetId: "commit-1",
+  count: 1,
+  highestRiskLevel: "medium",
+  highestConfidence: "high",
+  evidenceSummaries: ["Commit touches a mapped prompt review surface."],
+} satisfies z.infer<typeof DetectorFindingSummarySchema>;
+
+const fileFindingSummary = {
+  concernSlug: "harness-prompts",
+  targetType: "commit_file",
+  targetId: "file-1",
+  count: 1,
+  highestRiskLevel: "medium",
+  highestConfidence: "high",
+  evidenceSummaries: ["File overlaps a mapped prompt builder."],
+} satisfies z.infer<typeof DetectorFindingSummarySchema>;
+
 const commit = {
   id: "commit-1",
   versionId: version.id,
@@ -59,6 +81,7 @@ const commit = {
   primaryTagSlug: undefined,
   secondaryTagSlugs: [],
   fileCount: 1,
+  detectorFindingSummaries: [commitFindingSummary],
 } satisfies z.infer<typeof CommitQueueItemSchema>;
 
 const file = {
@@ -70,7 +93,46 @@ const file = {
   status: "needs_classification",
   primaryTagSlug: "prompt.fidelity",
   secondaryTagSlugs: [],
+  detectorFindingSummaries: [fileFindingSummary],
 } satisfies z.infer<typeof CommitFileQueueItemSchema>;
+
+const fileDetectorFinding = {
+  id: "dfnd-file-1",
+  runId: "drun-1",
+  versionId: version.id,
+  commitId: commit.id,
+  commitFileId: file.id,
+  diffBlockId: null,
+  graphNodeId: null,
+  graphNodeKey: "harness-prompts:file:codex-rs/core/src/prompt.rs",
+  findingKey: "commit-1:file-1:harness-prompts",
+  concernSlug: "harness-prompts",
+  target: { type: "commit_file", commitFileId: file.id },
+  path: file.path,
+  side: "new",
+  startLine: 10,
+  endLine: 13,
+  symbol: "buildPrompt",
+  marker: null,
+  evidenceKind: "symbol",
+  title: "Mapped prompt surface changed",
+  summary: "File overlaps a mapped prompt builder.",
+  rationale: "The detector matched a mapped prompt concern surface.",
+  riskLevel: "medium",
+  confidence: "high",
+  evidence: [{ nodeKey: "harness-prompts:file:codex-rs/core/src/prompt.rs", path: file.path, reason: "Seed path matched." }],
+  createdAt: 100,
+} satisfies z.infer<typeof DetectorFindingSchema>;
+
+const diffBlockDetectorFinding = {
+  ...fileDetectorFinding,
+  id: "dfnd-block-1",
+  diffBlockId: "block-1",
+  findingKey: "commit-1:file-1:block-1:harness-prompts",
+  target: { type: "diff_block", diffBlockId: "block-1" },
+  title: "Mapped prompt diff block changed",
+  summary: "Diff block overlaps a mapped prompt builder.",
+} satisfies z.infer<typeof DetectorFindingSchema>;
 
 const tag = {
   slug: "prompt.fidelity",
@@ -171,6 +233,7 @@ const planSummary = {
 
 const fileDetail = {
   ...file,
+  detectorFindings: [fileDetectorFinding],
   diffBlocks: [
     {
       id: "block-1",
@@ -184,6 +247,7 @@ const fileDetail = {
       taggings: classification.taggings,
       comments: [commentSummary],
       decision: decisionSummary,
+      detectorFindings: [diffBlockDetectorFinding],
     },
   ],
   review: {
@@ -286,16 +350,51 @@ describe("prompt review MCP tools", () => {
     const context = createFakeContext();
     const queue = await executePromptReviewMcpTool(context, tool("list_remaining_commits"), { versionId: version.id });
     expect(queue.structuredContent).toMatchObject({
-      data: [commit],
+      data: [
+        {
+          ...commit,
+          detectorFindingSummaries: [
+            expect.objectContaining({
+              concernSlug: "harness-prompts",
+              evidenceSummaries: ["Commit touches a mapped prompt review surface."],
+            }),
+          ],
+        },
+      ],
       nextCursor: null,
       returnedCount: 1,
       totalCount: 1,
       hasMore: false,
     });
 
+    const files = await executePromptReviewMcpTool(context, tool("list_commit_files"), { commitId: commit.id });
+    expect(files.structuredContent).toMatchObject({
+      data: [
+        {
+          ...file,
+          detectorFindingSummaries: [
+            expect.objectContaining({
+              concernSlug: "harness-prompts",
+              evidenceSummaries: ["File overlaps a mapped prompt builder."],
+            }),
+          ],
+        },
+      ],
+    });
+
     const review = await executePromptReviewMcpTool(context, tool("get_file_review"), { commitFileId: file.id });
     expect(review.structuredContent).toMatchObject({
-      file: { id: file.id, diffBlocks: [{ id: "block-1", patch: expect.stringContaining("@@") }] },
+      file: {
+        id: file.id,
+        detectorFindings: [expect.objectContaining({ id: "dfnd-file-1", concernSlug: "harness-prompts" })],
+        diffBlocks: [
+          {
+            id: "block-1",
+            patch: expect.stringContaining("@@"),
+            detectorFindings: [expect.objectContaining({ id: "dfnd-block-1", target: { type: "diff_block", diffBlockId: "block-1" } })],
+          },
+        ],
+      },
     });
   });
 

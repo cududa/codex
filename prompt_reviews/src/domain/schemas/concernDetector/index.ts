@@ -197,6 +197,7 @@ export const DetectorFindingSummarySchema = z
     count: CountSchema,
     highestRiskLevel: DetectorRiskLevelSchema,
     highestConfidence: DetectorConfidenceSchema,
+    evidenceSummaries: z.array(NonEmptyTextSchema),
   })
   .strict();
 

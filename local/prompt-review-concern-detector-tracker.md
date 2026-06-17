@@ -227,11 +227,37 @@ Status legend:
       186 tests), and `npm run build`. Batch 4 is complete and ready for its
       focused commit.
 
-- [ ] Batch 5: review and MCP surfacing.
+- [x] Batch 5: review and MCP surfacing.
   - Requirements reference: lines 65-75, 958-1003, 1075-1081, 1180-1193.
   - Must deliver: read model finding summaries, MCP finding exposure, web UI
     summaries, service/API/MCP tests.
   - Completion notes:
+    - 2026-06-16: Started Batch 5 after Batch 4 commit `8de14c99a0`.
+      Scope is read model extensions, MCP/API output surfacing, and web UI
+      finding visibility where review decisions happen. Split into read/API/MCP
+      contract work first, then web UI once the contract is stable.
+    - 2026-06-16: Milestone A read/API/MCP contract landed in the worktree.
+      Commit/file queue items now include compact detector finding summaries,
+      commit/file detail views carry the same summaries, and file plus
+      diff-block review surfaces expose full detector finding detail. MCP
+      outputs for `list_remaining_commits`, `list_commit_files`, and
+      `get_file_review` validate those fields through the shared schemas.
+      Validation passed: focused read/API/MCP/schema/repository Vitest (6
+      files, 30 tests), `npm run test:structure`, `npm run typecheck`, full
+      `npm test` (44 files, 187 tests), `npm run db:check`, and
+      `npm run build`. Batch 5 remains open for web UI finding visibility.
+    - 2026-06-16: Milestone B web UI finding visibility landed in the
+      worktree. Commit and file queues now show compact detector finding
+      summaries, file review surfaces show file-level detector evidence, and
+      diff block cards show diff-block-level detector evidence as compact
+      review bands. Detector findings remain evidence only and are not wired
+      into tags, statuses, decisions, or plans. Frontend tests now run through
+      Vitest and cover API parsing plus server-rendered queue/panel visibility.
+      Validation passed: focused web Vitest (3 files, 13 tests),
+      `npm run test:structure`, `npm run typecheck`, full `npm test` (47
+      files, 200 tests), and `npm run build`. Verified
+      `prompt_reviews/data/prompt_reviews.sqlite` remained untouched. Batch 5
+      is complete in the worktree and remains uncommitted per instruction.
 
 - [ ] Acceptance pass.
   - Requirements reference: lines 1083-1110.

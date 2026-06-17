@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ActorRefSchema, IdSchema, NonEmptyTextSchema, OptionalTextSchema, UnixSecondsSchema } from "./actors.js";
 import { CommentSummarySchema } from "./comments.js";
+import { DetectorFindingSummarySchema } from "./concernDetector/index.js";
 import { DecisionSummarySchema } from "./decisions.js";
 import { CommitFileDetailSchema, CommitFileQueueItemSchema, ReviewStatusSchema } from "./files.js";
 import { PlanSummarySchema } from "./plans.js";
@@ -31,6 +32,7 @@ export const CommitQueueItemSchema = z
     primaryTagSlug: OptionalTextSchema,
     secondaryTagSlugs: z.array(NonEmptyTextSchema),
     fileCount: z.number().int().nonnegative(),
+    detectorFindingSummaries: z.array(DetectorFindingSummarySchema),
   })
   .strict();
 

@@ -15,6 +15,7 @@ describe("buildMonacoDiffBlockModel", () => {
       taggings: [],
       comments: [],
       decision: undefined,
+      detectorFindings: [],
     });
 
     expect(model.originalText).toBe("keep\nold\ntail");
@@ -36,6 +37,7 @@ describe("buildMonacoDiffBlockModel", () => {
       taggings: [],
       comments: [],
       decision: undefined,
+      detectorFindings: [],
     });
 
     expect(model.originalText).toBe("old");
@@ -54,6 +56,7 @@ describe("buildMonacoDiffBlockModel", () => {
       taggings: [],
       comments: [],
       decision: undefined,
+      detectorFindings: [],
     });
 
     expect(model.originalText).toBe("old");

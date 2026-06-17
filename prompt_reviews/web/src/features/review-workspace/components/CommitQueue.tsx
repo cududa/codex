@@ -1,6 +1,7 @@
 import { AlertCircle, CheckCircle2, GitCommitHorizontal, MessageSquare } from "lucide-react";
 import type { CommitDetail, CommitQueueItem } from "@/entities/review/types";
 import { cn } from "@/shared/lib/cn";
+import { DetectorSummaryChips } from "./detector/DetectorFindings";
 
 type CommitQueueProps = {
   commits: CommitQueueItem[];
@@ -59,6 +60,7 @@ export function CommitQueue({
                 {missingDecisionIds.has(commit.id) ? <Indicator icon="alert" label="missing decision" /> : null}
                 {unresolvedComments > 0 ? <Indicator icon="comment" label={`${unresolvedComments} comments`} /> : null}
                 <Indicator label={`${commit.fileCount} files`} />
+                <DetectorSummaryChips summaries={commit.detectorFindingSummaries} />
               </span>
             </button>
           );

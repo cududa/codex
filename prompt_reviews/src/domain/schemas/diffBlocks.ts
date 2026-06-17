@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { IdSchema, NonEmptyTextSchema, OptionalTextSchema, PositiveLineNumberSchema } from "./actors.js";
 import { CommentSummarySchema } from "./comments.js";
+import { DetectorFindingSchema } from "./concernDetector/index.js";
 import { DecisionSummarySchema } from "./decisions.js";
 import { TaggingViewSchema } from "./tags.js";
 
@@ -17,6 +18,7 @@ export const DiffBlockViewSchema = z
     taggings: z.array(TaggingViewSchema),
     comments: z.array(CommentSummarySchema),
     decision: DecisionSummarySchema.optional(),
+    detectorFindings: z.array(DetectorFindingSchema),
   })
   .strict();
 

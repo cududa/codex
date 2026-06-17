@@ -25,6 +25,8 @@ import {
   type CommitQueueItem,
   type CommentSummary,
   type ConcernTagView,
+  type DetectorFinding,
+  type DetectorFindingSummary,
   type DecisionDetail,
   type DecisionSummary,
   type PlanDetail,
@@ -50,6 +52,26 @@ const tag: ConcernTagView = {
   sortOrder: 1,
 };
 
+const commitFindingSummary: DetectorFindingSummary = {
+  concernSlug: "harness-prompts",
+  targetType: "commit",
+  targetId: "commit-1",
+  count: 1,
+  highestRiskLevel: "medium",
+  highestConfidence: "high",
+  evidenceSummaries: ["Commit touches a mapped prompt review surface."],
+};
+
+const fileFindingSummary: DetectorFindingSummary = {
+  concernSlug: "harness-prompts",
+  targetType: "commit_file",
+  targetId: "file-1",
+  count: 1,
+  highestRiskLevel: "medium",
+  highestConfidence: "high",
+  evidenceSummaries: ["File overlaps a mapped prompt builder."],
+};
+
 const commit: CommitQueueItem = {
   id: "commit-1",
   versionId: "version-1",
@@ -61,6 +83,7 @@ const commit: CommitQueueItem = {
   primaryTagSlug: "prompt.fidelity",
   secondaryTagSlugs: [],
   fileCount: 1,
+  detectorFindingSummaries: [commitFindingSummary],
 };
 
 const file: CommitFileQueueItem = {
@@ -72,6 +95,45 @@ const file: CommitFileQueueItem = {
   status: "needs_decision",
   primaryTagSlug: "prompt.fidelity",
   secondaryTagSlugs: [],
+  detectorFindingSummaries: [fileFindingSummary],
+};
+
+const fileDetectorFinding: DetectorFinding = {
+  id: "dfnd-file-1",
+  runId: "drun-1",
+  versionId: "version-1",
+  commitId: commit.id,
+  commitFileId: file.id,
+  diffBlockId: null,
+  graphNodeId: null,
+  graphNodeKey: "harness-prompts:file:src/prompt.ts",
+  findingKey: "commit-1:file-1:harness-prompts",
+  concernSlug: "harness-prompts",
+  target: { type: "commit_file", commitFileId: file.id },
+  path: file.path,
+  side: "new",
+  startLine: 1,
+  endLine: 3,
+  symbol: "buildPrompt",
+  marker: null,
+  evidenceKind: "symbol",
+  title: "Mapped prompt surface changed",
+  summary: "File overlaps a mapped prompt builder.",
+  rationale: "The detector matched a mapped prompt concern surface.",
+  riskLevel: "medium",
+  confidence: "high",
+  evidence: [{ nodeKey: "harness-prompts:file:src/prompt.ts", path: file.path, reason: "Seed path matched." }],
+  createdAt: 100,
+};
+
+const diffBlockDetectorFinding: DetectorFinding = {
+  ...fileDetectorFinding,
+  id: "dfnd-block-1",
+  diffBlockId: "block-1",
+  findingKey: "commit-1:file-1:block-1:harness-prompts",
+  target: { type: "diff_block", diffBlockId: "block-1" },
+  title: "Mapped prompt diff block changed",
+  summary: "Diff block overlaps a mapped prompt builder.",
 };
 
 const tagging: TaggingView = {
@@ -193,6 +255,7 @@ const commitDetail: CommitDetail = {
 
 const fileDetail: CommitFileDetail = {
   ...file,
+  detectorFindings: [fileDetectorFinding],
   diffBlocks: [
     {
       id: "block-1",
@@ -206,6 +269,7 @@ const fileDetail: CommitFileDetail = {
       taggings: [tagging],
       comments: [commentSummary],
       decision: decisionSummary,
+      detectorFindings: [diffBlockDetectorFinding],
     },
   ],
   review: {

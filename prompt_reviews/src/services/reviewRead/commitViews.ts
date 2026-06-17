@@ -9,11 +9,13 @@ import {
   listCommitFilesByCommit,
   listTagSlugsByTargets,
   type CommitRow,
+  type DetectorFindingRow,
   type TargetTagSlugs,
 } from "../../repositories/index.js";
 import type { ServiceContext } from "../serviceContext.js";
 import { targetComments, toCommentSummary } from "./commentViews.js";
 import { targetDecisions, toDecisionSummary } from "./decisionViews.js";
+import { detectorFindingsByCommitId, summarizeDetectorFindings } from "./detectorFindingViews.js";
 import { toCommitFileDetail, toCommitFileQueueItem } from "./fileViews.js";
 import { targetPlans, toPlanSummary } from "./planViews.js";
 import { targetTaggings } from "./tagViews.js";
@@ -30,13 +32,22 @@ export function toCommitQueueItems(context: ServiceContext, rows: readonly Commi
   const commitIds = rows.map((row) => row.id);
   const fileCounts = countCommitFilesByCommitIds(context.db, commitIds);
   const tagSlugsByTarget = listTagSlugsByTargets(context.db, "commit", commitIds);
-  return rows.map((row) => toCommitQueueItemWithSummary(row, fileCounts.get(row.id) ?? 0, tagSlugsByTarget.get(row.id)));
+  const findingsByCommitId = detectorFindingsByCommitId(context, commitIds);
+  return rows.map((row) =>
+    toCommitQueueItemWithSummary(
+      row,
+      fileCounts.get(row.id) ?? 0,
+      tagSlugsByTarget.get(row.id),
+      findingsByCommitId.get(row.id) ?? [],
+    ),
+  );
 }
 
 function toCommitQueueItemWithSummary(
   row: CommitRow,
   fileCount: number,
   tagSlugs: TargetTagSlugs | undefined,
+  detectorFindingRows: readonly DetectorFindingRow[],
 ): CommitQueueItem {
   return CommitQueueItemSchema.parse({
     id: row.id,
@@ -49,6 +60,10 @@ function toCommitQueueItemWithSummary(
     primaryTagSlug: tagSlugs?.primary,
     secondaryTagSlugs: tagSlugs?.secondary ?? [],
     fileCount,
+    detectorFindingSummaries: summarizeDetectorFindings(detectorFindingRows, {
+      targetType: "commit",
+      targetId: row.id,
+    }),
   });
 }
 

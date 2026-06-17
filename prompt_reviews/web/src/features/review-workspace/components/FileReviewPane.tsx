@@ -1,6 +1,7 @@
 import { MousePointerSquareDashed } from "lucide-react";
 import type { CommitFileDetail, ReviewEntityScope, SourceAnchor } from "@/entities/review/types";
 import { Button } from "@/shared/ui/Button";
+import { DetectorFindingPanel } from "./detector/DetectorFindings";
 import { DiffBlockViewer } from "./DiffBlockViewer";
 import type { ReviewCommentTarget } from "../model/commentTargets";
 
@@ -56,14 +57,17 @@ export function FileReviewPane({
           </div>
         ) : null}
         {file === undefined ? null : (
-          <DiffBlockViewer
-            actionError={actionError}
-            commentTarget={commentTarget}
-            file={file}
-            isSubmitting={isSubmittingComment}
-            onAddComment={onAddComment}
-            onCommentTargetChange={onCommentTargetChange}
-          />
+          <div className="grid gap-4">
+            <DetectorFindingPanel findings={file.detectorFindings} title="File detector findings" />
+            <DiffBlockViewer
+              actionError={actionError}
+              commentTarget={commentTarget}
+              file={file}
+              isSubmitting={isSubmittingComment}
+              onAddComment={onAddComment}
+              onCommentTargetChange={onCommentTargetChange}
+            />
+          </div>
         )}
       </div>
     </section>
