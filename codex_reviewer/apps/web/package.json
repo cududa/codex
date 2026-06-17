@@ -1,0 +1,41 @@
+{
+  "name": "@prompt-reviews/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React workbench for Codex Reviewer.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "dev": "vite --host 127.0.0.1",
+    "lint": "biome lint src",
+    "start": "VITE_API_BASE_URL=http://127.0.0.1:4188 vite preview --host 127.0.0.1 --port 5173",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "4.7.0",
+    "@prompt-reviews/contracts": "workspace:*",
+    "@tailwindcss/vite": "4.3.1",
+    "@tanstack/react-query": "5.101.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.20.0",
+    "monaco-editor": "0.55.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-resizable-panels": "4.11.2",
+    "react-router": "7.17.0",
+    "tailwind-merge": "3.6.0",
+    "zod": "4.4.3",
+    "zustand": "5.0.14"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "typescript": "6.0.3",
+    "vite": "8.0.16",
+    "vitest": "4.1.9"
+  }
+}

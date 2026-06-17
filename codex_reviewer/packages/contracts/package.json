@@ -1,0 +1,27 @@
+{
+  "name": "@prompt-reviews/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared Zod schemas and inferred API types for Codex Reviewer.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "lint": "biome lint src",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

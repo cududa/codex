@@ -1,0 +1,26 @@
+{
+  "name": "codex_reviewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prompt review workbench with shared contracts, a Hono API, and a React frontend.",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319",
+  "scripts": {
+    "build": "turbo run build",
+    "check": "turbo run check",
+    "dev": "turbo run dev --parallel",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "lint": "biome lint .",
+    "start": "pnpm build && turbo run start",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.16",
+    "turbo": "2.9.17",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}
