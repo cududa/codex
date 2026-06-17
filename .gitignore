@@ -93,3 +93,13 @@ CHANGELOG.ignore.md
 # Python bytecode files
 __pycache__/
 *.pyc
+local/review_applet_TAINTED/batch-01-shared-model.md
+local/review_applet_TAINTED/batch-02-root-out-tests.md
+local/review_applet_TAINTED/batch-03-parser-detector-threading.md
+local/review_applet_TAINTED/batch-04-app-data-model-replacement.md
+local/review_applet_TAINTED/batch-05-services-api-mcp.md
+local/review_applet_TAINTED/batch-06-ui-workflow.md
+local/review_applet_TAINTED/index.md
+local/review_applet_TAINTED/SAMPLES/37-session-state-persistence.md
+local/review_applet_TAINTED/SAMPLES/prompt-review-plan-batches-readme.md
+local/review_applet_TAINTED/SAMPLES/task-template.md
