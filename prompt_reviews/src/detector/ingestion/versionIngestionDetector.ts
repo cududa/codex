@@ -12,6 +12,7 @@ import {
   type DiffBlockRow,
   type RepositoryDatabase,
   type VersionRow,
+  findVersionById,
 } from "../../repositories/index.js";
 import { extractRustSources } from "../extraction/rustExtractor.js";
 import { isTextScannablePath, scanTextFiles } from "../extraction/textScanner.js";
@@ -26,6 +27,45 @@ export type RunVersionIngestionDetectorInput = {
   gitClient: GitClient;
   version: VersionRow;
 };
+
+export type RerunVersionIngestionDetectorInput = {
+  db: RepositoryDatabase;
+  gitClient: GitClient;
+  versionId: string;
+  repositoryId?: string;
+};
+
+export class VersionIngestionDetectorError extends Error {
+  readonly code: string;
+  readonly details: Record<string, unknown>;
+
+  constructor(code: string, message: string, details: Record<string, unknown> = {}) {
+    super(message);
+    this.name = "VersionIngestionDetectorError";
+    this.code = code;
+    this.details = details;
+  }
+}
+
+export async function rerunVersionIngestionDetector(
+  input: RerunVersionIngestionDetectorInput,
+): Promise<RunDetectorResult> {
+  const version = findVersionById(input.db, input.versionId);
+  if (version === undefined) {
+    throw new VersionIngestionDetectorError("version_not_found", "Version was not found.", {
+      versionId: input.versionId,
+    });
+  }
+  if (input.repositoryId !== undefined && version.repositoryId !== input.repositoryId) {
+    throw new VersionIngestionDetectorError("version_repository_mismatch", "Version belongs to a different repository.", {
+      versionId: input.versionId,
+      repositoryId: input.repositoryId,
+      versionRepositoryId: version.repositoryId,
+    });
+  }
+
+  return runVersionIngestionDetector({ db: input.db, gitClient: input.gitClient, version });
+}
 
 export async function runVersionIngestionDetector(
   input: RunVersionIngestionDetectorInput,

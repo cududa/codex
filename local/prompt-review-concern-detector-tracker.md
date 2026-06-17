@@ -259,13 +259,43 @@ Status legend:
       `prompt_reviews/data/prompt_reviews.sqlite` remained untouched. Batch 5
       is complete in the worktree and remains uncommitted per instruction.
 
-- [ ] Acceptance pass.
+- [x] Acceptance pass.
   - Requirements reference: lines 1083-1110.
   - Must verify: automatic upstream findings, diff-block mapping, post-commit
     graph refresh, all eight concern areas, API/MCP surfacing, review-artifact
     separation, test coverage, deterministic reruns, graph growth without agent
     memory.
   - Completion notes:
+    - 2026-06-16: Started acceptance pass after Batch 5 commit `b90f87ac5c`.
+      Scope is verification against lines 1083-1110, not new feature scope.
+      Any implementation gaps found during acceptance should be assigned to a
+      subagent for correction rather than patched directly by the orchestrator.
+    - 2026-06-16: Read-only acceptance subagent
+      `019ed2f1-b501-7cd0-83e1-0210a75df42c` completed and was closed. It
+      passed automatic upstream findings, diff-block mapping, post-commit
+      graph refresh/hook path, all eight concern areas, API/MCP surfacing,
+      review-artifact separation, and graph growth without agent memory. It
+      failed deterministic version reruns because the public debug rerun path
+      still routes through cached `populateNextVersion` behavior instead of
+      forcing a version-ingestion detector rerun. Correction assigned to a
+      fresh implementation subagent.
+    - 2026-06-16: Acceptance correction landed in the worktree. Added a
+      version-ingestion rerun helper that finds an existing version and calls
+      the stable `drun_version_ingestion_<versionId>` detector path directly,
+      plus `npm run detector:rerun -- --mode version-ingestion --version-id <id>`.
+      Focused regression coverage proves a second rerun replaces stale graph
+      nodes and findings instead of duplicating detector rows. Validation
+      passed: focused version-ingestion Vitest (1 file, 1 test),
+      `npm run test:structure`, `npm run typecheck`, full `npm test` (48
+      files, 201 tests), and `npm run db:check`. Restored
+      `prompt_reviews/data/prompt_reviews.sqlite` to HEAD and left unrelated
+      `AGENTS.md` / `prompt_reviews/REFACTOR.md` untouched.
+    - 2026-06-16: Parent final acceptance validation passed:
+      `npx vitest run src/detector/ingestion/versionIngestionDetector.test.ts`,
+      `npm run verify`, `npm run db:check`, and
+      `npm run detector:hook:install && npm run detector:hook:check`. The
+      managed local post-commit hook is installed and executable. Acceptance
+      pass is complete and ready for its focused commit.
 
 ## Concern Map Reference
 

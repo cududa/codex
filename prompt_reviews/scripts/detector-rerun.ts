@@ -2,9 +2,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { openPromptReviewsDatabase } from "../src/db/client.js";
 import { migratePromptReviewsDatabase } from "../src/db/migrate.js";
-import { populateNextVersion } from "../src/ingestion/populateNextVersion.js";
+import { rerunVersionIngestionDetector } from "../src/detector/ingestion/versionIngestionDetector.js";
 import { runPostCommitRefresh } from "../src/detector/postCommit/postCommitRefresh.js";
 import { createCommandGitClient } from "../src/git/gitClient.js";
+import { populateNextVersion } from "../src/ingestion/populateNextVersion.js";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -32,6 +33,19 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (args.mode === "version-ingestion") {
+      const summary = await rerunVersionIngestionDetector({
+        db: database.db,
+        gitClient,
+        repositoryId: args.repositoryId,
+        versionId: args.versionId,
+      });
+      console.log(
+        `prompt_reviews detector rerun refreshed version ${args.versionId}: ${summary.graphNodes.length} graph nodes, ${summary.graphEdges.length} graph edges, ${summary.findings.length} findings.`,
+      );
+      return;
+    }
+
     const summary = await runPostCommitRefresh({
       db: database.db,
       gitClient,
@@ -47,10 +61,11 @@ async function main(): Promise<void> {
 }
 
 function parseArgs(argv: string[]): {
-  mode: "post-commit-refresh" | "populate-next-version";
+  mode: "post-commit-refresh" | "populate-next-version" | "version-ingestion";
   repo: string;
   repositoryId: string;
   commit: string;
+  versionId: string;
   base?: string;
   target?: string;
   label?: string;
@@ -72,8 +87,12 @@ function parseArgs(argv: string[]): {
   }
 
   const mode = args.get("mode") ?? "post-commit-refresh";
-  if (mode !== "post-commit-refresh" && mode !== "populate-next-version") {
+  if (mode !== "post-commit-refresh" && mode !== "populate-next-version" && mode !== "version-ingestion") {
     throw new Error(`Unsupported rerun mode: ${mode}`);
+  }
+  const versionId = args.get("version-id");
+  if (mode === "version-ingestion" && versionId === undefined) {
+    throw new Error("Missing required --version-id for version-ingestion rerun mode.");
   }
 
   return {
@@ -81,6 +100,7 @@ function parseArgs(argv: string[]): {
     repo: path.resolve(args.get("repo") ?? path.resolve(projectRoot, "..")),
     repositoryId: args.get("repository-id") ?? "codex-pinned",
     commit: args.get("commit") ?? "HEAD",
+    versionId: versionId ?? "",
     base: args.get("base"),
     target: args.get("target"),
     label: args.get("label"),
@@ -88,11 +108,12 @@ function parseArgs(argv: string[]): {
 }
 
 function printHelp(): void {
-  console.log(`Usage: npm run detector:rerun -- [--mode post-commit-refresh|populate-next-version] [options]
+  console.log(`Usage: npm run detector:rerun -- [--mode post-commit-refresh|populate-next-version|version-ingestion] [options]
 
 Modes:
   post-commit-refresh   Refresh local graph expansion for --commit without findings.
   populate-next-version Rerun upstream ingestion/detector review via populateNextVersion.
+  version-ingestion     Force-rerun detector findings and graph for an existing version id.
 
 Common options:
   --repo <path>             Git repository path.
@@ -105,6 +126,9 @@ Populate options:
   --base <ref>              Base ref/SHA, when no closed base version exists.
   --target <ref>            Target ref, defaults to upstream/main.
   --label <label>           Version label.
+
+Version ingestion options:
+  --version-id <id>         Existing version id to rerun deterministically.
 
 Environment:
   PROMPT_REVIEWS_DB         Override the sqlite database path.`);
