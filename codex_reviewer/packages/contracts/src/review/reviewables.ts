@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ConcernAreaSelectionSchema } from "./concern-areas.js";
-import { LocalChangeRefSchema } from "./local-change-refs.js";
-import { AgentReviewSchema, HumanApprovalSchema } from "./review-actions.js";
+import { LocalChangeRefReadSchema } from "./local-change-refs.js";
+import { AgentReviewReadSchema, HumanApprovalReadSchema } from "./review-actions.js";
 import { ExplicitFileReviewMarkSchema, ReviewMarkSchema } from "./review-marks.js";
 import {
   GitShaSchema,
@@ -14,11 +14,7 @@ import {
   ZeroBasedPositionSchema,
 } from "../shared/primitives.js";
 
-export const ReviewVersionStateSchema = z
-  .enum(["open", "readyForApproval", "finalized"])
-  .describe("Current lifecycle state of a review version.");
-
-export const ReviewVersionSchema = z
+export const ReviewVersionReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this review version."),
     label: NonEmptyStringSchema.describe("Human-readable label for the reviewed upstream range."),
@@ -27,7 +23,6 @@ export const ReviewVersionSchema = z
     targetRef: NonEmptyStringSchema.optional().describe("Target ref or SHA used for ingestion."),
     baseSha: GitShaSchema.optional().describe("Resolved base commit SHA."),
     targetSha: GitShaSchema.optional().describe("Resolved target commit SHA."),
-    state: ReviewVersionStateSchema.describe("Lifecycle state of the review version."),
     createdAt: IsoDateTimeSchema.describe("When the version was created."),
     updatedAt: IsoDateTimeSchema.optional().describe("When the version was last updated."),
   })
@@ -38,7 +33,7 @@ export const ChangeKindSchema = z
   .enum(["added", "modified", "deleted", "renamed", "copied", "modeChanged"])
   .describe("Kind of file change in an upstream commit.");
 
-export const ReviewCommitSchema = z
+export const ReviewCommitReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this reviewed commit."),
     versionId: IdSchema.describe("Review version that contains this commit."),
@@ -51,12 +46,16 @@ export const ReviewCommitSchema = z
     reviewMark: ReviewMarkSchema.describe("Current review mark for this commit."),
     concernAreas: ConcernAreaSelectionSchema.describe("Ordered concern areas assigned to this commit."),
     localChangeRefs: z
-      .array(LocalChangeRefSchema)
+      .array(LocalChangeRefReadSchema)
       .describe("Local changes linked to this commit when its review mark is DONE."),
-    agentReviews: z.array(AgentReviewSchema).describe("Agent review records for this commit."),
-    humanApproval: HumanApprovalSchema.nullable().describe("Human approval for this commit, if recorded."),
+    agentReviews: z.array(AgentReviewReadSchema).describe("Agent review records for this commit."),
+    humanApproval: HumanApprovalReadSchema.nullable().describe(
+      "Human approval for this commit, if recorded.",
+    ),
     fileCount: NonNegativeIntegerSchema.describe("Response-derived number of changed files in this commit."),
-    unresolvedCommentCount: NonNegativeIntegerSchema.describe("Response-derived count of open threaded comments blocking approval."),
+    unresolvedCommentCount: NonNegativeIntegerSchema.describe(
+      "Response-derived count of open threaded comments blocking approval.",
+    ),
   })
   .strict()
   .superRefine((commit, context) => {
@@ -86,7 +85,7 @@ export const ReviewCommitSchema = z
   })
   .describe("A reviewed upstream commit with review state and evidence.");
 
-export const ReviewFileSchema = z
+export const ReviewFileReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this reviewed file change."),
     commitId: IdSchema.describe("Reviewed commit that contains this file change."),
@@ -96,11 +95,13 @@ export const ReviewFileSchema = z
     changeKind: ChangeKindSchema.describe("Kind of file change."),
     reviewMark: ExplicitFileReviewMarkSchema.describe("Current explicit file review mark, if operational."),
     localChangeRefs: z
-      .array(LocalChangeRefSchema)
+      .array(LocalChangeRefReadSchema)
       .describe("Local changes linked to this file when its review mark is DONE."),
-    agentReviews: z.array(AgentReviewSchema).describe("Agent review records for this file."),
-    humanApproval: HumanApprovalSchema.nullable().describe("Human approval for this file, if recorded."),
-    unresolvedCommentCount: NonNegativeIntegerSchema.describe("Response-derived count of open threaded comments blocking approval."),
+    agentReviews: z.array(AgentReviewReadSchema).describe("Agent review records for this file."),
+    humanApproval: HumanApprovalReadSchema.nullable().describe("Human approval for this file, if recorded."),
+    unresolvedCommentCount: NonNegativeIntegerSchema.describe(
+      "Response-derived count of open threaded comments blocking approval.",
+    ),
   })
   .strict()
   .superRefine((file, context) => {
@@ -128,7 +129,11 @@ export const ReviewFileSchema = z
       });
     }
 
-    if (file.humanApproval !== null && file.reviewMark !== null && file.humanApproval.approvedMark !== file.reviewMark) {
+    if (
+      file.humanApproval !== null &&
+      file.reviewMark !== null &&
+      file.humanApproval.approvedMark !== file.reviewMark
+    ) {
       context.addIssue({
         code: "custom",
         message: "file approval must approve the current review mark",
@@ -138,7 +143,7 @@ export const ReviewFileSchema = z
   })
   .describe("A reviewed file change with optional file-level review state.");
 
-export const DiffBlockSchema = z
+export const DiffBlockReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this diff block."),
     fileId: IdSchema.describe("Reviewed file that contains this diff block."),
@@ -152,7 +157,11 @@ export const DiffBlockSchema = z
   })
   .strict()
   .superRefine((block, context) => {
-    if (block.oldStartLine !== undefined && block.oldEndLine !== undefined && block.oldStartLine > block.oldEndLine) {
+    if (
+      block.oldStartLine !== undefined &&
+      block.oldEndLine !== undefined &&
+      block.oldStartLine > block.oldEndLine
+    ) {
       context.addIssue({
         code: "custom",
         message: "oldStartLine must be less than or equal to oldEndLine",
@@ -160,7 +169,11 @@ export const DiffBlockSchema = z
       });
     }
 
-    if (block.newStartLine !== undefined && block.newEndLine !== undefined && block.newStartLine > block.newEndLine) {
+    if (
+      block.newStartLine !== undefined &&
+      block.newEndLine !== undefined &&
+      block.newStartLine > block.newEndLine
+    ) {
       context.addIssue({
         code: "custom",
         message: "newStartLine must be less than or equal to newEndLine",
@@ -170,9 +183,8 @@ export const DiffBlockSchema = z
   })
   .describe("A diff block in a reviewed file.");
 
-export type ReviewVersionState = z.infer<typeof ReviewVersionStateSchema>;
-export type ReviewVersion = z.infer<typeof ReviewVersionSchema>;
+export type ReviewVersionRead = z.infer<typeof ReviewVersionReadSchema>;
 export type ChangeKind = z.infer<typeof ChangeKindSchema>;
-export type ReviewCommit = z.infer<typeof ReviewCommitSchema>;
-export type ReviewFile = z.infer<typeof ReviewFileSchema>;
-export type DiffBlock = z.infer<typeof DiffBlockSchema>;
+export type ReviewCommitRead = z.infer<typeof ReviewCommitReadSchema>;
+export type ReviewFileRead = z.infer<typeof ReviewFileReadSchema>;
+export type DiffBlockRead = z.infer<typeof DiffBlockReadSchema>;

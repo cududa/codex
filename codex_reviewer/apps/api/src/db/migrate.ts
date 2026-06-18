@@ -1,7 +1,10 @@
 import type { Client } from "@libsql/client";
 import { databaseMigrations, type DatabaseMigration } from "./migrations/index.js";
 
-export async function migrateDatabase(client: Client, migrations: DatabaseMigration[] = databaseMigrations): Promise<void> {
+export async function migrateDatabase(
+  client: Client,
+  migrations: DatabaseMigration[] = databaseMigrations,
+): Promise<void> {
   await client.execute(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       id TEXT PRIMARY KEY NOT NULL,

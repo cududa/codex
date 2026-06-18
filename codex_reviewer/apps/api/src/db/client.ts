@@ -31,6 +31,8 @@ function ensureDatabaseDirectory(databaseUrl: string): void {
     return;
   }
 
-  const filePath = pathPart.startsWith("/") ? pathPart : fileURLToPath(new URL(pathPart, `file://${process.cwd()}/`));
+  const filePath = pathPart.startsWith("/")
+    ? pathPart
+    : fileURLToPath(new URL(pathPart, `file://${process.cwd()}/`));
   mkdirSync(dirname(filePath), { recursive: true });
 }

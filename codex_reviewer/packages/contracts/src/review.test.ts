@@ -1,18 +1,28 @@
 import { describe, expect, it } from "vitest";
 import {
-  AgentReviewSchema,
+  AgentReviewReadSchema,
   ConcernAreaSchema,
   ConcernAreaSelectionSchema,
-  DetectorEvidenceSchema,
-  DetectorRunSchema,
-  HumanApprovalSchema,
-  LocalChangeRefSchema,
+  DetectorEvidenceRowSchema,
+  DetectorEvidenceReadSchema,
+  DetectorRunReadSchema,
+  GenerateReviewLedgerCommandSchema,
+  HumanApprovalReadSchema,
+  LocalChangeRefReadSchema,
+  AddReviewNoteCommandSchema,
   ReviewBootstrapResponseSchema,
-  ReviewCommitSchema,
-  ReviewEventSchema,
-  ReviewFileSchema,
-  ReviewLedgerEntrySchema,
-  ThreadedCommentSchema,
+  ReviewCommitReadSchema,
+  ReviewCommitRowSchema,
+  ReviewEventReadSchema,
+  ReviewEventRowSchema,
+  ReviewFileReadSchema,
+  ReviewLedgerEntryReadSchema,
+  ReviewLedgerReadSchema,
+  ReviewNoteReadSchema,
+  ReviewNoteRevisionRowSchema,
+  ReviewNoteRowSchema,
+  SetCommitReviewMarkCommandSchema,
+  ThreadedCommentReadSchema,
   concernAreaSlugs,
   concernAreas,
   requireConcernArea,
@@ -58,7 +68,8 @@ describe("review contracts", () => {
     expect(requireConcernArea("tool-affordances")).toEqual({
       slug: "tool-affordances",
       label: "Tool Affordances",
-      description: "Changes to tool availability, descriptions, schemas, routing, execution, or model-facing affordances.",
+      description:
+        "Changes to tool availability, descriptions, schemas, routing, execution, or model-facing affordances.",
       sortOrder: 6,
     });
   });
@@ -114,7 +125,7 @@ describe("review contracts", () => {
 
   it("rejects DONE commits without linked local change evidence", () => {
     expect(() =>
-      ReviewCommitSchema.parse({
+      ReviewCommitReadSchema.parse({
         id: "commit-1",
         versionId: "version-1",
         sha: "1234567",
@@ -131,7 +142,7 @@ describe("review contracts", () => {
     ).toThrow();
 
     expect(
-      ReviewCommitSchema.parse({
+      ReviewCommitReadSchema.parse({
         id: "commit-1",
         versionId: "version-1",
         sha: "1234567",
@@ -153,7 +164,7 @@ describe("review contracts", () => {
 
   it("keeps file review marks explicit and forbids file concern areas", () => {
     expect(
-      ReviewFileSchema.parse({
+      ReviewFileReadSchema.parse({
         id: "file-1",
         commitId: "commit-1",
         position: 0,
@@ -168,7 +179,7 @@ describe("review contracts", () => {
     ).toMatchObject({ reviewMark: null });
 
     expect(() =>
-      ReviewFileSchema.parse({
+      ReviewFileReadSchema.parse({
         id: "file-1",
         commitId: "commit-1",
         position: 0,
@@ -186,7 +197,7 @@ describe("review contracts", () => {
 
   it("prevents agents from assigning concern areas to files", () => {
     expect(() =>
-      AgentReviewSchema.parse({
+      AgentReviewReadSchema.parse({
         id: "agent-review-1",
         scope: { type: "commit", commitId: "commit-1" },
         reviewedMark: "FLAG",
@@ -196,7 +207,7 @@ describe("review contracts", () => {
     ).toThrow();
 
     expect(
-      AgentReviewSchema.parse({
+      AgentReviewReadSchema.parse({
         id: "agent-review-1",
         scope: { type: "commit", commitId: "commit-1" },
         reviewedMark: "FLAG",
@@ -207,7 +218,7 @@ describe("review contracts", () => {
     ).toMatchObject({ reviewedConcernAreas: [] });
 
     expect(() =>
-      AgentReviewSchema.parse({
+      AgentReviewReadSchema.parse({
         id: "agent-review-1",
         scope: { type: "file", fileId: "file-1" },
         reviewedMark: "FLAG",
@@ -220,7 +231,7 @@ describe("review contracts", () => {
 
   it("requires human approval to accept only final review marks", () => {
     expect(() =>
-      HumanApprovalSchema.parse({
+      HumanApprovalReadSchema.parse({
         id: "approval-1",
         scope: { type: "commit", commitId: "commit-1" },
         approvedMark: "PASS",
@@ -231,7 +242,7 @@ describe("review contracts", () => {
     ).toThrow();
 
     expect(() =>
-      HumanApprovalSchema.parse({
+      HumanApprovalReadSchema.parse({
         id: "approval-1",
         scope: { type: "commit", commitId: "commit-1" },
         approvedMark: "MODIFY",
@@ -243,7 +254,7 @@ describe("review contracts", () => {
     ).toThrow();
 
     expect(
-      HumanApprovalSchema.parse({
+      HumanApprovalReadSchema.parse({
         id: "approval-1",
         scope: { type: "commit", commitId: "commit-1" },
         approvedMark: "DONE",
@@ -257,7 +268,7 @@ describe("review contracts", () => {
 
   it("requires DONE ledger entries to name local work", () => {
     expect(() =>
-      ReviewLedgerEntrySchema.parse({
+      ReviewLedgerEntryReadSchema.parse({
         commitId: "commit-1",
         upstreamSha: "1234567",
         finalMark: "DONE",
@@ -267,11 +278,42 @@ describe("review contracts", () => {
         approvedAt: now,
       }),
     ).toThrow();
+
+    expect(
+      ReviewLedgerReadSchema.parse({
+        id: "ledger-1",
+        versionId: "version-1",
+        generatedAt: now,
+        generatedBy: human,
+        entries: [
+          {
+            commitId: "commit-1",
+            upstreamSha: "1234567",
+            finalMark: "PASS",
+            concernAreas: ["tool-affordances"],
+            localChangeRefs: [],
+            approvedBy: human,
+            approvedAt: now,
+          },
+        ],
+      }),
+    ).toMatchObject({ id: "ledger-1", versionId: "version-1" });
+
+    expect(() =>
+      GenerateReviewLedgerCommandSchema.parse({
+        commandId: "command-ledger",
+        actor: agent,
+        occurredAt: now,
+        ledgerId: "ledger-1",
+        versionId: "version-1",
+        entries: [],
+      }),
+    ).toThrow();
   });
 
   it("models detector evidence as typed canonical state", () => {
     expect(
-      DetectorRunSchema.parse({
+      DetectorRunReadSchema.parse({
         id: "detector-run-1",
         versionId: "version-1",
         concernMapVersion: 1,
@@ -282,7 +324,7 @@ describe("review contracts", () => {
     ).toMatchObject({ state: "completed" });
 
     expect(
-      DetectorEvidenceSchema.parse({
+      DetectorEvidenceReadSchema.parse({
         id: "detector-evidence-1",
         runId: "detector-run-1",
         scope: { type: "commit", commitId: "commit-1" },
@@ -302,7 +344,7 @@ describe("review contracts", () => {
     });
 
     expect(() =>
-      DetectorEvidenceSchema.parse({
+      DetectorEvidenceReadSchema.parse({
         id: "detector-evidence-1",
         runId: "detector-run-1",
         scope: { type: "commit", commitId: "commit-1" },
@@ -321,7 +363,7 @@ describe("review contracts", () => {
 
   it("uses typed review events instead of payload blobs", () => {
     expect(
-      ReviewEventSchema.parse({
+      ReviewEventReadSchema.parse({
         id: "event-1",
         kind: "reviewMarkChanged",
         scope: { type: "file", fileId: "file-1" },
@@ -338,7 +380,7 @@ describe("review contracts", () => {
     });
 
     expect(() =>
-      ReviewEventSchema.parse({
+      ReviewEventReadSchema.parse({
         id: "event-1",
         kind: "reviewMarkChanged",
         scope: { type: "file", fileId: "file-1" },
@@ -352,9 +394,165 @@ describe("review contracts", () => {
     ).toThrow();
   });
 
+  it("keeps command schemas as canonical write intent", () => {
+    expect(
+      SetCommitReviewMarkCommandSchema.parse({
+        commandId: "command-1",
+        actor: agent,
+        occurredAt: now,
+        commitId: "commit-1",
+        reviewMark: "FLAG",
+        localChangeRefs: [],
+        eventId: "event-1",
+      }),
+    ).toMatchObject({ reviewMark: "FLAG" });
+
+    expect(() =>
+      SetCommitReviewMarkCommandSchema.parse({
+        commandId: "command-1",
+        actor: agent,
+        occurredAt: now,
+        commitId: "commit-1",
+        reviewMark: "DONE",
+        localChangeRefs: [],
+        eventId: "event-1",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      SetCommitReviewMarkCommandSchema.parse({
+        commandId: "command-1",
+        actor: agent,
+        occurredAt: now,
+        commitId: "commit-1",
+        reviewMark: "PASS",
+        localChangeRefs: [localChangeRef],
+        eventId: "event-1",
+      }),
+    ).toThrow();
+  });
+
+  it("keeps stored row schemas honest about table shape", () => {
+    expect(
+      ReviewCommitRowSchema.parse({
+        id: "commit-1",
+        versionId: "version-1",
+        sha: "1234567",
+        position: 0,
+        title: "Adjust tool prompt",
+        message: null,
+        authorName: null,
+        committedAt: null,
+        reviewMark: "FLAG",
+        createdAt: now,
+        updatedAt: null,
+      }),
+    ).toMatchObject({ message: null, reviewMark: "FLAG" });
+
+    expect(() =>
+      ReviewCommitRowSchema.parse({
+        id: "commit-1",
+        versionId: "version-1",
+        sha: "1234567",
+        position: 0,
+        title: "Adjust tool prompt",
+        message: null,
+        authorName: null,
+        committedAt: null,
+        reviewMark: "FLAG",
+        fileCount: 1,
+        createdAt: now,
+        updatedAt: null,
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ReviewEventRowSchema.parse({
+        id: "event-1",
+        scopeType: "file",
+        versionId: null,
+        commitId: "commit-1",
+        fileId: null,
+        diffBlockId: null,
+        kind: "concernAreasChanged",
+        actorType: "agent",
+        actorId: "agent-1",
+        actorDisplayName: "Review agent",
+        summary: "Impossible scope target.",
+        previousReviewMark: null,
+        newReviewMark: null,
+        agentReviewId: null,
+        humanApprovalId: null,
+        approvedMark: null,
+        localChangeRefId: null,
+        localChangeSha: null,
+        commentId: null,
+        threadId: null,
+        reviewPlanId: null,
+        createdAt: now,
+      }),
+    ).toThrow();
+  });
+
+  it("keeps detector row schemas honest about normalized evidence storage", () => {
+    expect(
+      DetectorEvidenceRowSchema.parse({
+        id: "evidence-1",
+        runId: "detector-run-1",
+        scopeType: "commit",
+        versionId: null,
+        commitId: "commit-1",
+        fileId: null,
+        diffBlockId: null,
+        concernAreaSlug: "tool-affordances",
+        suggestedReviewMark: "FLAG",
+        title: "Tool schema changed",
+        summary: null,
+        detailKind: "symbol",
+        detailPath: "codex-rs/core/src/tool.rs",
+        detailSymbolName: "ToolCall",
+        detailMarker: null,
+        detailDiffBlockId: null,
+        detailSide: null,
+        detailStartLine: null,
+        detailEndLine: null,
+        detailGraphNodeId: null,
+        detailGraphNodeLabel: null,
+        createdAt: now,
+      }),
+    ).toMatchObject({ detailKind: "symbol" });
+
+    expect(() =>
+      DetectorEvidenceRowSchema.parse({
+        id: "evidence-1",
+        runId: "detector-run-1",
+        scopeType: "commit",
+        versionId: null,
+        commitId: "commit-1",
+        fileId: null,
+        diffBlockId: null,
+        concernAreaSlug: "tool-affordances",
+        suggestedReviewMark: "FLAG",
+        title: "Tool schema changed",
+        summary: null,
+        detailKind: "symbol",
+        detailPath: null,
+        detailSymbolName: null,
+        detailMarker: null,
+        detailDiffBlockId: null,
+        detailSide: null,
+        detailStartLine: null,
+        detailEndLine: null,
+        detailGraphNodeId: null,
+        detailGraphNodeLabel: null,
+        createdAt: now,
+      }),
+    ).toThrow();
+  });
+
   it("requires resolved threaded comments to carry resolution metadata", () => {
     expect(() =>
-      ThreadedCommentSchema.parse({
+      ThreadedCommentReadSchema.parse({
         id: "comment-1",
         scope: { type: "commit", commitId: "commit-1" },
         anchor: { kind: "scope" },
@@ -368,11 +566,104 @@ describe("review contracts", () => {
     ).toThrow();
   });
 
+  it("models review notes as scoped markdown artifacts with soft-delete history", () => {
+    expect(
+      AddReviewNoteCommandSchema.parse({
+        commandId: "command-1",
+        actor: agent,
+        occurredAt: now,
+        noteId: "note-1",
+        scope: { type: "diffBlock", diffBlockId: "diff-block-1" },
+        bodyMarkdown: "This rationale belongs near the diff.",
+      }),
+    ).toEqual({
+      commandId: "command-1",
+      actor: agent,
+      occurredAt: now,
+      noteId: "note-1",
+      scope: { type: "diffBlock", diffBlockId: "diff-block-1" },
+      bodyMarkdown: "This rationale belongs near the diff.",
+    });
+    expect(() =>
+      AddReviewNoteCommandSchema.parse({
+        commandId: "command-1",
+        actor: agent,
+        occurredAt: now,
+        noteId: "note-1",
+        scope: { type: "version", versionId: "version-1" },
+        bodyMarkdown: "Version notes are not part of ReviewNote.",
+      }),
+    ).toThrow();
+    expect(
+      ReviewNoteReadSchema.parse({
+        id: "note-1",
+        scope: { type: "commit", commitId: "commit-1" },
+        bodyMarkdown: "Carry this investigation context forward.",
+        author: human,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        deletedBy: null,
+      }),
+    ).toMatchObject({ id: "note-1", deletedAt: null });
+    expect(() =>
+      ReviewNoteReadSchema.parse({
+        id: "note-1",
+        scope: { type: "commit", commitId: "commit-1" },
+        bodyMarkdown: "Bad soft-delete shape.",
+        author: human,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: now,
+        deletedBy: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      ReviewNoteRowSchema.parse({
+        id: "note-1",
+        scopeType: "commit",
+        commitId: null,
+        fileId: "file-1",
+        diffBlockId: null,
+        bodyMarkdown: "Scope mismatch.",
+        authorType: "agent",
+        authorId: "agent-1",
+        authorDisplayName: null,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        deletedByType: null,
+        deletedById: null,
+        deletedByDisplayName: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      ReviewNoteRevisionRowSchema.parse({
+        id: "command-1",
+        noteId: "note-1",
+        actorType: "human",
+        actorId: "human-1",
+        actorDisplayName: null,
+        changedAt: now,
+        action: "deleted",
+        bodyMarkdownBefore: null,
+        bodyMarkdownAfter: null,
+      }),
+    ).toThrow();
+  });
+
   it("describes canonical schema fields directly on the Zod schemas", () => {
     expect(ConcernAreaSchema.description).toContain("canonical concern area");
     expect(ConcernAreaSchema.shape.slug.description).toContain("Stable concern area slug");
     expect(ReviewBootstrapResponseSchema.shape.reviewMarks.description).toContain("Canonical review marks");
-    expect(LocalChangeRefSchema.shape.sha.description).toContain("Local commit SHA");
-    expect(Object.keys(reviewSchemas)).toContain("ReviewCommit");
+    expect(LocalChangeRefReadSchema.shape.sha.description).toContain("Local commit SHA");
+    expect(Object.keys(reviewSchemas)).toContain("ReviewCommitRead");
+    expect(Object.keys(reviewSchemas)).toContain("ReviewCommitRow");
+    expect(Object.keys(reviewSchemas)).toContain("ReviewNoteRow");
+    expect(Object.keys(reviewSchemas)).toContain("AddReviewNoteCommand");
+    expect(Object.keys(reviewSchemas)).toContain("GenerateReviewLedgerCommand");
+    expect(Object.keys(reviewSchemas)).toContain("SetCommitReviewMarkCommand");
+    expect(Object.keys(reviewSchemas).join(" ")).not.toContain("Decision");
+    expect(Object.keys(reviewSchemas).join(" ")).not.toContain("Finalization");
   });
 });

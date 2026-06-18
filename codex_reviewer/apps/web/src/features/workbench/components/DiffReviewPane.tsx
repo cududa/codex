@@ -1,9 +1,9 @@
 import { FileDiff } from "lucide-react";
-import type { DiffBlock, ReviewFile } from "@/entities/review/types";
+import type { DiffBlockRead, ReviewFileRead } from "@/entities/review/types";
 
 type DiffReviewPaneProps = {
-  file: ReviewFile | undefined;
-  diffBlocks: DiffBlock[];
+  file: ReviewFileRead | undefined;
+  diffBlocks: DiffBlockRead[];
 };
 
 export function DiffReviewPane({ diffBlocks, file }: DiffReviewPaneProps) {
@@ -20,7 +20,9 @@ export function DiffReviewPane({ diffBlocks, file }: DiffReviewPaneProps) {
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {file === undefined ? <EmptyState>Select a file to inspect changes.</EmptyState> : null}
-        {file !== undefined && diffBlocks.length === 0 ? <EmptyState>This file has no structured diff blocks.</EmptyState> : null}
+        {file !== undefined && diffBlocks.length === 0 ? (
+          <EmptyState>This file has no structured diff blocks.</EmptyState>
+        ) : null}
         <div className="grid gap-4">
           {diffBlocks.map((block, index) => (
             <DiffBlockCard block={block} index={index} key={block.id} />
@@ -32,16 +34,21 @@ export function DiffReviewPane({ diffBlocks, file }: DiffReviewPaneProps) {
 }
 
 function EmptyState({ children }: { children: string }) {
-  return <div className="rounded-md border border-slate-200 bg-white p-5 text-sm text-slate-500">{children}</div>;
+  return (
+    <div className="rounded-md border border-slate-200 bg-white p-5 text-sm text-slate-500">{children}</div>
+  );
 }
 
-function DiffBlockCard({ block, index }: { block: DiffBlock; index: number }) {
+function DiffBlockCard({ block, index }: { block: DiffBlockRead; index: number }) {
   return (
     <article className="overflow-hidden rounded-md border border-slate-200 bg-white">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-3 py-2">
-        <div className="min-w-0 text-sm font-semibold text-slate-900">{block.heading ?? `Block ${index + 1}`}</div>
+        <div className="min-w-0 text-sm font-semibold text-slate-900">
+          {block.heading ?? `Block ${index + 1}`}
+        </div>
         <div className="shrink-0 font-mono text-xs text-slate-500">
-          -{lineRange(block.oldStartLine, block.oldEndLine)} / +{lineRange(block.newStartLine, block.newEndLine)}
+          -{lineRange(block.oldStartLine, block.oldEndLine)} / +
+          {lineRange(block.newStartLine, block.newEndLine)}
         </div>
       </div>
       <pre className="max-h-[520px] overflow-auto bg-slate-950 p-3 text-xs leading-5 text-slate-100">
@@ -56,7 +63,7 @@ function DiffBlockCard({ block, index }: { block: DiffBlock; index: number }) {
   );
 }
 
-function patchRows(block: DiffBlock): Array<{ key: string; line: string }> {
+function patchRows(block: DiffBlockRead): Array<{ key: string; line: string }> {
   const occurrences = new Map<string, number>();
   return block.patch.split("\n").map((line) => {
     const count = occurrences.get(line) ?? 0;

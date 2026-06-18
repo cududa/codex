@@ -1,19 +1,25 @@
 import { GitCommitHorizontal, MessageSquare } from "lucide-react";
 import type { ReactNode } from "react";
-import type { ConcernArea, ReviewCommit, ReviewMarkDefinition } from "@/entities/review/types";
+import type { ConcernArea, ReviewCommitRead, ReviewMarkDefinition } from "@/entities/review/types";
 import { cn } from "@/shared/lib/cn";
 import { concernAreaSummary } from "../model/workbenchView";
 import { ReviewMarkPill } from "./ReviewMarkPill";
 
 type CommitQueueProps = {
-  commits: ReviewCommit[];
+  commits: ReviewCommitRead[];
   concernAreas: ConcernArea[];
   reviewMarks: ReviewMarkDefinition[];
-  selectedCommitId: ReviewCommit["id"] | null;
-  onSelect: (commitId: ReviewCommit["id"]) => void;
+  selectedCommitId: ReviewCommitRead["id"] | null;
+  onSelect: (commitId: ReviewCommitRead["id"]) => void;
 };
 
-export function CommitQueue({ commits, concernAreas, onSelect, reviewMarks, selectedCommitId }: CommitQueueProps) {
+export function CommitQueue({
+  commits,
+  concernAreas,
+  onSelect,
+  reviewMarks,
+  selectedCommitId,
+}: CommitQueueProps) {
   return (
     <section className="flex h-full min-h-0 flex-col border-r border-slate-200 bg-white">
       <header className="border-b border-slate-200 px-3 py-2">
@@ -44,7 +50,10 @@ export function CommitQueue({ commits, concernAreas, onSelect, reviewMarks, sele
                 <Chip label={concernAreaSummary(commit.concernAreas, concernAreas)} />
                 <Chip label={`${commit.fileCount} files`} />
                 {commit.unresolvedCommentCount > 0 ? (
-                  <Chip icon={<MessageSquare className="size-3" aria-hidden="true" />} label={`${commit.unresolvedCommentCount} open`} />
+                  <Chip
+                    icon={<MessageSquare className="size-3" aria-hidden="true" />}
+                    label={`${commit.unresolvedCommentCount} open`}
+                  />
                 ) : null}
               </span>
             </button>

@@ -1,4 +1,4 @@
-import type { ChangeKind, ConcernAreaSlug, ReviewMark, ReviewVersionState } from "@prompt-reviews/contracts";
+import type { ChangeKind, ConcernAreaSlug, ReviewMark } from "@prompt-reviews/contracts";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const reviewVersions = sqliteTable("review_versions", {
@@ -9,7 +9,6 @@ export const reviewVersions = sqliteTable("review_versions", {
   targetRef: text("target_ref"),
   baseSha: text("base_sha"),
   targetSha: text("target_sha"),
-  state: text("state").$type<ReviewVersionState>().notNull().default("open"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at"),
 });

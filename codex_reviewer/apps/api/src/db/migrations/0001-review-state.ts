@@ -139,6 +139,11 @@ export const reviewStateStatements = [
       (kind = 'localChangeLinked' AND local_change_ref_id IS NOT NULL AND local_change_sha IS NOT NULL AND previous_review_mark IS NULL AND new_review_mark IS NULL AND agent_review_id IS NULL AND human_approval_id IS NULL AND comment_id IS NULL AND thread_id IS NULL AND review_plan_id IS NULL) OR
       (kind = 'commentResolved' AND comment_id IS NOT NULL AND thread_id IS NOT NULL AND previous_review_mark IS NULL AND new_review_mark IS NULL AND agent_review_id IS NULL AND human_approval_id IS NULL AND approved_mark IS NULL AND local_change_ref_id IS NULL AND review_plan_id IS NULL) OR
       (kind = 'planUpdated' AND review_plan_id IS NOT NULL AND previous_review_mark IS NULL AND new_review_mark IS NULL AND agent_review_id IS NULL AND human_approval_id IS NULL AND approved_mark IS NULL AND local_change_ref_id IS NULL AND comment_id IS NULL AND thread_id IS NULL)
+    ),
+    CHECK (
+      (kind = 'concernAreasChanged' AND scope_type = 'commit') OR
+      (kind IN ('reviewMarkChanged', 'agentReviewRecorded', 'humanApprovalRecorded', 'humanApprovalRevoked', 'localChangeLinked') AND scope_type IN ('commit', 'file')) OR
+      (kind IN ('commentResolved', 'planUpdated'))
     )
   )`,
   "CREATE INDEX review_events_version_idx ON review_events(version_id)",
@@ -161,4 +166,99 @@ export const reviewStateStatements = [
     PRIMARY KEY (review_event_id, concern_area_slug)
   )`,
   "CREATE UNIQUE INDEX review_event_new_concern_areas_position_unique ON review_event_new_concern_areas(review_event_id, position)",
+
+  `CREATE TRIGGER review_commits_done_requires_local_change_insert
+    AFTER INSERT ON review_commits
+    WHEN NEW.review_mark = 'DONE' AND NOT EXISTS (SELECT 1 FROM local_change_refs WHERE commit_id = NEW.id)
+    BEGIN
+      SELECT RAISE(ABORT, 'DONE commits require local change refs');
+    END`,
+  `CREATE TRIGGER review_commits_done_requires_local_change_update
+    AFTER UPDATE OF review_mark ON review_commits
+    WHEN NEW.review_mark = 'DONE' AND NOT EXISTS (SELECT 1 FROM local_change_refs WHERE commit_id = NEW.id)
+    BEGIN
+      SELECT RAISE(ABORT, 'DONE commits require local change refs');
+    END`,
+  `CREATE TRIGGER review_files_done_requires_local_change_insert
+    AFTER INSERT ON review_files
+    WHEN NEW.review_mark = 'DONE' AND NOT EXISTS (SELECT 1 FROM local_change_refs WHERE file_id = NEW.id)
+    BEGIN
+      SELECT RAISE(ABORT, 'DONE files require local change refs');
+    END`,
+  `CREATE TRIGGER review_files_done_requires_local_change_update
+    AFTER UPDATE OF review_mark ON review_files
+    WHEN NEW.review_mark = 'DONE' AND NOT EXISTS (SELECT 1 FROM local_change_refs WHERE file_id = NEW.id)
+    BEGIN
+      SELECT RAISE(ABORT, 'DONE files require local change refs');
+    END`,
+  `CREATE TRIGGER local_change_refs_delete_preserves_done_commit
+    BEFORE DELETE ON local_change_refs
+    WHEN OLD.commit_id IS NOT NULL
+      AND (SELECT review_mark FROM review_commits WHERE id = OLD.commit_id) = 'DONE'
+      AND (SELECT COUNT(*) FROM local_change_refs WHERE commit_id = OLD.commit_id) <= 1
+    BEGIN
+      SELECT RAISE(ABORT, 'cannot remove the last local change ref from a DONE commit');
+    END`,
+  `CREATE TRIGGER local_change_refs_delete_preserves_done_file
+    BEFORE DELETE ON local_change_refs
+    WHEN OLD.file_id IS NOT NULL
+      AND (SELECT review_mark FROM review_files WHERE id = OLD.file_id) = 'DONE'
+      AND (SELECT COUNT(*) FROM local_change_refs WHERE file_id = OLD.file_id) <= 1
+    BEGIN
+      SELECT RAISE(ABORT, 'cannot remove the last local change ref from a DONE file');
+    END`,
+  `CREATE TRIGGER human_commit_approvals_done_requires_local_change_insert
+    AFTER INSERT ON human_commit_approvals
+    WHEN NEW.approved_mark = 'DONE' AND NOT EXISTS (SELECT 1 FROM local_change_refs WHERE commit_id = NEW.commit_id)
+    BEGIN
+      SELECT RAISE(ABORT, 'DONE commit approvals require local change refs');
+    END`,
+  `CREATE TRIGGER human_file_approvals_done_requires_local_change_insert
+    AFTER INSERT ON human_file_approvals
+    WHEN NEW.approved_mark = 'DONE' AND NOT EXISTS (SELECT 1 FROM local_change_refs WHERE file_id = NEW.file_id)
+    BEGIN
+      SELECT RAISE(ABORT, 'DONE file approvals require local change refs');
+    END`,
+  `CREATE TRIGGER human_commit_approvals_must_match_commit_mark_insert
+    AFTER INSERT ON human_commit_approvals
+    WHEN NEW.approved_mark != (SELECT review_mark FROM review_commits WHERE id = NEW.commit_id)
+    BEGIN
+      SELECT RAISE(ABORT, 'commit approval must match the current commit review mark');
+    END`,
+  `CREATE TRIGGER human_file_approvals_must_match_file_mark_insert
+    AFTER INSERT ON human_file_approvals
+    WHEN NEW.approved_mark != (SELECT review_mark FROM review_files WHERE id = NEW.file_id)
+    BEGIN
+      SELECT RAISE(ABORT, 'file approval must match the current file review mark');
+    END`,
+  `CREATE TRIGGER review_commits_mark_update_preserves_approval
+    AFTER UPDATE OF review_mark ON review_commits
+    WHEN EXISTS (
+      SELECT 1 FROM human_commit_approvals
+      WHERE commit_id = NEW.id AND approved_mark != NEW.review_mark
+    )
+    BEGIN
+      SELECT RAISE(ABORT, 'cannot change commit review mark away from recorded human approval');
+    END`,
+  `CREATE TRIGGER review_files_mark_update_preserves_approval
+    AFTER UPDATE OF review_mark ON review_files
+    WHEN EXISTS (
+      SELECT 1 FROM human_file_approvals
+      WHERE file_id = NEW.id AND approved_mark != NEW.review_mark
+    )
+    BEGIN
+      SELECT RAISE(ABORT, 'cannot change file review mark away from recorded human approval');
+    END`,
+  `CREATE TRIGGER review_event_previous_concern_areas_require_concern_event
+    BEFORE INSERT ON review_event_previous_concern_areas
+    WHEN (SELECT kind FROM review_events WHERE id = NEW.review_event_id) IS NOT 'concernAreasChanged'
+    BEGIN
+      SELECT RAISE(ABORT, 'concern area history rows require a concernAreasChanged event');
+    END`,
+  `CREATE TRIGGER review_event_new_concern_areas_require_concern_event
+    BEFORE INSERT ON review_event_new_concern_areas
+    WHEN (SELECT kind FROM review_events WHERE id = NEW.review_event_id) IS NOT 'concernAreasChanged'
+    BEGIN
+      SELECT RAISE(ABORT, 'concern area history rows require a concernAreasChanged event');
+    END`,
 ];

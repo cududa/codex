@@ -4,13 +4,16 @@ This roadmap starts after the target journey documentation and canonical contrac
 
 ## Already Established
 
-1. Target journey and vocabulary live in `codex_reviewer/docs/target-review-journey.md`.
+1. Target journey and vocabulary live in `codex_reviewer/docs/UX_outline.md` and the canonical follow-up notes in `codex_reviewer/docs`.
 2. Canonical schemas live in `codex_reviewer/packages/contracts`.
 3. The Hono API should consume those contracts directly, with real request/response validation and no fake persistence layer.
+4. `ReviewNote` is the canonical freeform markdown note model. It is not a renamed prototype action/outcome system.
 
 ## Remaining Sequence
 
 ### 4. Fresh Persistence
+
+Status: implemented as the current stage-4 target.
 
 Add a new Drizzle-backed persistence model only after the API contract shape is approved.
 
@@ -27,11 +30,15 @@ The database should model the target concepts directly:
 - human approvals
 - review events
 - threaded comments
-- decision notes
+- review notes with revision history
 - review plans
-- version finalization and final ledger entries
+- completed review ledgers and final ledger entries
 
 Do not preserve old migrations, old review data, old repositories, old projection helpers, or document-shaped storage.
+
+Do not preserve the old prototype action/outcome system. There are no action tables, action schemas, dropdown actions, outcome enums, or compatibility adapters.
+
+Do not preserve the old version lifecycle/status concept. Review completion is represented by a generated review ledger and its entries, not by a version-level completion flag or separate completion wrapper table.
 
 ### 5. Selective Frontend Port
 
@@ -52,9 +59,9 @@ Do not port old vocabulary or old frontend data assumptions:
 - taggings
 - classification
 - primary/secondary tag controls
-- old decision outcome UI
+- old action/outcome UI
 - old plan item workflow UI
-- old finalized/status substitutes for human approval
+- old version lifecycle/status substitutes for human approval
 
 ### 6. Concern Map And Ingest Integration
 
@@ -75,13 +82,15 @@ Add MCP tools and resources against the same canonical contracts used by HTTP an
 
 Agents may:
 
-- read review versions, commits, files, diff blocks, comments, decision notes, plans, and ledger state
+- read review versions, commits, files, diff blocks, comments, review notes, plans, and ledger state
 - set or correct commit concern areas
 - set or correct commit/file review marks
 - record agent reviews
 - add threaded comments
 - resolve comments when appropriate
-- add decision notes
+- add review notes
+- update review notes
+- delete review notes
 - add or update review plans
 - link local change references when local adaptation work is complete
 
@@ -90,7 +99,7 @@ Agents may not:
 - create human approvals
 - approve commits
 - approve files
-- finalize versions
+- generate completed review ledgers
 
 ### 8. Guardrails
 

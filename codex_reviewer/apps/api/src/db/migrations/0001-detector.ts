@@ -59,12 +59,12 @@ export const detectorStatements = [
     CHECK (${scopedTargetCheck}),
     CHECK (detail_start_line IS NULL OR detail_end_line IS NULL OR detail_start_line <= detail_end_line),
     CHECK (
-      (detail_kind = 'path' AND detail_path IS NOT NULL AND detail_symbol_name IS NULL AND detail_marker IS NULL AND detail_diff_block_id IS NULL AND detail_graph_node_id IS NULL) OR
-      (detail_kind = 'symbol' AND detail_symbol_name IS NOT NULL AND detail_marker IS NULL AND detail_diff_block_id IS NULL AND detail_graph_node_id IS NULL) OR
-      (detail_kind = 'marker' AND detail_marker IS NOT NULL AND detail_symbol_name IS NULL AND detail_diff_block_id IS NULL AND detail_graph_node_id IS NULL) OR
-      (detail_kind = 'templateMarker' AND detail_marker IS NOT NULL AND detail_symbol_name IS NULL AND detail_diff_block_id IS NULL AND detail_graph_node_id IS NULL) OR
-      (detail_kind = 'diff' AND detail_diff_block_id IS NOT NULL AND detail_symbol_name IS NULL AND detail_marker IS NULL AND detail_graph_node_id IS NULL) OR
-      (detail_kind = 'graph' AND detail_graph_node_id IS NOT NULL AND detail_symbol_name IS NULL AND detail_marker IS NULL AND detail_diff_block_id IS NULL)
+      (detail_kind = 'path' AND detail_path IS NOT NULL AND detail_symbol_name IS NULL AND detail_marker IS NULL AND detail_diff_block_id IS NULL AND detail_side IS NULL AND detail_start_line IS NULL AND detail_end_line IS NULL AND detail_graph_node_id IS NULL AND detail_graph_node_label IS NULL) OR
+      (detail_kind = 'symbol' AND detail_symbol_name IS NOT NULL AND detail_marker IS NULL AND detail_diff_block_id IS NULL AND detail_side IS NULL AND detail_start_line IS NULL AND detail_end_line IS NULL AND detail_graph_node_id IS NULL AND detail_graph_node_label IS NULL) OR
+      (detail_kind = 'marker' AND detail_marker IS NOT NULL AND detail_symbol_name IS NULL AND detail_diff_block_id IS NULL AND detail_side IS NULL AND detail_start_line IS NULL AND detail_end_line IS NULL AND detail_graph_node_id IS NULL AND detail_graph_node_label IS NULL) OR
+      (detail_kind = 'templateMarker' AND detail_marker IS NOT NULL AND detail_symbol_name IS NULL AND detail_diff_block_id IS NULL AND detail_side IS NULL AND detail_start_line IS NULL AND detail_end_line IS NULL AND detail_graph_node_id IS NULL AND detail_graph_node_label IS NULL) OR
+      (detail_kind = 'diff' AND detail_diff_block_id IS NOT NULL AND detail_path IS NULL AND detail_symbol_name IS NULL AND detail_marker IS NULL AND detail_graph_node_id IS NULL AND detail_graph_node_label IS NULL) OR
+      (detail_kind = 'graph' AND detail_graph_node_id IS NOT NULL AND detail_path IS NULL AND detail_symbol_name IS NULL AND detail_marker IS NULL AND detail_diff_block_id IS NULL AND detail_side IS NULL AND detail_start_line IS NULL AND detail_end_line IS NULL)
     )
   )`,
   "CREATE INDEX detector_evidence_run_idx ON detector_evidence(run_id)",

@@ -23,7 +23,9 @@ export const ReviewMarkDefinitionSchema = z
     isFinal: z.boolean().describe("Whether this mark can appear in the completed review ledger."),
     requiresLocalChangeRefs: z
       .boolean()
-      .describe("Whether this mark requires linked local commit evidence before approval or finalization."),
+      .describe(
+        "Whether this mark requires linked local commit evidence before approval or ledger generation.",
+      ),
   })
   .strict()
   .describe("Display and workflow metadata for a review mark.");

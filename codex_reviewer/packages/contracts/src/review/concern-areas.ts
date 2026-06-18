@@ -78,13 +78,15 @@ const concernAreaDefinitionInput = [
   {
     slug: "hidden-context",
     label: "Hidden Context",
-    description: "Changes to implicit context, injected instructions, summaries, or data hidden from the visible transcript.",
+    description:
+      "Changes to implicit context, injected instructions, summaries, or data hidden from the visible transcript.",
     sortOrder: 2,
   },
   {
     slug: "goal-continuation",
     label: "Goal Continuation",
-    description: "Changes to continuation behavior, resumption, budgeting, or persistence while a goal is active.",
+    description:
+      "Changes to continuation behavior, resumption, budgeting, or persistence while a goal is active.",
     sortOrder: 3,
   },
   {
@@ -96,13 +98,15 @@ const concernAreaDefinitionInput = [
   {
     slug: "context-compaction",
     label: "Context Compaction",
-    description: "Changes to summarization, truncation, compaction, transcript retention, or context recovery.",
+    description:
+      "Changes to summarization, truncation, compaction, transcript retention, or context recovery.",
     sortOrder: 5,
   },
   {
     slug: "tool-affordances",
     label: "Tool Affordances",
-    description: "Changes to tool availability, descriptions, schemas, routing, execution, or model-facing affordances.",
+    description:
+      "Changes to tool availability, descriptions, schemas, routing, execution, or model-facing affordances.",
     sortOrder: 6,
   },
   {

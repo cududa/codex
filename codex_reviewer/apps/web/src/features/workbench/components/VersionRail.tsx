@@ -1,13 +1,15 @@
 import { GitBranch, ShieldCheck } from "lucide-react";
-import type { ReviewCommit } from "@/entities/review/types";
+import type { ReviewCommitRead } from "@/entities/review/types";
 
 type VersionRailProps = {
-  commits: ReviewCommit[];
+  commits: ReviewCommitRead[];
 };
 
 export function VersionRail({ commits }: VersionRailProps) {
   const flagged = commits.filter((commit) => commit.reviewMark === "FLAG").length;
-  const adaptations = commits.filter((commit) => commit.reviewMark === "MODIFY" || commit.reviewMark === "DONE").length;
+  const adaptations = commits.filter(
+    (commit) => commit.reviewMark === "MODIFY" || commit.reviewMark === "DONE",
+  ).length;
 
   return (
     <aside className="flex h-full min-h-0 flex-col border-r border-slate-200 bg-white">
@@ -34,11 +36,23 @@ export function VersionRail({ commits }: VersionRailProps) {
   );
 }
 
-function Metric({ label, tone = "neutral", value }: { label: string; tone?: "neutral" | "warn"; value: string }) {
+function Metric({
+  label,
+  tone = "neutral",
+  value,
+}: {
+  label: string;
+  tone?: "neutral" | "warn";
+  value: string;
+}) {
   return (
     <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
       <div className="text-xs text-slate-500">{label}</div>
-      <div className={tone === "warn" ? "text-lg font-semibold text-amber-700" : "text-lg font-semibold text-slate-950"}>
+      <div
+        className={
+          tone === "warn" ? "text-lg font-semibold text-amber-700" : "text-lg font-semibold text-slate-950"
+        }
+      >
         {value}
       </div>
     </div>

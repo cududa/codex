@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { concernAreas, reviewMarkDefinitions } from "@prompt-reviews/contracts";
-import { changeSymbol, changeTone, concernAreaSummary, reviewMarkLabel, reviewMarkTone } from "./workbenchView";
+import {
+  changeSymbol,
+  changeTone,
+  concernAreaSummary,
+  reviewMarkLabel,
+  reviewMarkTone,
+} from "./workbenchView";
 
 describe("workbench view helpers", () => {
   it("summarizes ordered concern areas without old primary/secondary vocabulary", () => {
     expect(concernAreaSummary(["tool-affordances"], concernAreas)).toBe("Tool Affordances");
-    expect(concernAreaSummary(["tool-affordances", "permission-defaults", "hidden-context"], concernAreas)).toBe(
-      "Tool Affordances +2",
-    );
+    expect(
+      concernAreaSummary(["tool-affordances", "permission-defaults", "hidden-context"], concernAreas),
+    ).toBe("Tool Affordances +2");
   });
 
   it("maps review marks to display labels and tones", () => {

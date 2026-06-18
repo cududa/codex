@@ -40,7 +40,9 @@ export const detectorEvidence = sqliteTable(
     suggestedReviewMark: text("suggested_review_mark").$type<ReviewMark>(),
     title: text("title").notNull(),
     summary: text("summary"),
-    detailKind: text("detail_kind").$type<"path" | "symbol" | "marker" | "templateMarker" | "diff" | "graph">().notNull(),
+    detailKind: text("detail_kind")
+      .$type<"path" | "symbol" | "marker" | "templateMarker" | "diff" | "graph">()
+      .notNull(),
     detailPath: text("detail_path"),
     detailSymbolName: text("detail_symbol_name"),
     detailMarker: text("detail_marker"),

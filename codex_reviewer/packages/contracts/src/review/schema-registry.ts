@@ -1,47 +1,141 @@
-import { AgentReviewSchema, HumanApprovalSchema, ReviewEventSchema } from "./review-actions.js";
+import { AgentReviewReadSchema, HumanApprovalReadSchema, ReviewEventReadSchema } from "./review-actions.js";
 import {
   ConcernAreasResponseSchema,
   ReviewBootstrapResponseSchema,
   ReviewMarksResponseSchema,
   ReviewSchemaCatalogResponseSchema,
 } from "./api.js";
+import {
+  AddReviewNoteCommandSchema,
+  AddThreadedCommentCommandSchema,
+  DeleteReviewNoteCommandSchema,
+  GenerateReviewLedgerCommandSchema,
+  LinkLocalChangeRefCommandSchema,
+  LocalChangeRefCommandInputSchema,
+  RecordAgentReviewCommandSchema,
+  RecordHumanApprovalCommandSchema,
+  ResolveThreadedCommentCommandSchema,
+  SetCommitConcernAreasCommandSchema,
+  SetCommitReviewMarkCommandSchema,
+  SetFileReviewMarkCommandSchema,
+  UpdateReviewNoteCommandSchema,
+  UpsertReviewPlanCommandSchema,
+} from "./commands.js";
 import { ConcernAreaSchema, ConcernAreaSelectionSchema, ConcernAreaSlugSchema } from "./concern-areas.js";
-import { DecisionNoteSchema } from "./decision-notes.js";
-import { DetectorEvidenceSchema, DetectorRunSchema } from "./detector-evidence.js";
-import { DiffBlockSchema, ReviewCommitSchema, ReviewFileSchema, ReviewVersionSchema } from "./reviewables.js";
-import { LocalChangeRefSchema } from "./local-change-refs.js";
-import { ReviewLedgerEntrySchema, ReviewLedgerSchema, VersionFinalizationSchema } from "./ledger.js";
+import { DetectorEvidenceReadSchema, DetectorRunReadSchema } from "./detector-evidence.js";
+import {
+  DiffBlockReadSchema,
+  ReviewCommitReadSchema,
+  ReviewFileReadSchema,
+  ReviewVersionReadSchema,
+} from "./reviewables.js";
+import { LocalChangeRefReadSchema } from "./local-change-refs.js";
+import { ReviewLedgerEntryReadSchema, ReviewLedgerReadSchema } from "./ledger.js";
 import { ReviewMarkSchema } from "./review-marks.js";
-import { ReviewPlanSchema } from "./review-plans.js";
+import {
+  ReviewNoteReadSchema,
+  ReviewNoteRevisionActionSchema,
+  ReviewNoteRevisionReadSchema,
+  ReviewNoteScopeSchema,
+  ReviewNoteScopeTypeSchema,
+} from "./review-notes.js";
+import { ReviewPlanReadSchema } from "./review-plans.js";
+import {
+  AgentCommitReviewRowSchema,
+  AgentCommitReviewConcernAreaRowSchema,
+  AgentFileReviewRowSchema,
+  CommitConcernAreaRowSchema,
+  DetectorEvidenceRowSchema,
+  DetectorRunRowSchema,
+  DiffBlockRowSchema,
+  HumanCommitApprovalConcernAreaRowSchema,
+  HumanCommitApprovalRowSchema,
+  HumanFileApprovalRowSchema,
+  LocalChangeRefRowSchema,
+  ReviewCommitRowSchema,
+  ReviewEventRowSchema,
+  ReviewEventConcernAreaRowSchema,
+  ReviewFileRowSchema,
+  ReviewLedgerEntryConcernAreaRowSchema,
+  ReviewLedgerEntryLocalChangeRefRowSchema,
+  ReviewLedgerEntryRowSchema,
+  ReviewLedgerRowSchema,
+  ReviewNoteRevisionRowSchema,
+  ReviewNoteRowSchema,
+  ReviewPlanRowSchema,
+  ReviewVersionRowSchema,
+  ThreadedCommentRowSchema,
+} from "./rows.js";
 import { ReviewScopeSchema } from "./scopes.js";
-import { ThreadedCommentSchema } from "./threaded-comments.js";
+import { ThreadedCommentReadSchema } from "./threaded-comments.js";
 
 export const reviewSchemas = {
-  AgentReview: AgentReviewSchema,
+  AddReviewNoteCommand: AddReviewNoteCommandSchema,
+  AddThreadedCommentCommand: AddThreadedCommentCommandSchema,
+  AgentReviewRead: AgentReviewReadSchema,
+  AgentCommitReviewConcernAreaRow: AgentCommitReviewConcernAreaRowSchema,
+  AgentCommitReviewRow: AgentCommitReviewRowSchema,
+  AgentFileReviewRow: AgentFileReviewRowSchema,
+  CommitConcernAreaRow: CommitConcernAreaRowSchema,
   ConcernAreasResponse: ConcernAreasResponseSchema,
   ConcernArea: ConcernAreaSchema,
   ConcernAreaSelection: ConcernAreaSelectionSchema,
   ConcernAreaSlug: ConcernAreaSlugSchema,
-  DecisionNote: DecisionNoteSchema,
-  DetectorEvidence: DetectorEvidenceSchema,
-  DetectorRun: DetectorRunSchema,
-  DiffBlock: DiffBlockSchema,
-  HumanApproval: HumanApprovalSchema,
-  LocalChangeRef: LocalChangeRefSchema,
-  ReviewCommit: ReviewCommitSchema,
-  ReviewEvent: ReviewEventSchema,
-  ReviewFile: ReviewFileSchema,
-  ReviewLedger: ReviewLedgerSchema,
-  ReviewLedgerEntry: ReviewLedgerEntrySchema,
+  DeleteReviewNoteCommand: DeleteReviewNoteCommandSchema,
+  DetectorEvidenceRead: DetectorEvidenceReadSchema,
+  DetectorEvidenceRow: DetectorEvidenceRowSchema,
+  DetectorRunRead: DetectorRunReadSchema,
+  DetectorRunRow: DetectorRunRowSchema,
+  DiffBlockRead: DiffBlockReadSchema,
+  DiffBlockRow: DiffBlockRowSchema,
+  HumanApprovalRead: HumanApprovalReadSchema,
+  HumanCommitApprovalConcernAreaRow: HumanCommitApprovalConcernAreaRowSchema,
+  HumanCommitApprovalRow: HumanCommitApprovalRowSchema,
+  HumanFileApprovalRow: HumanFileApprovalRowSchema,
+  GenerateReviewLedgerCommand: GenerateReviewLedgerCommandSchema,
+  LinkLocalChangeRefCommand: LinkLocalChangeRefCommandSchema,
+  LocalChangeRefCommandInput: LocalChangeRefCommandInputSchema,
+  LocalChangeRefRead: LocalChangeRefReadSchema,
+  LocalChangeRefRow: LocalChangeRefRowSchema,
+  RecordAgentReviewCommand: RecordAgentReviewCommandSchema,
+  RecordHumanApprovalCommand: RecordHumanApprovalCommandSchema,
+  ResolveThreadedCommentCommand: ResolveThreadedCommentCommandSchema,
+  ReviewCommitRead: ReviewCommitReadSchema,
+  ReviewCommitRow: ReviewCommitRowSchema,
+  ReviewEventRead: ReviewEventReadSchema,
+  ReviewEventConcernAreaRow: ReviewEventConcernAreaRowSchema,
+  ReviewEventRow: ReviewEventRowSchema,
+  ReviewFileRead: ReviewFileReadSchema,
+  ReviewFileRow: ReviewFileRowSchema,
+  ReviewLedgerRead: ReviewLedgerReadSchema,
+  ReviewLedgerEntryConcernAreaRow: ReviewLedgerEntryConcernAreaRowSchema,
+  ReviewLedgerEntryLocalChangeRefRow: ReviewLedgerEntryLocalChangeRefRowSchema,
+  ReviewLedgerEntryRead: ReviewLedgerEntryReadSchema,
+  ReviewLedgerEntryRow: ReviewLedgerEntryRowSchema,
+  ReviewLedgerRow: ReviewLedgerRowSchema,
   ReviewMark: ReviewMarkSchema,
+  ReviewNoteRead: ReviewNoteReadSchema,
+  ReviewNoteRevisionAction: ReviewNoteRevisionActionSchema,
+  ReviewNoteRevisionRead: ReviewNoteRevisionReadSchema,
+  ReviewNoteRevisionRow: ReviewNoteRevisionRowSchema,
+  ReviewNoteRow: ReviewNoteRowSchema,
+  ReviewNoteScope: ReviewNoteScopeSchema,
+  ReviewNoteScopeType: ReviewNoteScopeTypeSchema,
   ReviewBootstrapResponse: ReviewBootstrapResponseSchema,
   ReviewMarksResponse: ReviewMarksResponseSchema,
-  ReviewPlan: ReviewPlanSchema,
+  ReviewPlanRead: ReviewPlanReadSchema,
+  ReviewPlanRow: ReviewPlanRowSchema,
   ReviewSchemaCatalogResponse: ReviewSchemaCatalogResponseSchema,
   ReviewScope: ReviewScopeSchema,
-  ReviewVersion: ReviewVersionSchema,
-  ThreadedComment: ThreadedCommentSchema,
-  VersionFinalization: VersionFinalizationSchema,
+  ReviewVersionRead: ReviewVersionReadSchema,
+  ReviewVersionRow: ReviewVersionRowSchema,
+  SetCommitConcernAreasCommand: SetCommitConcernAreasCommandSchema,
+  SetCommitReviewMarkCommand: SetCommitReviewMarkCommandSchema,
+  SetFileReviewMarkCommand: SetFileReviewMarkCommandSchema,
+  ThreadedCommentRead: ThreadedCommentReadSchema,
+  ThreadedCommentRow: ThreadedCommentRowSchema,
+  UpdateReviewNoteCommand: UpdateReviewNoteCommandSchema,
+  UpsertReviewPlanCommand: UpsertReviewPlanCommandSchema,
 } as const;
 
 export type ReviewSchemaName = keyof typeof reviewSchemas;

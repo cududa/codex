@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { diffBlocks, reviewCommits, reviewFiles, reviewVersions } from "./core.js";
 import { detectorEvidence, detectorRuns } from "./detector.js";
-import { versionFinalizations } from "./ledger.js";
+import { reviewLedgers } from "./ledger.js";
 import {
   agentCommitReviews,
   agentFileReviews,
@@ -14,7 +14,7 @@ import {
 export const reviewVersionRelations = relations(reviewVersions, ({ many, one }) => ({
   commits: many(reviewCommits),
   detectorRuns: many(detectorRuns),
-  finalization: one(versionFinalizations),
+  ledger: one(reviewLedgers),
 }));
 
 export const reviewCommitRelations = relations(reviewCommits, ({ one, many }) => ({

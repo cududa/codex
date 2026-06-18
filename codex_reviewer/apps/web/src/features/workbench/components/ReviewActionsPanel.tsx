@@ -1,20 +1,20 @@
 import { CheckCircle2, ClipboardList, MessageSquare, NotebookText } from "lucide-react";
 import type {
   ConcernArea,
-  ReviewCommit,
+  ReviewCommitRead,
   ReviewMarkDefinition,
-  ReviewPlan,
-  ThreadedComment,
+  ReviewPlanRead,
+  ThreadedCommentRead,
 } from "@/entities/review/types";
 import { Panel } from "@/shared/ui/Panel";
 import { concernAreaSummary } from "../model/workbenchView";
 import { ReviewMarkPill } from "./ReviewMarkPill";
 
 type ReviewActionsPanelProps = {
-  commit: ReviewCommit | undefined;
+  commit: ReviewCommitRead | undefined;
   concernAreas: ConcernArea[];
-  comments: ThreadedComment[];
-  plan: ReviewPlan;
+  comments: ThreadedCommentRead[];
+  plan: ReviewPlanRead;
   reviewMarks: ReviewMarkDefinition[];
 };
 

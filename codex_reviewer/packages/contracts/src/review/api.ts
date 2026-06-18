@@ -12,14 +12,18 @@ export const ConcernAreasResponseSchema = z
 
 export const ReviewMarksResponseSchema = z
   .object({
-    reviewMarks: z.array(ReviewMarkDefinitionSchema).describe("Canonical review marks and workflow metadata."),
+    reviewMarks: z
+      .array(ReviewMarkDefinitionSchema)
+      .describe("Canonical review marks and workflow metadata."),
   })
   .strict()
   .describe("Response containing the canonical review mark registry.");
 
 export const ReviewSchemaCatalogResponseSchema = z
   .object({
-    schemaNames: z.array(NonEmptyStringSchema).describe("Canonical review schema names exported by the contracts package."),
+    schemaNames: z
+      .array(NonEmptyStringSchema)
+      .describe("Canonical review schema names exported by the contracts package."),
   })
   .strict()
   .describe("Response containing the review schema catalog.");
@@ -27,8 +31,12 @@ export const ReviewSchemaCatalogResponseSchema = z
 export const ReviewBootstrapResponseSchema = z
   .object({
     concernAreas: z.array(ConcernAreaSchema).describe("Canonical concern areas available for commit review."),
-    reviewMarks: z.array(ReviewMarkDefinitionSchema).describe("Canonical review marks and workflow metadata."),
-    schemaNames: z.array(NonEmptyStringSchema).describe("Canonical review schema names exported by the contracts package."),
+    reviewMarks: z
+      .array(ReviewMarkDefinitionSchema)
+      .describe("Canonical review marks and workflow metadata."),
+    schemaNames: z
+      .array(NonEmptyStringSchema)
+      .describe("Canonical review schema names exported by the contracts package."),
   })
   .strict()
   .describe("Bootstrap response for review UI and MCP clients.");

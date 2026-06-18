@@ -28,7 +28,10 @@ export async function requestJson<TSchema extends z.ZodType>(
 
   if (!response.ok) {
     const error = ApiErrorResponseSchema.safeParse(payload);
-    throw new ApiError(error.success ? error.data.error.message : `Request failed with ${response.status}.`, response.status);
+    throw new ApiError(
+      error.success ? error.data.error.message : `Request failed with ${response.status}.`,
+      response.status,
+    );
   }
 
   return schema.parse(payload);

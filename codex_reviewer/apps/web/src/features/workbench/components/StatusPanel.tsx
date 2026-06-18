@@ -10,8 +10,16 @@ type StatusPanelProps = {
 export function StatusPanel({ health, metadata }: StatusPanelProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-      <Metric icon={<Activity className="size-4" />} label="API" value={health?.ok === true ? "healthy" : "pending"} />
-      <Metric icon={<Box className="size-4" />} label="Contracts" value={metadata?.contractsPackage ?? "pending"} />
+      <Metric
+        icon={<Activity className="size-4" />}
+        label="API"
+        value={health?.ok === true ? "healthy" : "pending"}
+      />
+      <Metric
+        icon={<Box className="size-4" />}
+        label="Contracts"
+        value={metadata?.contractsPackage ?? "pending"}
+      />
       <Metric icon={<FileCode2 className="size-4" />} label="State" value={metadata?.status ?? "pending"} />
     </div>
   );

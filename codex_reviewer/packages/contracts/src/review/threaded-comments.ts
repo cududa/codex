@@ -7,7 +7,7 @@ export const ThreadedCommentStateSchema = z
   .enum(["open", "resolved"])
   .describe("Whether a threaded comment still blocks approval.");
 
-export const ThreadedCommentSchema = z
+export const ThreadedCommentReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this comment."),
     scope: ReviewScopeSchema.describe("Review scope the comment belongs to."),
@@ -24,7 +24,10 @@ export const ThreadedCommentSchema = z
   })
   .strict()
   .superRefine((comment, context) => {
-    if (comment.state === "resolved" && (comment.resolvedBy === undefined || comment.resolvedAt === undefined)) {
+    if (
+      comment.state === "resolved" &&
+      (comment.resolvedBy === undefined || comment.resolvedAt === undefined)
+    ) {
       context.addIssue({
         code: "custom",
         message: "resolved comments require resolvedBy and resolvedAt",
@@ -43,4 +46,4 @@ export const ThreadedCommentSchema = z
   .describe("A comment that can participate in a human/agent discussion thread.");
 
 export type ThreadedCommentState = z.infer<typeof ThreadedCommentStateSchema>;
-export type ThreadedComment = z.infer<typeof ThreadedCommentSchema>;
+export type ThreadedCommentRead = z.infer<typeof ThreadedCommentReadSchema>;

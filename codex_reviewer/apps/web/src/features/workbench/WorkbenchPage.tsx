@@ -1,7 +1,7 @@
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { concernAreas as canonicalConcernAreas, reviewMarkDefinitions } from "@prompt-reviews/contracts";
-import type { ReviewCommit } from "@/entities/review/types";
+import type { ReviewCommitRead } from "@/entities/review/types";
 import { Button } from "@/shared/ui/Button";
 import { CommitQueue } from "./components/CommitQueue";
 import { DiffReviewPane } from "./components/DiffReviewPane";
@@ -21,7 +21,9 @@ import {
 
 export function WorkbenchPage() {
   const { health, metadata, reviewBootstrap } = useWorkbenchData();
-  const [selectedCommitId, setSelectedCommitId] = useState<ReviewCommit["id"] | null>(previewCommits[0]?.id ?? null);
+  const [selectedCommitId, setSelectedCommitId] = useState<ReviewCommitRead["id"] | null>(
+    previewCommits[0]?.id ?? null,
+  );
   const selectedCommit = previewCommits.find((commit) => commit.id === selectedCommitId) ?? previewCommits[0];
   const files = selectedCommit === undefined ? [] : (previewFilesByCommitId.get(selectedCommit.id) ?? []);
   const [selectedFileId, setSelectedFileId] = useState(files[0]?.id ?? null);
@@ -32,10 +34,18 @@ export function WorkbenchPage() {
   const visibleComments = useMemo(
     () =>
       previewComments.filter((comment) => {
-        if (selectedFile !== undefined && comment.scope.type === "file" && comment.scope.fileId === selectedFile.id) {
+        if (
+          selectedFile !== undefined &&
+          comment.scope.type === "file" &&
+          comment.scope.fileId === selectedFile.id
+        ) {
           return true;
         }
-        return selectedCommit !== undefined && comment.scope.type === "commit" && comment.scope.commitId === selectedCommit.id;
+        return (
+          selectedCommit !== undefined &&
+          comment.scope.type === "commit" &&
+          comment.scope.commitId === selectedCommit.id
+        );
       }),
     [selectedCommit, selectedFile],
   );
@@ -67,7 +77,9 @@ export function WorkbenchPage() {
       </header>
       <section className="min-h-0">
         {error === undefined ? null : (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </div>
         )}
         <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]">
           <div className="border-b border-slate-200 bg-slate-50 px-4 py-2">
@@ -85,7 +97,12 @@ export function WorkbenchPage() {
               />
             }
             fileQueue={
-              <FileQueue files={files} onSelect={setSelectedFileId} reviewMarks={marks} selectedFileId={selectedFile?.id ?? null} />
+              <FileQueue
+                files={files}
+                onSelect={setSelectedFileId}
+                reviewMarks={marks}
+                selectedFileId={selectedFile?.id ?? null}
+              />
             }
             diffReview={<DiffReviewPane diffBlocks={diffBlocks} file={selectedFile} />}
             reviewActions={

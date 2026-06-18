@@ -1,4 +1,10 @@
-import type { ActorKind, ReviewScopeType, ThreadedCommentState } from "@prompt-reviews/contracts";
+import type {
+  ActorKind,
+  ReviewNoteRevisionAction,
+  ReviewNoteScopeType,
+  ReviewScopeType,
+  ThreadedCommentState,
+} from "@prompt-reviews/contracts";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { diffBlocks, reviewCommits, reviewFiles, reviewVersions } from "./core.js";
 
@@ -41,12 +47,11 @@ export const threadedComments = sqliteTable(
   ],
 );
 
-export const decisionNotes = sqliteTable(
-  "decision_notes",
+export const reviewNotes = sqliteTable(
+  "review_notes",
   {
     id: text("id").primaryKey(),
-    scopeType: text("scope_type").$type<ReviewScopeType>().notNull(),
-    versionId: text("version_id").references(() => reviewVersions.id, { onDelete: "cascade" }),
+    scopeType: text("scope_type").$type<ReviewNoteScopeType>().notNull(),
     commitId: text("commit_id").references(() => reviewCommits.id, { onDelete: "cascade" }),
     fileId: text("file_id").references(() => reviewFiles.id, { onDelete: "cascade" }),
     diffBlockId: text("diff_block_id").references(() => diffBlocks.id, { onDelete: "cascade" }),
@@ -55,13 +60,38 @@ export const decisionNotes = sqliteTable(
     authorId: text("author_id").notNull(),
     authorDisplayName: text("author_display_name"),
     createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at"),
+    updatedAt: text("updated_at").notNull(),
+    deletedAt: text("deleted_at"),
+    deletedByType: text("deleted_by_type").$type<ActorKind>(),
+    deletedById: text("deleted_by_id"),
+    deletedByDisplayName: text("deleted_by_display_name"),
   },
   (table) => [
-    index("decision_notes_version_idx").on(table.versionId),
-    index("decision_notes_commit_idx").on(table.commitId),
-    index("decision_notes_file_idx").on(table.fileId),
-    index("decision_notes_diff_block_idx").on(table.diffBlockId),
+    index("review_notes_commit_idx").on(table.commitId),
+    index("review_notes_file_idx").on(table.fileId),
+    index("review_notes_diff_block_idx").on(table.diffBlockId),
+    index("review_notes_deleted_idx").on(table.deletedAt),
+  ],
+);
+
+export const reviewNoteRevisions = sqliteTable(
+  "review_note_revisions",
+  {
+    id: text("id").primaryKey(),
+    noteId: text("note_id")
+      .notNull()
+      .references(() => reviewNotes.id, { onDelete: "cascade" }),
+    actorType: text("actor_type").$type<ActorKind>().notNull(),
+    actorId: text("actor_id").notNull(),
+    actorDisplayName: text("actor_display_name"),
+    changedAt: text("changed_at").notNull(),
+    action: text("action").$type<ReviewNoteRevisionAction>().notNull(),
+    bodyMarkdownBefore: text("body_markdown_before"),
+    bodyMarkdownAfter: text("body_markdown_after"),
+  },
+  (table) => [
+    index("review_note_revisions_note_idx").on(table.noteId),
+    index("review_note_revisions_changed_idx").on(table.changedAt),
   ],
 );
 

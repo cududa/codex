@@ -3,7 +3,7 @@ import { ActorRefSchema } from "./actors.js";
 import { ReviewScopeSchema } from "./scopes.js";
 import { IdSchema, IsoDateTimeSchema, MarkdownStringSchema } from "../shared/primitives.js";
 
-export const ReviewPlanSchema = z
+export const ReviewPlanReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this review plan."),
     scope: ReviewScopeSchema.describe("Review scope the plan belongs to."),
@@ -16,4 +16,4 @@ export const ReviewPlanSchema = z
   .strict()
   .describe("Markdown planning workspace for review follow-up work.");
 
-export type ReviewPlan = z.infer<typeof ReviewPlanSchema>;
+export type ReviewPlanRead = z.infer<typeof ReviewPlanReadSchema>;

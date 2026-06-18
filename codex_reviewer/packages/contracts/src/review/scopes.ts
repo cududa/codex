@@ -67,7 +67,9 @@ export const ReviewAnchorSchema = z
         side: DiffSideSchema.describe("The old or new side of the diff."),
         startLine: PositiveLineNumberSchema.describe("First selected line."),
         endLine: PositiveLineNumberSchema.describe("Last selected line."),
-        selectedText: NonEmptyStringSchema.optional().describe("Text selected by the reviewer, when available."),
+        selectedText: NonEmptyStringSchema.optional().describe(
+          "Text selected by the reviewer, when available.",
+        ),
       })
       .strict()
       .refine((anchor) => anchor.startLine <= anchor.endLine, {

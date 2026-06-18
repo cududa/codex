@@ -7,7 +7,6 @@ export const coreStatements = [
     target_ref TEXT,
     base_sha TEXT,
     target_sha TEXT,
-    state TEXT NOT NULL DEFAULT 'open' CHECK (state IN ('open', 'readyForApproval', 'finalized')),
     created_at TEXT NOT NULL,
     updated_at TEXT
   )`,

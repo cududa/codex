@@ -1,14 +1,14 @@
 import { FileCode2, MessageSquare, MoveRight } from "lucide-react";
-import type { ReviewFile, ReviewMarkDefinition } from "@/entities/review/types";
+import type { ReviewFileRead, ReviewMarkDefinition } from "@/entities/review/types";
 import { cn } from "@/shared/lib/cn";
 import { changeSymbol, changeTone } from "../model/workbenchView";
 import { ReviewMarkPill } from "./ReviewMarkPill";
 
 type FileQueueProps = {
-  files: ReviewFile[];
+  files: ReviewFileRead[];
   reviewMarks: ReviewMarkDefinition[];
-  selectedFileId: ReviewFile["id"] | null;
-  onSelect: (fileId: ReviewFile["id"]) => void;
+  selectedFileId: ReviewFileRead["id"] | null;
+  onSelect: (fileId: ReviewFileRead["id"]) => void;
 };
 
 export function FileQueue({ files, onSelect, reviewMarks, selectedFileId }: FileQueueProps) {
@@ -18,7 +18,9 @@ export function FileQueue({ files, onSelect, reviewMarks, selectedFileId }: File
         <h2 className="text-xs font-semibold uppercase text-slate-600">Files</h2>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {files.length === 0 ? <div className="p-3 text-sm text-slate-500">Select a commit to see files.</div> : null}
+        {files.length === 0 ? (
+          <div className="p-3 text-sm text-slate-500">Select a commit to see files.</div>
+        ) : null}
         {files.map((file) => {
           const selected = file.id === selectedFileId;
           return (

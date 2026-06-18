@@ -3,40 +3,43 @@ import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "driz
 import { reviewCommits, reviewVersions } from "./core.js";
 import { localChangeRefs } from "./review-state.js";
 
-export const versionFinalizations = sqliteTable(
-  "version_finalizations",
+export const reviewLedgers = sqliteTable(
+  "review_ledgers",
   {
     id: text("id").primaryKey(),
     versionId: text("version_id")
       .notNull()
       .references(() => reviewVersions.id, { onDelete: "cascade" }),
-    finalizedById: text("finalized_by_id").notNull(),
-    finalizedByDisplayName: text("finalized_by_display_name"),
-    finalizedAt: text("finalized_at").notNull(),
+    generatedById: text("generated_by_id").notNull(),
+    generatedByDisplayName: text("generated_by_display_name"),
+    generatedAt: text("generated_at").notNull(),
     summary: text("summary"),
   },
-  (table) => [uniqueIndex("version_finalizations_version_unique").on(table.versionId)],
+  (table) => [uniqueIndex("review_ledgers_version_unique").on(table.versionId)],
 );
 
 export const reviewLedgerEntries = sqliteTable(
   "review_ledger_entries",
   {
     id: text("id").primaryKey(),
-    finalizationId: text("finalization_id")
+    ledgerId: text("ledger_id")
       .notNull()
-      .references(() => versionFinalizations.id, { onDelete: "cascade" }),
+      .references(() => reviewLedgers.id, { onDelete: "cascade" }),
     commitId: text("commit_id")
       .notNull()
       .references(() => reviewCommits.id, { onDelete: "cascade" }),
     upstreamSha: text("upstream_sha").notNull(),
     finalMark: text("final_mark").$type<FinalReviewMark>().notNull(),
+    requiredLocalChangeRefId: text("required_local_change_ref_id").references(() => localChangeRefs.id, {
+      onDelete: "restrict",
+    }),
     approvedById: text("approved_by_id").notNull(),
     approvedByDisplayName: text("approved_by_display_name"),
     approvedAt: text("approved_at").notNull(),
   },
   (table) => [
-    index("review_ledger_entries_finalization_idx").on(table.finalizationId),
-    uniqueIndex("review_ledger_entries_commit_unique").on(table.finalizationId, table.commitId),
+    index("review_ledger_entries_ledger_idx").on(table.ledgerId),
+    uniqueIndex("review_ledger_entries_commit_unique").on(table.ledgerId, table.commitId),
   ],
 );
 

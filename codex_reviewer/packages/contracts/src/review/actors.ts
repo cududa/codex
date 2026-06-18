@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { IdSchema, NonEmptyStringSchema } from "../shared/primitives.js";
 
-export const ActorKindSchema = z.enum(["human", "agent", "system"]).describe("The kind of actor that performed a review action.");
+export const ActorKindSchema = z
+  .enum(["human", "agent", "system"])
+  .describe("The kind of actor that performed a review action.");
 
 export const ActorRefSchema = z
   .object({

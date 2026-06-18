@@ -51,7 +51,12 @@ describe("createApiApp", () => {
     expect(await response.json()).toEqual({
       concernAreas,
       reviewMarks: reviewMarkDefinitions,
-      schemaNames: expect.arrayContaining(["ConcernArea", "ReviewCommit", "ReviewMark"]),
+      schemaNames: expect.arrayContaining([
+        "ConcernArea",
+        "ReviewCommitRead",
+        "ReviewCommitRow",
+        "ReviewMark",
+      ]),
     });
   });
 
@@ -80,8 +85,156 @@ describe("createApiApp", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      schemaNames: expect.arrayContaining(["AgentReview", "HumanApproval", "ReviewLedger"]),
+      schemaNames: expect.arrayContaining([
+        "AgentReviewRead",
+        "HumanApprovalRead",
+        "ReviewLedgerRead",
+        "ReviewNoteRow",
+      ]),
     });
+  });
+
+  it("accepts review note writes only through the canonical command shape", async () => {
+    const dependencies = testDependencies();
+    const app = createApiApp(dependencies);
+
+    const response = await app.request("/api/review/notes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        commandId: "command-1",
+        actor: { type: "agent", id: "agent-1" },
+        occurredAt: "2026-06-17T12:00:00.000Z",
+        noteId: "note-1",
+        scope: { type: "commit", commitId: "commit-1" },
+        bodyMarkdown: "Track this review rationale.",
+      }),
+    });
+
+    expect(response.status).toBe(204);
+    expect(dependencies.reviewWriteStore.addReviewNote).toHaveBeenCalledWith({
+      commandId: "command-1",
+      actor: { type: "agent", id: "agent-1" },
+      occurredAt: "2026-06-17T12:00:00.000Z",
+      noteId: "note-1",
+      scope: { type: "commit", commitId: "commit-1" },
+      bodyMarkdown: "Track this review rationale.",
+    });
+
+    const invalidResponse = await app.request("/api/review/notes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        commandId: "command-2",
+        actor: { type: "agent", id: "agent-1" },
+        occurredAt: "2026-06-17T12:00:00.000Z",
+        noteId: "note-2",
+        scope: { type: "version", versionId: "version-1" },
+        bodyMarkdown: "This is not a valid ReviewNote scope.",
+      }),
+    });
+
+    expect(invalidResponse.status).toBe(400);
+    expect(dependencies.reviewWriteStore.addReviewNote).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes threaded comments and review plans through command-shaped writes", async () => {
+    const dependencies = testDependencies();
+    const app = createApiApp(dependencies);
+
+    const commentResponse = await app.request("/api/review/comments", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        commandId: "command-comment",
+        actor: { type: "agent", id: "agent-1" },
+        occurredAt: "2026-06-17T12:00:00.000Z",
+        commentId: "comment-1",
+        scope: { type: "file", fileId: "file-1" },
+        anchor: { kind: "scope" },
+        threadId: "thread-1",
+        parentCommentId: null,
+        bodyMarkdown: "Investigate this file change.",
+      }),
+    });
+    const resolveResponse = await app.request("/api/review/comments/resolve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        commandId: "command-resolve-comment",
+        actor: { type: "agent", id: "agent-1" },
+        occurredAt: "2026-06-17T12:05:00.000Z",
+        commentId: "comment-1",
+        threadId: "thread-1",
+        scope: { type: "file", fileId: "file-1" },
+        eventId: "event-resolve-comment",
+      }),
+    });
+    const planResponse = await app.request("/api/review/plans", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        commandId: "command-plan",
+        actor: { type: "agent", id: "agent-1" },
+        occurredAt: "2026-06-17T12:10:00.000Z",
+        reviewPlanId: "plan-1",
+        scope: { type: "commit", commitId: "commit-1" },
+        bodyMarkdown: "1. Verify the prompt behavior.",
+        eventId: "event-plan",
+      }),
+    });
+
+    expect(commentResponse.status).toBe(204);
+    expect(resolveResponse.status).toBe(204);
+    expect(planResponse.status).toBe(204);
+    expect(dependencies.reviewWriteStore.addThreadedComment).toHaveBeenCalledTimes(1);
+    expect(dependencies.reviewWriteStore.resolveThreadedComment).toHaveBeenCalledTimes(1);
+    expect(dependencies.reviewWriteStore.upsertReviewPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes completed review ledger generation through a human command", async () => {
+    const dependencies = testDependencies();
+    const app = createApiApp(dependencies);
+
+    const response = await app.request("/api/review/ledgers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        commandId: "command-ledger",
+        actor: { type: "human", id: "human-1" },
+        occurredAt: "2026-06-17T12:15:00.000Z",
+        ledgerId: "ledger-1",
+        versionId: "version-1",
+        entries: [
+          {
+            ledgerEntryId: "ledger-entry-1",
+            commitId: "commit-1",
+            upstreamSha: "abcdef1",
+            finalMark: "PASS",
+            concernAreas: ["tool-affordances"],
+            localChangeRefIds: [],
+            approvedBy: { type: "human", id: "human-1" },
+            approvedAt: "2026-06-17T12:10:00.000Z",
+          },
+        ],
+      }),
+    });
+    const agentResponse = await app.request("/api/review/ledgers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        commandId: "command-ledger-agent",
+        actor: { type: "agent", id: "agent-1" },
+        occurredAt: "2026-06-17T12:15:00.000Z",
+        ledgerId: "ledger-2",
+        versionId: "version-1",
+        entries: [],
+      }),
+    });
+
+    expect(response.status).toBe(204);
+    expect(agentResponse.status).toBe(400);
+    expect(dependencies.reviewWriteStore.generateReviewLedger).toHaveBeenCalledTimes(1);
   });
 
   it("returns contract-shaped errors", async () => {
@@ -109,5 +262,20 @@ function testDependencies(): ApiDependencies {
       error: vi.fn(),
       info: vi.fn(),
     } as unknown as ApiDependencies["logger"],
+    reviewWriteStore: {
+      setCommitReviewMark: vi.fn(),
+      setFileReviewMark: vi.fn(),
+      setCommitConcernAreas: vi.fn(),
+      recordAgentReview: vi.fn(),
+      recordHumanApproval: vi.fn(),
+      linkLocalChangeRef: vi.fn(),
+      addThreadedComment: vi.fn(),
+      resolveThreadedComment: vi.fn(),
+      addReviewNote: vi.fn(),
+      updateReviewNote: vi.fn(),
+      deleteReviewNote: vi.fn(),
+      upsertReviewPlan: vi.fn(),
+      generateReviewLedger: vi.fn(),
+    },
   };
 }

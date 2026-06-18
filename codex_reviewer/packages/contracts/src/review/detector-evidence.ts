@@ -14,11 +14,15 @@ export const DetectorRunStateSchema = z
   .enum(["running", "completed", "failed"])
   .describe("Lifecycle state for a detector run over a review version.");
 
-export const DetectorRunSchema = z
+export const DetectorRunReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this detector run."),
     versionId: IdSchema.describe("Review version analyzed by the detector."),
-    concernMapVersion: z.number().int().positive().describe("Concern map definition version used by this detector run."),
+    concernMapVersion: z
+      .number()
+      .int()
+      .positive()
+      .describe("Concern map definition version used by this detector run."),
     state: DetectorRunStateSchema.describe("Current lifecycle state of the detector run."),
     startedAt: IsoDateTimeSchema.describe("When the detector run started."),
     completedAt: IsoDateTimeSchema.optional().describe("When the detector run completed successfully."),
@@ -76,8 +80,12 @@ export const DetectorEvidenceDetailSchema = z
       .strict(),
     z
       .object({
-        kind: z.literal("templateMarker").describe("Evidence came from a template marker owned by a concern area."),
-        path: NonEmptyStringSchema.optional().describe("Repository path where the template marker was found."),
+        kind: z
+          .literal("templateMarker")
+          .describe("Evidence came from a template marker owned by a concern area."),
+        path: NonEmptyStringSchema.optional().describe(
+          "Repository path where the template marker was found.",
+        ),
         marker: NonEmptyStringSchema.describe("Template marker that matched the detector concern map."),
       })
       .strict(),
@@ -90,10 +98,16 @@ export const DetectorEvidenceDetailSchema = z
         endLine: PositiveLineNumberSchema.optional().describe("Last line of line-specific evidence."),
       })
       .strict()
-      .refine((detail) => detail.startLine === undefined || detail.endLine === undefined || detail.startLine <= detail.endLine, {
-        message: "startLine must be less than or equal to endLine",
-        path: ["endLine"],
-      }),
+      .refine(
+        (detail) =>
+          detail.startLine === undefined ||
+          detail.endLine === undefined ||
+          detail.startLine <= detail.endLine,
+        {
+          message: "startLine must be less than or equal to endLine",
+          path: ["endLine"],
+        },
+      ),
     z
       .object({
         kind: z.literal("graph").describe("Evidence came from detector graph expansion."),
@@ -104,13 +118,15 @@ export const DetectorEvidenceDetailSchema = z
   ])
   .describe("Typed provenance for one detector evidence record.");
 
-export const DetectorEvidenceSchema = z
+export const DetectorEvidenceReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this detector evidence record."),
     runId: IdSchema.describe("Detector run that produced this evidence."),
     scope: ReviewScopeSchema.describe("Review scope affected by this evidence."),
     concernArea: ConcernAreaSlugSchema.describe("Concern area indicated by this evidence."),
-    suggestedReviewMark: ReviewMarkSchema.optional().describe("Review mark suggested by this detector evidence."),
+    suggestedReviewMark: ReviewMarkSchema.optional().describe(
+      "Review mark suggested by this detector evidence.",
+    ),
     title: NonEmptyStringSchema.describe("Short evidence title."),
     summary: MarkdownStringSchema.optional().describe("Optional explanation of why this evidence matters."),
     detail: DetectorEvidenceDetailSchema.describe("Typed detector evidence detail."),
@@ -120,6 +136,6 @@ export const DetectorEvidenceSchema = z
   .describe("Canonical detector evidence distinct from editable review state.");
 
 export type DetectorRunState = z.infer<typeof DetectorRunStateSchema>;
-export type DetectorRun = z.infer<typeof DetectorRunSchema>;
+export type DetectorRunRead = z.infer<typeof DetectorRunReadSchema>;
 export type DetectorEvidenceDetail = z.infer<typeof DetectorEvidenceDetailSchema>;
-export type DetectorEvidence = z.infer<typeof DetectorEvidenceSchema>;
+export type DetectorEvidenceRead = z.infer<typeof DetectorEvidenceReadSchema>;

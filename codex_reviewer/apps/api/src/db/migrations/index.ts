@@ -8,7 +8,13 @@ import type { DatabaseMigration } from "./types.js";
 export const databaseMigrations: DatabaseMigration[] = [
   {
     id: "0001_fresh_review_schema",
-    statements: [...coreStatements, ...detectorStatements, ...reviewStateStatements, ...collaborationStatements, ...ledgerStatements],
+    statements: [
+      ...coreStatements,
+      ...detectorStatements,
+      ...reviewStateStatements,
+      ...collaborationStatements,
+      ...ledgerStatements,
+    ],
   },
 ];
 

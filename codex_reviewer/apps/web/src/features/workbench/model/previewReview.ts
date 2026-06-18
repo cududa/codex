@@ -1,20 +1,20 @@
 import {
-  DiffBlockSchema,
-  ReviewCommitSchema,
-  ReviewFileSchema,
-  ReviewPlanSchema,
-  ThreadedCommentSchema,
-  type DiffBlock,
-  type ReviewCommit,
-  type ReviewFile,
-  type ReviewPlan,
-  type ThreadedComment,
+  DiffBlockReadSchema,
+  ReviewCommitReadSchema,
+  ReviewFileReadSchema,
+  ReviewPlanReadSchema,
+  ThreadedCommentReadSchema,
+  type DiffBlockRead,
+  type ReviewCommitRead,
+  type ReviewFileRead,
+  type ReviewPlanRead,
+  type ThreadedCommentRead,
 } from "@prompt-reviews/contracts";
 
 const now = "2026-06-17T12:00:00.000Z";
 
 export const previewCommits = [
-  ReviewCommitSchema.parse({
+  ReviewCommitReadSchema.parse({
     id: "commit-a",
     versionId: "version-preview",
     sha: "3c2e924d81",
@@ -39,7 +39,7 @@ export const previewCommits = [
     fileCount: 3,
     unresolvedCommentCount: 1,
   }),
-  ReviewCommitSchema.parse({
+  ReviewCommitReadSchema.parse({
     id: "commit-b",
     versionId: "version-preview",
     sha: "c18423695a",
@@ -53,7 +53,7 @@ export const previewCommits = [
     fileCount: 2,
     unresolvedCommentCount: 0,
   }),
-  ReviewCommitSchema.parse({
+  ReviewCommitReadSchema.parse({
     id: "commit-c",
     versionId: "version-preview",
     sha: "e92f9d2476",
@@ -67,13 +67,13 @@ export const previewCommits = [
     fileCount: 4,
     unresolvedCommentCount: 2,
   }),
-] satisfies ReviewCommit[];
+] satisfies ReviewCommitRead[];
 
-export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
+export const previewFilesByCommitId = new Map<string, ReviewFileRead[]>([
   [
     "commit-a",
     [
-      ReviewFileSchema.parse({
+      ReviewFileReadSchema.parse({
         id: "file-a",
         commitId: "commit-a",
         position: 0,
@@ -92,7 +92,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
         humanApproval: null,
         unresolvedCommentCount: 1,
       }),
-      ReviewFileSchema.parse({
+      ReviewFileReadSchema.parse({
         id: "file-b",
         commitId: "commit-a",
         position: 1,
@@ -104,7 +104,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
         humanApproval: null,
         unresolvedCommentCount: 0,
       }),
-      ReviewFileSchema.parse({
+      ReviewFileReadSchema.parse({
         id: "file-c",
         commitId: "commit-a",
         position: 2,
@@ -121,7 +121,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
   [
     "commit-b",
     [
-      ReviewFileSchema.parse({
+      ReviewFileReadSchema.parse({
         id: "file-d",
         commitId: "commit-b",
         position: 0,
@@ -138,7 +138,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
   [
     "commit-c",
     [
-      ReviewFileSchema.parse({
+      ReviewFileReadSchema.parse({
         id: "file-e",
         commitId: "commit-c",
         position: 0,
@@ -154,11 +154,11 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
   ],
 ]);
 
-export const previewDiffBlocksByFileId = new Map<string, DiffBlock[]>([
+export const previewDiffBlocksByFileId = new Map<string, DiffBlockRead[]>([
   [
     "file-a",
     [
-      DiffBlockSchema.parse({
+      DiffBlockReadSchema.parse({
         id: "diff-a",
         fileId: "file-a",
         position: 0,
@@ -169,12 +169,12 @@ export const previewDiffBlocksByFileId = new Map<string, DiffBlock[]>([
         newEndLine: 10,
         patch: [
           "@@ -0,0 +1,10 @@",
-          "+export const reviewVersions = sqliteTable(\"review_versions\", {",
-          "+  id: text(\"id\").primaryKey(),",
-          "+  label: text(\"label\").notNull(),",
-          "+  repositoryId: text(\"repository_id\").notNull(),",
-          "+  state: text(\"state\").notNull().default(\"open\"),",
-          "+  createdAt: text(\"created_at\").notNull(),",
+          '+export const reviewVersions = sqliteTable("review_versions", {',
+          '+  id: text("id").primaryKey(),',
+          '+  label: text("label").notNull(),',
+          '+  repositoryId: text("repository_id").notNull(),',
+          '+  state: text("state").notNull().default("open"),',
+          '+  createdAt: text("created_at").notNull(),',
           "+});",
         ].join("\n"),
       }),
@@ -183,7 +183,7 @@ export const previewDiffBlocksByFileId = new Map<string, DiffBlock[]>([
   [
     "file-e",
     [
-      DiffBlockSchema.parse({
+      DiffBlockReadSchema.parse({
         id: "diff-b",
         fileId: "file-e",
         position: 0,
@@ -194,13 +194,13 @@ export const previewDiffBlocksByFileId = new Map<string, DiffBlock[]>([
         newEndLine: 52,
         patch: [
           "@@ -40,6 +40,12 @@",
-          " export const HumanApprovalSchema = z.object({",
+          " export const HumanApprovalReadSchema = z.object({",
           "-  approvedMark: ReviewMarkSchema,",
           "+  approvedMark: FinalReviewMarkSchema,",
-          "+  localChangeRefs: z.array(LocalChangeRefSchema),",
+          "+  localChangeRefs: z.array(LocalChangeRefReadSchema),",
           "+}).superRefine((approval, context) => {",
-          "+  if (approval.approvedMark === \"DONE\" && approval.localChangeRefs.length === 0) {",
-          "+    context.addIssue({ code: \"custom\", message: \"DONE requires evidence\" });",
+          '+  if (approval.approvedMark === "DONE" && approval.localChangeRefs.length === 0) {',
+          '+    context.addIssue({ code: "custom", message: "DONE requires evidence" });',
           "+  }",
           " });",
         ].join("\n"),
@@ -210,7 +210,7 @@ export const previewDiffBlocksByFileId = new Map<string, DiffBlock[]>([
 ]);
 
 export const previewComments = [
-  ThreadedCommentSchema.parse({
+  ThreadedCommentReadSchema.parse({
     id: "comment-a",
     scope: { type: "file", fileId: "file-a" },
     anchor: { kind: "scope" },
@@ -221,7 +221,7 @@ export const previewComments = [
     author: { type: "agent", id: "agent-1", displayName: "Review agent" },
     createdAt: now,
   }),
-  ThreadedCommentSchema.parse({
+  ThreadedCommentReadSchema.parse({
     id: "comment-b",
     scope: { type: "commit", commitId: "commit-c" },
     anchor: { kind: "scope" },
@@ -232,12 +232,13 @@ export const previewComments = [
     author: { type: "human", id: "human-1", displayName: "Human reviewer" },
     createdAt: now,
   }),
-] satisfies ThreadedComment[];
+] satisfies ThreadedCommentRead[];
 
-export const previewPlan = ReviewPlanSchema.parse({
+export const previewPlan = ReviewPlanReadSchema.parse({
   id: "plan-a",
   scope: { type: "commit", commitId: "commit-a" },
-  bodyMarkdown: "1. Verify direct tables.\n2. Link local adaptation commits.\n3. Approve once comments are resolved.",
+  bodyMarkdown:
+    "1. Verify direct tables.\n2. Link local adaptation commits.\n3. Approve once comments are resolved.",
   createdBy: { type: "human", id: "human-1", displayName: "Human reviewer" },
   createdAt: now,
-}) satisfies ReviewPlan;
+}) satisfies ReviewPlanRead;

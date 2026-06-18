@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { AgentActorRefSchema, ActorRefSchema, HumanActorRefSchema } from "./actors.js";
 import { ConcernAreaSelectionSchema } from "./concern-areas.js";
-import { LocalChangeRefSchema } from "./local-change-refs.js";
+import { LocalChangeRefReadSchema } from "./local-change-refs.js";
 import { FinalReviewMarkSchema, ReviewMarkSchema } from "./review-marks.js";
 import { CommitOrFileScopeSchema, CommitScopeSchema, ReviewScopeSchema } from "./scopes.js";
 import { GitShaSchema, IdSchema, IsoDateTimeSchema, MarkdownStringSchema } from "../shared/primitives.js";
 
-export const AgentReviewSchema = z
+export const AgentReviewReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this agent review record."),
     scope: CommitOrFileScopeSchema.describe("Commit or file reviewed by the agent."),
@@ -38,7 +38,7 @@ export const AgentReviewSchema = z
   })
   .describe("Agent-authored verification of a commit or file review state.");
 
-export const HumanApprovalSchema = z
+export const HumanApprovalReadSchema = z
   .object({
     id: IdSchema.describe("Identifier for this human approval record."),
     scope: CommitOrFileScopeSchema.describe("Commit or file approved by the human reviewer."),
@@ -47,7 +47,7 @@ export const HumanApprovalSchema = z
       "Ordered concern areas accepted by the human reviewer; commit scopes only.",
     ),
     localChangeRefs: z
-      .array(LocalChangeRefSchema)
+      .array(LocalChangeRefReadSchema)
       .describe("Local changes accepted as evidence when the approved mark is DONE."),
     notes: MarkdownStringSchema.optional().describe("Optional approval note."),
     approvedBy: HumanActorRefSchema.describe("Human reviewer who approved this scope."),
@@ -106,7 +106,9 @@ export const ReviewMarkChangedEventSchema = z
     ...reviewEventBaseShape,
     kind: z.literal("reviewMarkChanged").describe("A commit or file review mark changed."),
     scope: CommitOrFileScopeSchema.describe("Commit or file whose review mark changed."),
-    previousReviewMark: ReviewMarkSchema.nullable().describe("Previous review mark; null when a file mark was previously unset."),
+    previousReviewMark: ReviewMarkSchema.nullable().describe(
+      "Previous review mark; null when a file mark was previously unset.",
+    ),
     newReviewMark: ReviewMarkSchema.describe("New review mark."),
   })
   .strict()
@@ -186,7 +188,7 @@ export const PlanUpdatedEventSchema = z
   .strict()
   .describe("Audit event for review plan updates.");
 
-export const ReviewEventSchema = z
+export const ReviewEventReadSchema = z
   .discriminatedUnion("kind", [
     ReviewMarkChangedEventSchema,
     ConcernAreasChangedEventSchema,
@@ -199,20 +201,7 @@ export const ReviewEventSchema = z
   ])
   .describe("Typed audit event for material review changes.");
 
-export const ReviewEventRecordSchema = z
-  .object({
-    id: IdSchema.describe("Identifier for this review event."),
-    scope: ReviewScopeSchema.describe("Review scope affected by the event."),
-    kind: ReviewEventKindSchema.describe("Review event kind."),
-    actor: ActorRefSchema.describe("Actor that caused the event."),
-    summary: MarkdownStringSchema.describe("Human-readable summary of the event."),
-    createdAt: IsoDateTimeSchema.describe("When the event occurred."),
-  })
-  .strict()
-  .describe("Common persisted columns shared by typed review events.");
-
-export type AgentReview = z.infer<typeof AgentReviewSchema>;
-export type HumanApproval = z.infer<typeof HumanApprovalSchema>;
+export type AgentReviewRead = z.infer<typeof AgentReviewReadSchema>;
+export type HumanApprovalRead = z.infer<typeof HumanApprovalReadSchema>;
 export type ReviewEventKind = z.infer<typeof ReviewEventKindSchema>;
-export type ReviewEvent = z.infer<typeof ReviewEventSchema>;
-export type ReviewEventRecord = z.infer<typeof ReviewEventRecordSchema>;
+export type ReviewEventRead = z.infer<typeof ReviewEventReadSchema>;

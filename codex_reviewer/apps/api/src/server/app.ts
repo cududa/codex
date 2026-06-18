@@ -1,4 +1,9 @@
-import { ApiErrorResponseSchema, AppMetadataQuerySchema, AppMetadataResponseSchema, HealthResponseSchema } from "@prompt-reviews/contracts";
+import {
+  ApiErrorResponseSchema,
+  AppMetadataQuerySchema,
+  AppMetadataResponseSchema,
+  HealthResponseSchema,
+} from "@prompt-reviews/contracts";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -31,20 +36,23 @@ export function createApiApp(dependencies: ApiDependencies) {
   );
 
   app.get("/health", (c) => c.json(HealthResponseSchema.parse({ ok: true, service: "codex-reviewer-api" })));
-  app.get("/api/meta", zValidator("query", AppMetadataQuerySchema, (result) => {
-    if (!result.success) {
-      throw result.error;
-    }
-  }), (c) =>
-    c.json(
-      AppMetadataResponseSchema.parse({
-        appName: "Codex Reviewer",
-        apiName: "codex-reviewer-api",
-        contractsPackage: "@prompt-reviews/contracts",
-        status: "ready",
-        summary: "Contracts-first Hono and React workspace foundation.",
-      }),
-    ),
+  app.get(
+    "/api/meta",
+    zValidator("query", AppMetadataQuerySchema, (result) => {
+      if (!result.success) {
+        throw result.error;
+      }
+    }),
+    (c) =>
+      c.json(
+        AppMetadataResponseSchema.parse({
+          appName: "Codex Reviewer",
+          apiName: "codex-reviewer-api",
+          contractsPackage: "@prompt-reviews/contracts",
+          status: "ready",
+          summary: "Contracts-first Hono and React workspace foundation.",
+        }),
+      ),
   );
   app.route("/api/review", createReviewRoutes());
 

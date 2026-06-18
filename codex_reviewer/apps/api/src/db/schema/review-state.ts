@@ -106,7 +106,10 @@ export const humanCommitApprovalConcernAreas = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.humanApprovalId, table.concernAreaSlug] }),
-    uniqueIndex("human_commit_approval_concern_areas_position_unique").on(table.humanApprovalId, table.position),
+    uniqueIndex("human_commit_approval_concern_areas_position_unique").on(
+      table.humanApprovalId,
+      table.position,
+    ),
   ],
 );
 
@@ -148,7 +151,9 @@ export const reviewEvents = sqliteTable(
     agentReviewId: text("agent_review_id"),
     humanApprovalId: text("human_approval_id"),
     approvedMark: text("approved_mark").$type<FinalReviewMark>(),
-    localChangeRefId: text("local_change_ref_id").references(() => localChangeRefs.id, { onDelete: "cascade" }),
+    localChangeRefId: text("local_change_ref_id").references(() => localChangeRefs.id, {
+      onDelete: "cascade",
+    }),
     localChangeSha: text("local_change_sha"),
     commentId: text("comment_id"),
     threadId: text("thread_id"),
@@ -174,7 +179,10 @@ export const reviewEventPreviousConcernAreas = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.reviewEventId, table.concernAreaSlug] }),
-    uniqueIndex("review_event_previous_concern_areas_position_unique").on(table.reviewEventId, table.position),
+    uniqueIndex("review_event_previous_concern_areas_position_unique").on(
+      table.reviewEventId,
+      table.position,
+    ),
   ],
 );
 
