@@ -3,10 +3,13 @@ import {
   AgentReviewSchema,
   ConcernAreaSchema,
   ConcernAreaSelectionSchema,
+  DetectorEvidenceSchema,
+  DetectorRunSchema,
   HumanApprovalSchema,
   LocalChangeRefSchema,
   ReviewBootstrapResponseSchema,
   ReviewCommitSchema,
+  ReviewEventSchema,
   ReviewFileSchema,
   ReviewLedgerEntrySchema,
   ThreadedCommentSchema,
@@ -115,6 +118,7 @@ describe("review contracts", () => {
         id: "commit-1",
         versionId: "version-1",
         sha: "1234567",
+        position: 0,
         title: "Adjust tool prompt",
         reviewMark: "DONE",
         concernAreas: ["tool-affordances"],
@@ -131,6 +135,7 @@ describe("review contracts", () => {
         id: "commit-1",
         versionId: "version-1",
         sha: "1234567",
+        position: 0,
         title: "Adjust tool prompt",
         reviewMark: "DONE",
         concernAreas: ["tool-affordances"],
@@ -151,6 +156,7 @@ describe("review contracts", () => {
       ReviewFileSchema.parse({
         id: "file-1",
         commitId: "commit-1",
+        position: 0,
         path: "codex-rs/core/src/prompt.rs",
         changeKind: "modified",
         reviewMark: null,
@@ -165,6 +171,7 @@ describe("review contracts", () => {
       ReviewFileSchema.parse({
         id: "file-1",
         commitId: "commit-1",
+        position: 0,
         path: "codex-rs/core/src/prompt.rs",
         changeKind: "modified",
         reviewMark: "PASS",
@@ -181,6 +188,27 @@ describe("review contracts", () => {
     expect(() =>
       AgentReviewSchema.parse({
         id: "agent-review-1",
+        scope: { type: "commit", commitId: "commit-1" },
+        reviewedMark: "FLAG",
+        reviewer: agent,
+        reviewedAt: now,
+      }),
+    ).toThrow();
+
+    expect(
+      AgentReviewSchema.parse({
+        id: "agent-review-1",
+        scope: { type: "commit", commitId: "commit-1" },
+        reviewedMark: "FLAG",
+        reviewedConcernAreas: [],
+        reviewer: agent,
+        reviewedAt: now,
+      }),
+    ).toMatchObject({ reviewedConcernAreas: [] });
+
+    expect(() =>
+      AgentReviewSchema.parse({
+        id: "agent-review-1",
         scope: { type: "file", fileId: "file-1" },
         reviewedMark: "FLAG",
         reviewedConcernAreas: ["message-roles"],
@@ -191,6 +219,17 @@ describe("review contracts", () => {
   });
 
   it("requires human approval to accept only final review marks", () => {
+    expect(() =>
+      HumanApprovalSchema.parse({
+        id: "approval-1",
+        scope: { type: "commit", commitId: "commit-1" },
+        approvedMark: "PASS",
+        localChangeRefs: [],
+        approvedBy: human,
+        approvedAt: now,
+      }),
+    ).toThrow();
+
     expect(() =>
       HumanApprovalSchema.parse({
         id: "approval-1",
@@ -226,6 +265,89 @@ describe("review contracts", () => {
         localChangeRefs: [],
         approvedBy: human,
         approvedAt: now,
+      }),
+    ).toThrow();
+  });
+
+  it("models detector evidence as typed canonical state", () => {
+    expect(
+      DetectorRunSchema.parse({
+        id: "detector-run-1",
+        versionId: "version-1",
+        concernMapVersion: 1,
+        state: "completed",
+        startedAt: now,
+        completedAt: now,
+      }),
+    ).toMatchObject({ state: "completed" });
+
+    expect(
+      DetectorEvidenceSchema.parse({
+        id: "detector-evidence-1",
+        runId: "detector-run-1",
+        scope: { type: "commit", commitId: "commit-1" },
+        concernArea: "tool-affordances",
+        suggestedReviewMark: "FLAG",
+        title: "Tool schema changed",
+        detail: {
+          kind: "symbol",
+          path: "codex-rs/core/src/tool.rs",
+          symbolName: "ToolCall",
+        },
+        createdAt: now,
+      }),
+    ).toMatchObject({
+      concernArea: "tool-affordances",
+      detail: { kind: "symbol" },
+    });
+
+    expect(() =>
+      DetectorEvidenceSchema.parse({
+        id: "detector-evidence-1",
+        runId: "detector-run-1",
+        scope: { type: "commit", commitId: "commit-1" },
+        concernArea: "tool-affordances",
+        title: "Malformed diff evidence",
+        detail: {
+          kind: "diff",
+          diffBlockId: "diff-block-1",
+          startLine: 20,
+          endLine: 10,
+        },
+        createdAt: now,
+      }),
+    ).toThrow();
+  });
+
+  it("uses typed review events instead of payload blobs", () => {
+    expect(
+      ReviewEventSchema.parse({
+        id: "event-1",
+        kind: "reviewMarkChanged",
+        scope: { type: "file", fileId: "file-1" },
+        previousReviewMark: null,
+        newReviewMark: "FLAG",
+        actor: agent,
+        summary: "Detector marked the file for investigation.",
+        createdAt: now,
+      }),
+    ).toMatchObject({
+      kind: "reviewMarkChanged",
+      previousReviewMark: null,
+      newReviewMark: "FLAG",
+    });
+
+    expect(() =>
+      ReviewEventSchema.parse({
+        id: "event-1",
+        kind: "reviewMarkChanged",
+        scope: { type: "file", fileId: "file-1" },
+        previousReviewMark: null,
+        newReviewMark: "FLAG",
+        actor: agent,
+        summary: "No loose JSON.",
+        payload: { costume: "jewelry" },
+        createdAt: now,
       }),
     ).toThrow();
   });

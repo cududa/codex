@@ -1,6 +1,5 @@
-import type { ConcernAreaSlug, ReviewMark } from "@prompt-reviews/contracts";
+import type { ChangeKind, ConcernAreaSlug, ReviewMark, ReviewVersionState } from "@prompt-reviews/contracts";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-import type { ChangeKind, ReviewVersionState } from "./types.js";
 
 export const reviewVersions = sqliteTable("review_versions", {
   id: text("id").primaryKey(),
@@ -23,6 +22,7 @@ export const reviewCommits = sqliteTable(
       .notNull()
       .references(() => reviewVersions.id, { onDelete: "cascade" }),
     sha: text("sha").notNull(),
+    position: integer("position").notNull(),
     title: text("title").notNull(),
     message: text("message"),
     authorName: text("author_name"),
@@ -34,6 +34,7 @@ export const reviewCommits = sqliteTable(
   (table) => [
     index("review_commits_version_idx").on(table.versionId),
     uniqueIndex("review_commits_version_sha_unique").on(table.versionId, table.sha),
+    uniqueIndex("review_commits_version_position_unique").on(table.versionId, table.position),
   ],
 );
 
@@ -44,6 +45,7 @@ export const reviewFiles = sqliteTable(
     commitId: text("commit_id")
       .notNull()
       .references(() => reviewCommits.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
     path: text("path").notNull(),
     oldPath: text("old_path"),
     changeKind: text("change_kind").$type<ChangeKind>().notNull(),
@@ -51,7 +53,10 @@ export const reviewFiles = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at"),
   },
-  (table) => [index("review_files_commit_idx").on(table.commitId)],
+  (table) => [
+    index("review_files_commit_idx").on(table.commitId),
+    uniqueIndex("review_files_commit_position_unique").on(table.commitId, table.position),
+  ],
 );
 
 export const diffBlocks = sqliteTable(
@@ -61,6 +66,7 @@ export const diffBlocks = sqliteTable(
     fileId: text("file_id")
       .notNull()
       .references(() => reviewFiles.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
     heading: text("heading"),
     oldStartLine: integer("old_start_line"),
     oldEndLine: integer("old_end_line"),
@@ -68,7 +74,10 @@ export const diffBlocks = sqliteTable(
     newEndLine: integer("new_end_line"),
     patch: text("patch").notNull(),
   },
-  (table) => [index("diff_blocks_file_idx").on(table.fileId)],
+  (table) => [
+    index("diff_blocks_file_idx").on(table.fileId),
+    uniqueIndex("diff_blocks_file_position_unique").on(table.fileId, table.position),
+  ],
 );
 
 export const commitConcernAreas = sqliteTable(

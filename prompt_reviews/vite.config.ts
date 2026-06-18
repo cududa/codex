@@ -20,6 +20,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    port: 5174,
+    strictPort: true,
     proxy: {
       "/api": "http://127.0.0.1:4177",
     },

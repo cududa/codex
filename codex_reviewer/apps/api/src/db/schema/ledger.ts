@@ -1,4 +1,4 @@
-import type { ConcernAreaSlug } from "@prompt-reviews/contracts";
+import type { ConcernAreaSlug, FinalReviewMark } from "@prompt-reviews/contracts";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { reviewCommits, reviewVersions } from "./core.js";
 import { localChangeRefs } from "./review-state.js";
@@ -29,7 +29,7 @@ export const reviewLedgerEntries = sqliteTable(
       .notNull()
       .references(() => reviewCommits.id, { onDelete: "cascade" }),
     upstreamSha: text("upstream_sha").notNull(),
-    finalMark: text("final_mark").$type<"PASS" | "DONE">().notNull(),
+    finalMark: text("final_mark").$type<FinalReviewMark>().notNull(),
     approvedById: text("approved_by_id").notNull(),
     approvedByDisplayName: text("approved_by_display_name"),
     approvedAt: text("approved_at").notNull(),

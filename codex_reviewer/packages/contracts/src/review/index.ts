@@ -2,6 +2,7 @@ export * from "./api.js";
 export * from "./actors.js";
 export * from "./concern-areas.js";
 export * from "./decision-notes.js";
+export * from "./detector-evidence.js";
 export * from "./ledger.js";
 export * from "./local-change-refs.js";
 export * from "./review-actions.js";

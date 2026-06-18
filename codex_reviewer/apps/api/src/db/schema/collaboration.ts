@@ -1,6 +1,6 @@
+import type { ActorKind, ReviewScopeType, ThreadedCommentState } from "@prompt-reviews/contracts";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { diffBlocks, reviewCommits, reviewFiles, reviewVersions } from "./core.js";
-import type { ActorKind, ReviewScopeType, ThreadedCommentState } from "./types.js";
 
 export const threadedComments = sqliteTable(
   "threaded_comments",

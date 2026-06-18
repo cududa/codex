@@ -1,9 +1,12 @@
 export type {
   ConcernArea,
   ConcernAreaSlug,
+  DetectorEvidence,
+  DetectorRun,
   DiffBlock,
   ReviewBootstrapResponse,
   ReviewCommit,
+  ReviewEvent,
   ReviewFile,
   ReviewMark,
   ReviewMarkDefinition,

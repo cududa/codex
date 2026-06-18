@@ -11,6 +11,7 @@ import {
   NonEmptyStringSchema,
   NonNegativeIntegerSchema,
   PositiveLineNumberSchema,
+  ZeroBasedPositionSchema,
 } from "../shared/primitives.js";
 
 export const ReviewVersionStateSchema = z
@@ -42,6 +43,7 @@ export const ReviewCommitSchema = z
     id: IdSchema.describe("Identifier for this reviewed commit."),
     versionId: IdSchema.describe("Review version that contains this commit."),
     sha: GitShaSchema.describe("Upstream commit SHA under review."),
+    position: ZeroBasedPositionSchema.describe("Stable review order for this commit within the version."),
     title: NonEmptyStringSchema.describe("First-line commit title."),
     message: MarkdownStringSchema.optional().describe("Full upstream commit message."),
     authorName: NonEmptyStringSchema.optional().describe("Upstream commit author name."),
@@ -53,8 +55,8 @@ export const ReviewCommitSchema = z
       .describe("Local changes linked to this commit when its review mark is DONE."),
     agentReviews: z.array(AgentReviewSchema).describe("Agent review records for this commit."),
     humanApproval: HumanApprovalSchema.nullable().describe("Human approval for this commit, if recorded."),
-    fileCount: NonNegativeIntegerSchema.describe("Number of changed files in this commit."),
-    unresolvedCommentCount: NonNegativeIntegerSchema.describe("Open threaded comments blocking approval."),
+    fileCount: NonNegativeIntegerSchema.describe("Response-derived number of changed files in this commit."),
+    unresolvedCommentCount: NonNegativeIntegerSchema.describe("Response-derived count of open threaded comments blocking approval."),
   })
   .strict()
   .superRefine((commit, context) => {
@@ -88,6 +90,7 @@ export const ReviewFileSchema = z
   .object({
     id: IdSchema.describe("Identifier for this reviewed file change."),
     commitId: IdSchema.describe("Reviewed commit that contains this file change."),
+    position: ZeroBasedPositionSchema.describe("Stable review order for this file within the commit."),
     path: NonEmptyStringSchema.describe("Current file path."),
     oldPath: NonEmptyStringSchema.optional().describe("Previous path for renamed or copied files."),
     changeKind: ChangeKindSchema.describe("Kind of file change."),
@@ -97,7 +100,7 @@ export const ReviewFileSchema = z
       .describe("Local changes linked to this file when its review mark is DONE."),
     agentReviews: z.array(AgentReviewSchema).describe("Agent review records for this file."),
     humanApproval: HumanApprovalSchema.nullable().describe("Human approval for this file, if recorded."),
-    unresolvedCommentCount: NonNegativeIntegerSchema.describe("Open threaded comments blocking approval."),
+    unresolvedCommentCount: NonNegativeIntegerSchema.describe("Response-derived count of open threaded comments blocking approval."),
   })
   .strict()
   .superRefine((file, context) => {
@@ -139,6 +142,7 @@ export const DiffBlockSchema = z
   .object({
     id: IdSchema.describe("Identifier for this diff block."),
     fileId: IdSchema.describe("Reviewed file that contains this diff block."),
+    position: ZeroBasedPositionSchema.describe("Stable review order for this diff block within the file."),
     heading: NonEmptyStringSchema.optional().describe("Diff block heading, when present."),
     oldStartLine: PositiveLineNumberSchema.optional().describe("First line on the old side."),
     oldEndLine: PositiveLineNumberSchema.optional().describe("Last line on the old side."),
@@ -147,6 +151,23 @@ export const DiffBlockSchema = z
     patch: NonEmptyStringSchema.describe("Unified diff patch text for this block."),
   })
   .strict()
+  .superRefine((block, context) => {
+    if (block.oldStartLine !== undefined && block.oldEndLine !== undefined && block.oldStartLine > block.oldEndLine) {
+      context.addIssue({
+        code: "custom",
+        message: "oldStartLine must be less than or equal to oldEndLine",
+        path: ["oldEndLine"],
+      });
+    }
+
+    if (block.newStartLine !== undefined && block.newEndLine !== undefined && block.newStartLine > block.newEndLine) {
+      context.addIssue({
+        code: "custom",
+        message: "newStartLine must be less than or equal to newEndLine",
+        path: ["newEndLine"],
+      });
+    }
+  })
   .describe("A diff block in a reviewed file.");
 
 export type ReviewVersionState = z.infer<typeof ReviewVersionStateSchema>;

@@ -16,6 +16,7 @@ export const coreStatements = [
     id TEXT PRIMARY KEY NOT NULL,
     version_id TEXT NOT NULL REFERENCES review_versions(id) ON DELETE CASCADE,
     sha TEXT NOT NULL,
+    position INTEGER NOT NULL CHECK (position >= 0),
     title TEXT NOT NULL,
     message TEXT,
     author_name TEXT,
@@ -26,10 +27,12 @@ export const coreStatements = [
   )`,
   "CREATE INDEX review_commits_version_idx ON review_commits(version_id)",
   "CREATE UNIQUE INDEX review_commits_version_sha_unique ON review_commits(version_id, sha)",
+  "CREATE UNIQUE INDEX review_commits_version_position_unique ON review_commits(version_id, position)",
 
   `CREATE TABLE review_files (
     id TEXT PRIMARY KEY NOT NULL,
     commit_id TEXT NOT NULL REFERENCES review_commits(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL CHECK (position >= 0),
     path TEXT NOT NULL,
     old_path TEXT,
     change_kind TEXT NOT NULL CHECK (change_kind IN ('added', 'modified', 'deleted', 'renamed', 'copied', 'modeChanged')),
@@ -38,10 +41,12 @@ export const coreStatements = [
     updated_at TEXT
   )`,
   "CREATE INDEX review_files_commit_idx ON review_files(commit_id)",
+  "CREATE UNIQUE INDEX review_files_commit_position_unique ON review_files(commit_id, position)",
 
   `CREATE TABLE diff_blocks (
     id TEXT PRIMARY KEY NOT NULL,
     file_id TEXT NOT NULL REFERENCES review_files(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL CHECK (position >= 0),
     heading TEXT,
     old_start_line INTEGER,
     old_end_line INTEGER,
@@ -52,6 +57,7 @@ export const coreStatements = [
     CHECK (new_start_line IS NULL OR new_end_line IS NULL OR new_start_line <= new_end_line)
   )`,
   "CREATE INDEX diff_blocks_file_idx ON diff_blocks(file_id)",
+  "CREATE UNIQUE INDEX diff_blocks_file_position_unique ON diff_blocks(file_id, position)",
 
   `CREATE TABLE commit_concern_areas (
     commit_id TEXT NOT NULL REFERENCES review_commits(id) ON DELETE CASCADE,

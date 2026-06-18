@@ -18,6 +18,7 @@ export const previewCommits = [
     id: "commit-a",
     versionId: "version-preview",
     sha: "3c2e924d81",
+    position: 0,
     title: "Add fresh review persistence",
     message: "Create direct review tables and migrations for the target domain.",
     authorName: "OpenAI",
@@ -42,6 +43,7 @@ export const previewCommits = [
     id: "commit-b",
     versionId: "version-preview",
     sha: "c18423695a",
+    position: 1,
     title: "Wire Hono API to review contracts",
     reviewMark: "PASS",
     concernAreas: ["hidden-context"],
@@ -55,6 +57,7 @@ export const previewCommits = [
     id: "commit-c",
     versionId: "version-preview",
     sha: "e92f9d2476",
+    position: 2,
     title: "Add canonical review contracts",
     reviewMark: "FLAG",
     concernAreas: ["harness-prompts", "context-compaction"],
@@ -73,6 +76,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
       ReviewFileSchema.parse({
         id: "file-a",
         commitId: "commit-a",
+        position: 0,
         path: "codex_reviewer/apps/api/src/db/schema/core.ts",
         changeKind: "added",
         reviewMark: "DONE",
@@ -91,6 +95,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
       ReviewFileSchema.parse({
         id: "file-b",
         commitId: "commit-a",
+        position: 1,
         path: "codex_reviewer/apps/api/src/db/migrations/0001-core.ts",
         changeKind: "added",
         reviewMark: "PASS",
@@ -102,6 +107,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
       ReviewFileSchema.parse({
         id: "file-c",
         commitId: "commit-a",
+        position: 2,
         path: "codex_reviewer/apps/api/src/db/schema.test.ts",
         changeKind: "added",
         reviewMark: "MODIFY",
@@ -118,6 +124,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
       ReviewFileSchema.parse({
         id: "file-d",
         commitId: "commit-b",
+        position: 0,
         path: "codex_reviewer/apps/api/src/routes/review.ts",
         changeKind: "modified",
         reviewMark: null,
@@ -134,6 +141,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFile[]>([
       ReviewFileSchema.parse({
         id: "file-e",
         commitId: "commit-c",
+        position: 0,
         path: "codex_reviewer/packages/contracts/src/review/review-actions.ts",
         changeKind: "modified",
         reviewMark: "FLAG",
@@ -153,6 +161,7 @@ export const previewDiffBlocksByFileId = new Map<string, DiffBlock[]>([
       DiffBlockSchema.parse({
         id: "diff-a",
         fileId: "file-a",
+        position: 0,
         heading: "review_versions table",
         oldStartLine: 1,
         oldEndLine: 1,
@@ -177,6 +186,7 @@ export const previewDiffBlocksByFileId = new Map<string, DiffBlock[]>([
       DiffBlockSchema.parse({
         id: "diff-b",
         fileId: "file-e",
+        position: 0,
         heading: "human approval rules",
         oldStartLine: 40,
         oldEndLine: 46,

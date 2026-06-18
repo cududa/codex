@@ -9,10 +9,8 @@ export const GitShaSchema = z
   .regex(/^[0-9a-f]{7,64}$/i)
   .describe("A Git commit SHA or unique abbreviated SHA.");
 export const NonNegativeIntegerSchema = z.number().int().nonnegative().describe("A non-negative integer count.");
+export const ZeroBasedPositionSchema = z.number().int().nonnegative().describe("A stable zero-based position within a parent collection.");
 export const PositiveLineNumberSchema = z.number().int().positive().describe("A positive one-based source line number.");
-export const JsonRecordSchema = z
-  .record(z.string(), z.unknown())
-  .describe("A JSON-compatible object for narrowly scoped extension metadata.");
 
 export type Id = z.infer<typeof IdSchema>;
 export type GitSha = z.infer<typeof GitShaSchema>;

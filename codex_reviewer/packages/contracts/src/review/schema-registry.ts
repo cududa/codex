@@ -7,6 +7,7 @@ import {
 } from "./api.js";
 import { ConcernAreaSchema, ConcernAreaSelectionSchema, ConcernAreaSlugSchema } from "./concern-areas.js";
 import { DecisionNoteSchema } from "./decision-notes.js";
+import { DetectorEvidenceSchema, DetectorRunSchema } from "./detector-evidence.js";
 import { DiffBlockSchema, ReviewCommitSchema, ReviewFileSchema, ReviewVersionSchema } from "./reviewables.js";
 import { LocalChangeRefSchema } from "./local-change-refs.js";
 import { ReviewLedgerEntrySchema, ReviewLedgerSchema, VersionFinalizationSchema } from "./ledger.js";
@@ -22,6 +23,8 @@ export const reviewSchemas = {
   ConcernAreaSelection: ConcernAreaSelectionSchema,
   ConcernAreaSlug: ConcernAreaSlugSchema,
   DecisionNote: DecisionNoteSchema,
+  DetectorEvidence: DetectorEvidenceSchema,
+  DetectorRun: DetectorRunSchema,
   DiffBlock: DiffBlockSchema,
   HumanApproval: HumanApprovalSchema,
   LocalChangeRef: LocalChangeRefSchema,
