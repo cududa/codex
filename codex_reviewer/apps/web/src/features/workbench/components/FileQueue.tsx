@@ -1,4 +1,4 @@
-import { FileCode2, MessageSquare, MoveRight } from "lucide-react";
+import { FileCode2, MoveRight } from "lucide-react";
 import type { ReviewFileRead, ReviewMarkDefinition } from "@/entities/review/types";
 import { cn } from "@/shared/lib/cn";
 import { changeSymbol, changeTone } from "../model/workbenchView";
@@ -37,7 +37,7 @@ export function FileQueue({ files, onSelect, reviewMarks, selectedFileId }: File
                 <FileCode2 className="size-4 shrink-0 text-slate-500" aria-hidden="true" />
                 <span className="truncate text-sm font-medium text-slate-950">{file.path}</span>
               </span>
-              {file.oldPath === undefined ? null : (
+              {file.oldPath === null ? null : (
                 <span className="flex min-w-0 items-center gap-1 text-xs text-slate-500">
                   <span className="truncate">{file.oldPath}</span>
                   <MoveRight className="size-3 shrink-0" aria-hidden="true" />
@@ -46,12 +46,9 @@ export function FileQueue({ files, onSelect, reviewMarks, selectedFileId }: File
               <span className="flex flex-wrap gap-1 text-[11px] text-slate-600">
                 <ChangeBadge changeKind={file.changeKind} />
                 <ReviewMarkPill compact definitions={reviewMarks} mark={file.reviewMark} />
-                {file.unresolvedCommentCount > 0 ? (
-                  <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5">
-                    <MessageSquare className="size-3" aria-hidden="true" />
-                    {file.unresolvedCommentCount} open
-                  </span>
-                ) : null}
+                <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5">
+                  {file.diffBlocks.length} blocks
+                </span>
               </span>
             </button>
           );

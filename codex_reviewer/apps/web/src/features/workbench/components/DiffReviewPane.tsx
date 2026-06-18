@@ -72,8 +72,8 @@ function patchRows(block: DiffBlockRead): Array<{ key: string; line: string }> {
   });
 }
 
-function lineRange(start: number | undefined, end: number | undefined): string {
-  if (start === undefined || end === undefined) {
+function lineRange(start: number | null, end: number | null): string {
+  if (start === null || end === null) {
     return "?";
   }
   return start === end ? start.toString() : `${start}-${end}`;

@@ -1,11 +1,24 @@
 import { concernAreas, reviewMarkDefinitions } from "@prompt-reviews/contracts";
 import { describe, expect, it, vi } from "vitest";
+import { createDatabaseConnection, type ReviewDatabaseConnection } from "../db/client.js";
+import { migrateDatabase } from "../db/migrate.js";
+import {
+  commitConcernAreas,
+  diffBlocks,
+  reviewCommits,
+  reviewFiles,
+  reviewVersions,
+} from "../db/schema/index.js";
+import { createReviewReadStore } from "../review/read-store.js";
 import { createApiApp } from "./app.js";
 import type { ApiDependencies } from "./types.js";
 
+const now = "2026-06-17T12:00:00.000Z";
+
 describe("createApiApp", () => {
   it("serves health through the shared response contract", async () => {
-    const app = createApiApp(testDependencies());
+    const { dependencies } = await testRuntime();
+    const app = createApiApp(dependencies);
 
     const response = await app.request("/health");
 
@@ -14,7 +27,8 @@ describe("createApiApp", () => {
   });
 
   it("returns metadata through the shared response contract", async () => {
-    const app = createApiApp(testDependencies());
+    const { dependencies } = await testRuntime();
+    const app = createApiApp(dependencies);
 
     const response = await app.request("/api/meta");
 
@@ -24,12 +38,13 @@ describe("createApiApp", () => {
       apiName: "codex-reviewer-api",
       contractsPackage: "@prompt-reviews/contracts",
       status: "ready",
-      summary: "Contracts-first Hono and React workspace foundation.",
+      summary: "Reviews upstream Codex changes before accepting them locally.",
     });
   });
 
   it("rejects invalid query params through Hono and Zod", async () => {
-    const app = createApiApp(testDependencies());
+    const { dependencies } = await testRuntime();
+    const app = createApiApp(dependencies);
 
     const response = await app.request("/api/meta?view=everything");
 
@@ -43,7 +58,8 @@ describe("createApiApp", () => {
   });
 
   it("serves review bootstrap data from shared contracts", async () => {
-    const app = createApiApp(testDependencies());
+    const { dependencies } = await testRuntime();
+    const app = createApiApp(dependencies);
 
     const response = await app.request("/api/review/bootstrap");
 
@@ -51,194 +67,96 @@ describe("createApiApp", () => {
     expect(await response.json()).toEqual({
       concernAreas,
       reviewMarks: reviewMarkDefinitions,
-      schemaNames: expect.arrayContaining([
-        "ConcernArea",
-        "ReviewCommitRead",
-        "ReviewCommitRow",
-        "ReviewMark",
-      ]),
     });
   });
 
-  it("serves concern areas from the canonical registry", async () => {
-    const app = createApiApp(testDependencies());
+  it("serves persisted review versions through the read API", async () => {
+    const { connection, dependencies } = await testRuntime();
+    await seedReviewVersion(connection);
+    const app = createApiApp(dependencies);
 
-    const response = await app.request("/api/review/concern-areas");
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ concernAreas });
-  });
-
-  it("serves review mark workflow metadata from the canonical registry", async () => {
-    const app = createApiApp(testDependencies());
-
-    const response = await app.request("/api/review/marks");
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ reviewMarks: reviewMarkDefinitions });
-  });
-
-  it("serves the review schema catalog", async () => {
-    const app = createApiApp(testDependencies());
-
-    const response = await app.request("/api/review/schemas");
+    const response = await app.request("/api/review/versions");
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      schemaNames: expect.arrayContaining([
-        "AgentReviewRead",
-        "HumanApprovalRead",
-        "ReviewLedgerRead",
-        "ReviewNoteRow",
-      ]),
+      versions: [
+        {
+          id: "version-1",
+          label: "Upstream review",
+          repositoryId: "openai/codex",
+          baseRef: "local-main",
+          targetRef: "upstream/main",
+          baseSha: null,
+          targetSha: "abcdef1",
+          createdAt: now,
+          updatedAt: null,
+          commitCount: 1,
+          commits: [
+            {
+              id: "commit-1",
+              versionId: "version-1",
+              sha: "abcdef1",
+              position: 0,
+              title: "Adjust tool prompts",
+              message: null,
+              authorName: "OpenAI",
+              committedAt: now,
+              reviewMark: "FLAG",
+              concernAreas: ["tool-affordances"],
+              createdAt: now,
+              updatedAt: null,
+              files: [
+                {
+                  id: "file-1",
+                  commitId: "commit-1",
+                  position: 0,
+                  path: "codex-rs/core/src/prompt.rs",
+                  oldPath: null,
+                  changeKind: "modified",
+                  reviewMark: null,
+                  createdAt: now,
+                  updatedAt: null,
+                  diffBlocks: [
+                    {
+                      id: "diff-1",
+                      fileId: "file-1",
+                      position: 0,
+                      heading: "prompt",
+                      oldStartLine: 1,
+                      oldEndLine: 1,
+                      newStartLine: 1,
+                      newEndLine: 1,
+                      patch: "@@ -1 +1 @@\n-old\n+new",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     });
   });
 
-  it("accepts review note writes only through the canonical command shape", async () => {
-    const dependencies = testDependencies();
+  it("returns one persisted review version by id", async () => {
+    const { connection, dependencies } = await testRuntime();
+    await seedReviewVersion(connection);
     const app = createApiApp(dependencies);
 
-    const response = await app.request("/api/review/notes", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        commandId: "command-1",
-        actor: { type: "agent", id: "agent-1" },
-        occurredAt: "2026-06-17T12:00:00.000Z",
-        noteId: "note-1",
-        scope: { type: "commit", commitId: "commit-1" },
-        bodyMarkdown: "Track this review rationale.",
-      }),
+    const response = await app.request("/api/review/versions/version-1");
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      version: {
+        id: "version-1",
+        commits: [{ id: "commit-1", files: [{ id: "file-1" }] }],
+      },
     });
-
-    expect(response.status).toBe(204);
-    expect(dependencies.reviewWriteStore.addReviewNote).toHaveBeenCalledWith({
-      commandId: "command-1",
-      actor: { type: "agent", id: "agent-1" },
-      occurredAt: "2026-06-17T12:00:00.000Z",
-      noteId: "note-1",
-      scope: { type: "commit", commitId: "commit-1" },
-      bodyMarkdown: "Track this review rationale.",
-    });
-
-    const invalidResponse = await app.request("/api/review/notes", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        commandId: "command-2",
-        actor: { type: "agent", id: "agent-1" },
-        occurredAt: "2026-06-17T12:00:00.000Z",
-        noteId: "note-2",
-        scope: { type: "version", versionId: "version-1" },
-        bodyMarkdown: "This is not a valid ReviewNote scope.",
-      }),
-    });
-
-    expect(invalidResponse.status).toBe(400);
-    expect(dependencies.reviewWriteStore.addReviewNote).toHaveBeenCalledTimes(1);
-  });
-
-  it("routes threaded comments and review plans through command-shaped writes", async () => {
-    const dependencies = testDependencies();
-    const app = createApiApp(dependencies);
-
-    const commentResponse = await app.request("/api/review/comments", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        commandId: "command-comment",
-        actor: { type: "agent", id: "agent-1" },
-        occurredAt: "2026-06-17T12:00:00.000Z",
-        commentId: "comment-1",
-        scope: { type: "file", fileId: "file-1" },
-        anchor: { kind: "scope" },
-        threadId: "thread-1",
-        parentCommentId: null,
-        bodyMarkdown: "Investigate this file change.",
-      }),
-    });
-    const resolveResponse = await app.request("/api/review/comments/resolve", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        commandId: "command-resolve-comment",
-        actor: { type: "agent", id: "agent-1" },
-        occurredAt: "2026-06-17T12:05:00.000Z",
-        commentId: "comment-1",
-        threadId: "thread-1",
-        scope: { type: "file", fileId: "file-1" },
-        eventId: "event-resolve-comment",
-      }),
-    });
-    const planResponse = await app.request("/api/review/plans", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        commandId: "command-plan",
-        actor: { type: "agent", id: "agent-1" },
-        occurredAt: "2026-06-17T12:10:00.000Z",
-        reviewPlanId: "plan-1",
-        scope: { type: "commit", commitId: "commit-1" },
-        bodyMarkdown: "1. Verify the prompt behavior.",
-        eventId: "event-plan",
-      }),
-    });
-
-    expect(commentResponse.status).toBe(204);
-    expect(resolveResponse.status).toBe(204);
-    expect(planResponse.status).toBe(204);
-    expect(dependencies.reviewWriteStore.addThreadedComment).toHaveBeenCalledTimes(1);
-    expect(dependencies.reviewWriteStore.resolveThreadedComment).toHaveBeenCalledTimes(1);
-    expect(dependencies.reviewWriteStore.upsertReviewPlan).toHaveBeenCalledTimes(1);
-  });
-
-  it("routes completed review ledger generation through a human command", async () => {
-    const dependencies = testDependencies();
-    const app = createApiApp(dependencies);
-
-    const response = await app.request("/api/review/ledgers", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        commandId: "command-ledger",
-        actor: { type: "human", id: "human-1" },
-        occurredAt: "2026-06-17T12:15:00.000Z",
-        ledgerId: "ledger-1",
-        versionId: "version-1",
-        entries: [
-          {
-            ledgerEntryId: "ledger-entry-1",
-            commitId: "commit-1",
-            upstreamSha: "abcdef1",
-            finalMark: "PASS",
-            concernAreas: ["tool-affordances"],
-            localChangeRefIds: [],
-            approvedBy: { type: "human", id: "human-1" },
-            approvedAt: "2026-06-17T12:10:00.000Z",
-          },
-        ],
-      }),
-    });
-    const agentResponse = await app.request("/api/review/ledgers", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        commandId: "command-ledger-agent",
-        actor: { type: "agent", id: "agent-1" },
-        occurredAt: "2026-06-17T12:15:00.000Z",
-        ledgerId: "ledger-2",
-        versionId: "version-1",
-        entries: [],
-      }),
-    });
-
-    expect(response.status).toBe(204);
-    expect(agentResponse.status).toBe(400);
-    expect(dependencies.reviewWriteStore.generateReviewLedger).toHaveBeenCalledTimes(1);
   });
 
   it("returns contract-shaped errors", async () => {
-    const app = createApiApp(testDependencies());
+    const { dependencies } = await testRuntime();
+    const app = createApiApp(dependencies);
 
     const response = await app.request("/missing");
 
@@ -252,30 +170,71 @@ describe("createApiApp", () => {
   });
 });
 
-function testDependencies(): ApiDependencies {
+async function testRuntime(): Promise<{
+  connection: ReviewDatabaseConnection;
+  dependencies: ApiDependencies;
+}> {
+  const connection = createDatabaseConnection("file::memory:");
+  await migrateDatabase(connection.client);
   return {
-    config: {
-      host: "127.0.0.1",
-      port: 0,
-    },
-    logger: {
-      error: vi.fn(),
-      info: vi.fn(),
-    } as unknown as ApiDependencies["logger"],
-    reviewWriteStore: {
-      setCommitReviewMark: vi.fn(),
-      setFileReviewMark: vi.fn(),
-      setCommitConcernAreas: vi.fn(),
-      recordAgentReview: vi.fn(),
-      recordHumanApproval: vi.fn(),
-      linkLocalChangeRef: vi.fn(),
-      addThreadedComment: vi.fn(),
-      resolveThreadedComment: vi.fn(),
-      addReviewNote: vi.fn(),
-      updateReviewNote: vi.fn(),
-      deleteReviewNote: vi.fn(),
-      upsertReviewPlan: vi.fn(),
-      generateReviewLedger: vi.fn(),
+    connection,
+    dependencies: {
+      config: {
+        host: "127.0.0.1",
+        port: 0,
+      },
+      logger: {
+        error: vi.fn(),
+        info: vi.fn(),
+      } as unknown as ApiDependencies["logger"],
+      reviewReadStore: createReviewReadStore(connection.db),
     },
   };
+}
+
+async function seedReviewVersion(connection: ReviewDatabaseConnection): Promise<void> {
+  await connection.db.insert(reviewVersions).values({
+    id: "version-1",
+    label: "Upstream review",
+    repositoryId: "openai/codex",
+    baseRef: "local-main",
+    targetRef: "upstream/main",
+    targetSha: "abcdef1",
+    createdAt: now,
+  });
+  await connection.db.insert(reviewCommits).values({
+    id: "commit-1",
+    versionId: "version-1",
+    sha: "abcdef1",
+    position: 0,
+    title: "Adjust tool prompts",
+    authorName: "OpenAI",
+    committedAt: now,
+    reviewMark: "FLAG",
+    createdAt: now,
+  });
+  await connection.db.insert(commitConcernAreas).values({
+    commitId: "commit-1",
+    concernAreaSlug: "tool-affordances",
+    position: 0,
+  });
+  await connection.db.insert(reviewFiles).values({
+    id: "file-1",
+    commitId: "commit-1",
+    position: 0,
+    path: "codex-rs/core/src/prompt.rs",
+    changeKind: "modified",
+    createdAt: now,
+  });
+  await connection.db.insert(diffBlocks).values({
+    id: "diff-1",
+    fileId: "file-1",
+    position: 0,
+    heading: "prompt",
+    oldStartLine: 1,
+    oldEndLine: 1,
+    newStartLine: 1,
+    newEndLine: 1,
+    patch: "@@ -1 +1 @@\n-old\n+new",
+  });
 }

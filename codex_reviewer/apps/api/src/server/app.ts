@@ -50,7 +50,7 @@ export function createApiApp(dependencies: ApiDependencies) {
           apiName: "codex-reviewer-api",
           contractsPackage: "@prompt-reviews/contracts",
           status: "ready",
-          summary: "Contracts-first Hono and React workspace foundation.",
+          summary: "Reviews upstream Codex changes before accepting them locally.",
         }),
       ),
   );

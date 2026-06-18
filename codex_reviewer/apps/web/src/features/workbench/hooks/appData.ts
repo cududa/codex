@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAppMetadata, getHealth } from "@/entities/app/api";
-import { getReviewBootstrap } from "@/entities/review/api";
+import { getReviewBootstrap, getReviewVersions } from "@/entities/review/api";
 
 export function useWorkbenchData() {
   const health = useQuery({
@@ -15,6 +15,10 @@ export function useWorkbenchData() {
     queryKey: ["review", "bootstrap"],
     queryFn: getReviewBootstrap,
   });
+  const reviewVersions = useQuery({
+    queryKey: ["review", "versions"],
+    queryFn: getReviewVersions,
+  });
 
-  return { health, metadata, reviewBootstrap };
+  return { health, metadata, reviewBootstrap, reviewVersions };
 }

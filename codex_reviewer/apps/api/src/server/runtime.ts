@@ -1,7 +1,7 @@
 import pino from "pino";
 import { loadApiConfig } from "../config/env.js";
 import { createDatabaseConnection } from "../db/client.js";
-import { createReviewWriteStore } from "../review/write-store.js";
+import { createReviewReadStore } from "../review/read-store.js";
 import type { ApiDependencies } from "./types.js";
 
 export function createRuntimeDependencies(): ApiDependencies {
@@ -14,6 +14,6 @@ export function createRuntimeDependencies(): ApiDependencies {
   return {
     config,
     logger,
-    reviewWriteStore: createReviewWriteStore(connection.db),
+    reviewReadStore: createReviewReadStore(connection.db),
   };
 }

@@ -17,9 +17,10 @@ describe("workbench view helpers", () => {
   });
 
   it("maps review marks to display labels and tones", () => {
-    expect(reviewMarkLabel("DONE", reviewMarkDefinitions)).toBe("Done");
+    expect(reviewMarkLabel("PASS", reviewMarkDefinitions)).toBe("Pass");
     expect(reviewMarkLabel(null, reviewMarkDefinitions)).toBe("No file mark");
     expect(reviewMarkTone("MODIFY")).toBe("modify");
+    expect(reviewMarkTone("FLAG")).toBe("flag");
     expect(reviewMarkTone(null)).toBe("unset");
   });
 

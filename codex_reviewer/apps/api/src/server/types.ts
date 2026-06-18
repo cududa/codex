@@ -1,11 +1,11 @@
 import type { Logger } from "pino";
 import type { ApiConfig } from "../config/env.js";
-import type { ReviewWriteStore } from "../review/write-store.js";
+import type { ReviewReadStore } from "../review/read-store.js";
 
 export type ApiDependencies = {
   config: ApiConfig;
   logger: Logger;
-  reviewWriteStore: ReviewWriteStore;
+  reviewReadStore: ReviewReadStore;
 };
 
 export type ApiBindings = {

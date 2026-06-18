@@ -1,11 +1,8 @@
 import type { ConcernArea, ConcernAreaSlug, ReviewMark, ReviewMarkDefinition } from "@/entities/review/types";
 
-export function reviewMarkTone(mark: ReviewMark | null): "done" | "flag" | "modify" | "pass" | "unset" {
+export function reviewMarkTone(mark: ReviewMark | null): "flag" | "modify" | "pass" | "unset" {
   if (mark === null) {
     return "unset";
-  }
-  if (mark === "DONE") {
-    return "done";
   }
   if (mark === "FLAG") {
     return "flag";

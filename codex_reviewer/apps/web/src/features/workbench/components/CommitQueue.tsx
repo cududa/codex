@@ -1,4 +1,4 @@
-import { GitCommitHorizontal, MessageSquare } from "lucide-react";
+import { GitCommitHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import type { ConcernArea, ReviewCommitRead, ReviewMarkDefinition } from "@/entities/review/types";
 import { cn } from "@/shared/lib/cn";
@@ -48,13 +48,7 @@ export function CommitQueue({
               <span className="line-clamp-2 text-sm font-medium text-slate-950">{commit.title}</span>
               <span className="flex flex-wrap gap-1 text-[11px] text-slate-600">
                 <Chip label={concernAreaSummary(commit.concernAreas, concernAreas)} />
-                <Chip label={`${commit.fileCount} files`} />
-                {commit.unresolvedCommentCount > 0 ? (
-                  <Chip
-                    icon={<MessageSquare className="size-3" aria-hidden="true" />}
-                    label={`${commit.unresolvedCommentCount} open`}
-                  />
-                ) : null}
+                <Chip label={`${commit.files.length} files`} />
               </span>
             </button>
           );

@@ -1,15 +1,12 @@
 export type {
   ConcernArea,
   ConcernAreaSlug,
-  DetectorEvidenceRead,
-  DetectorRunRead,
   DiffBlockRead,
   ReviewBootstrapResponse,
   ReviewCommitRead,
-  ReviewEventRead,
   ReviewFileRead,
   ReviewMark,
   ReviewMarkDefinition,
-  ReviewPlanRead,
-  ThreadedCommentRead,
+  ReviewVersionRead,
+  ReviewVersionsResponse,
 } from "@prompt-reviews/contracts";

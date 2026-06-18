@@ -20,7 +20,7 @@ export const coreStatements = [
     message TEXT,
     author_name TEXT,
     committed_at TEXT,
-    review_mark TEXT NOT NULL DEFAULT 'FLAG' CHECK (review_mark IN ('PASS', 'FLAG', 'MODIFY', 'DONE')),
+    review_mark TEXT NOT NULL DEFAULT 'FLAG' CHECK (review_mark IN ('PASS', 'FLAG', 'MODIFY')),
     created_at TEXT NOT NULL,
     updated_at TEXT
   )`,
@@ -35,7 +35,7 @@ export const coreStatements = [
     path TEXT NOT NULL,
     old_path TEXT,
     change_kind TEXT NOT NULL CHECK (change_kind IN ('added', 'modified', 'deleted', 'renamed', 'copied', 'modeChanged')),
-    review_mark TEXT CHECK (review_mark IS NULL OR review_mark IN ('PASS', 'FLAG', 'MODIFY', 'DONE')),
+    review_mark TEXT CHECK (review_mark IS NULL OR review_mark IN ('PASS', 'FLAG', 'MODIFY')),
     created_at TEXT NOT NULL,
     updated_at TEXT
   )`,

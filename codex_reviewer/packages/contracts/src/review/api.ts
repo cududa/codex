@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ConcernAreaSchema } from "./concern-areas.js";
 import { ReviewMarkDefinitionSchema } from "./review-marks.js";
-import { NonEmptyStringSchema } from "../shared/primitives.js";
+import { ReviewVersionReadSchema } from "./reviewables.js";
 
 export const ConcernAreasResponseSchema = z
   .object({
@@ -19,29 +19,32 @@ export const ReviewMarksResponseSchema = z
   .strict()
   .describe("Response containing the canonical review mark registry.");
 
-export const ReviewSchemaCatalogResponseSchema = z
-  .object({
-    schemaNames: z
-      .array(NonEmptyStringSchema)
-      .describe("Canonical review schema names exported by the contracts package."),
-  })
-  .strict()
-  .describe("Response containing the review schema catalog.");
-
 export const ReviewBootstrapResponseSchema = z
   .object({
     concernAreas: z.array(ConcernAreaSchema).describe("Canonical concern areas available for commit review."),
     reviewMarks: z
       .array(ReviewMarkDefinitionSchema)
       .describe("Canonical review marks and workflow metadata."),
-    schemaNames: z
-      .array(NonEmptyStringSchema)
-      .describe("Canonical review schema names exported by the contracts package."),
   })
   .strict()
   .describe("Bootstrap response for review UI and MCP clients.");
 
+export const ReviewVersionsResponseSchema = z
+  .object({
+    versions: z.array(ReviewVersionReadSchema).describe("Persisted review versions and their commits."),
+  })
+  .strict()
+  .describe("Response containing persisted review workbench data.");
+
+export const ReviewVersionResponseSchema = z
+  .object({
+    version: ReviewVersionReadSchema.nullable().describe("Persisted review version, or null when absent."),
+  })
+  .strict()
+  .describe("Response containing one persisted review version.");
+
 export type ConcernAreasResponse = z.infer<typeof ConcernAreasResponseSchema>;
 export type ReviewMarksResponse = z.infer<typeof ReviewMarksResponseSchema>;
-export type ReviewSchemaCatalogResponse = z.infer<typeof ReviewSchemaCatalogResponseSchema>;
 export type ReviewBootstrapResponse = z.infer<typeof ReviewBootstrapResponseSchema>;
+export type ReviewVersionsResponse = z.infer<typeof ReviewVersionsResponseSchema>;
+export type ReviewVersionResponse = z.infer<typeof ReviewVersionResponseSchema>;

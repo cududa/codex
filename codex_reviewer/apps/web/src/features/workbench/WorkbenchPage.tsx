@@ -1,58 +1,57 @@
 import { RefreshCw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { concernAreas as canonicalConcernAreas, reviewMarkDefinitions } from "@prompt-reviews/contracts";
-import type { ReviewCommitRead } from "@/entities/review/types";
+import type { ReviewCommitRead, ReviewFileRead, ReviewVersionRead } from "@/entities/review/types";
 import { Button } from "@/shared/ui/Button";
 import { CommitQueue } from "./components/CommitQueue";
 import { DiffReviewPane } from "./components/DiffReviewPane";
 import { FileQueue } from "./components/FileQueue";
 import { ResizableWorkbench } from "./components/ResizableWorkbench";
-import { ReviewActionsPanel } from "./components/ReviewActionsPanel";
+import { ReviewPanel } from "./components/ReviewPanel";
 import { StatusPanel } from "./components/StatusPanel";
 import { VersionRail } from "./components/VersionRail";
 import { useWorkbenchData } from "./hooks/appData";
-import {
-  previewComments,
-  previewCommits,
-  previewDiffBlocksByFileId,
-  previewFilesByCommitId,
-  previewPlan,
-} from "./model/previewReview";
 
 export function WorkbenchPage() {
-  const { health, metadata, reviewBootstrap } = useWorkbenchData();
-  const [selectedCommitId, setSelectedCommitId] = useState<ReviewCommitRead["id"] | null>(
-    previewCommits[0]?.id ?? null,
-  );
-  const selectedCommit = previewCommits.find((commit) => commit.id === selectedCommitId) ?? previewCommits[0];
-  const files = selectedCommit === undefined ? [] : (previewFilesByCommitId.get(selectedCommit.id) ?? []);
-  const [selectedFileId, setSelectedFileId] = useState(files[0]?.id ?? null);
-  const selectedFile = files.find((file) => file.id === selectedFileId) ?? files[0];
-  const diffBlocks = selectedFile === undefined ? [] : (previewDiffBlocksByFileId.get(selectedFile.id) ?? []);
+  const { health, metadata, reviewBootstrap, reviewVersions } = useWorkbenchData();
+  const versions = reviewVersions.data?.versions ?? [];
+  const [selectedVersionId, setSelectedVersionId] = useState<ReviewVersionRead["id"] | null>(null);
+  const selectedVersion = versions.find((version) => version.id === selectedVersionId) ?? versions[0] ?? null;
+  const commits = selectedVersion?.commits ?? [];
+  const [selectedCommitId, setSelectedCommitId] = useState<ReviewCommitRead["id"] | null>(null);
+  const selectedCommit = commits.find((commit) => commit.id === selectedCommitId) ?? commits[0] ?? null;
+  const files = selectedCommit?.files ?? [];
+  const [selectedFileId, setSelectedFileId] = useState<ReviewFileRead["id"] | null>(null);
+  const selectedFile = files.find((file) => file.id === selectedFileId) ?? files[0] ?? null;
+  const diffBlocks = selectedFile?.diffBlocks ?? [];
   const concernAreas = reviewBootstrap.data?.concernAreas ?? canonicalConcernAreas;
   const marks = reviewBootstrap.data?.reviewMarks ?? reviewMarkDefinitions;
-  const visibleComments = useMemo(
-    () =>
-      previewComments.filter((comment) => {
-        if (
-          selectedFile !== undefined &&
-          comment.scope.type === "file" &&
-          comment.scope.fileId === selectedFile.id
-        ) {
-          return true;
-        }
-        return (
-          selectedCommit !== undefined &&
-          comment.scope.type === "commit" &&
-          comment.scope.commitId === selectedCommit.id
-        );
-      }),
-    [selectedCommit, selectedFile],
-  );
-  const error = health.error?.message ?? metadata.error?.message ?? reviewBootstrap.error?.message;
+  const error =
+    health.error?.message ??
+    metadata.error?.message ??
+    reviewBootstrap.error?.message ??
+    reviewVersions.error?.message;
 
   useEffect(() => {
-    setSelectedFileId(files[0]?.id ?? null);
+    setSelectedVersionId((current) =>
+      current !== null && versions.some((version) => version.id === current)
+        ? current
+        : (versions[0]?.id ?? null),
+    );
+  }, [versions]);
+
+  useEffect(() => {
+    setSelectedCommitId((current) =>
+      current !== null && commits.some((commit) => commit.id === current)
+        ? current
+        : (commits[0]?.id ?? null),
+    );
+  }, [commits]);
+
+  useEffect(() => {
+    setSelectedFileId((current) =>
+      current !== null && files.some((file) => file.id === current) ? current : (files[0]?.id ?? null),
+    );
   }, [files]);
 
   return (
@@ -60,13 +59,16 @@ export function WorkbenchPage() {
       <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4">
         <div>
           <h1 className="text-base font-semibold text-slate-950">Codex Reviewer</h1>
-          <p className="text-xs text-slate-500">Contracts-first workspace foundation</p>
+          <p className="text-xs text-slate-500">
+            Review upstream Codex changes before accepting them locally
+          </p>
         </div>
         <Button
           onClick={() => {
             void health.refetch();
             void metadata.refetch();
             void reviewBootstrap.refetch();
+            void reviewVersions.refetch();
           }}
           type="button"
           variant="secondary"
@@ -86,10 +88,16 @@ export function WorkbenchPage() {
             <StatusPanel health={health.data} metadata={metadata.data} />
           </div>
           <ResizableWorkbench
-            versionRail={<VersionRail commits={previewCommits} />}
+            versionRail={
+              <VersionRail
+                onSelect={setSelectedVersionId}
+                selectedVersionId={selectedVersion?.id ?? null}
+                versions={versions}
+              />
+            }
             commitQueue={
               <CommitQueue
-                commits={previewCommits}
+                commits={commits}
                 concernAreas={concernAreas}
                 onSelect={setSelectedCommitId}
                 reviewMarks={marks}
@@ -104,14 +112,14 @@ export function WorkbenchPage() {
                 selectedFileId={selectedFile?.id ?? null}
               />
             }
-            diffReview={<DiffReviewPane diffBlocks={diffBlocks} file={selectedFile} />}
+            diffReview={<DiffReviewPane diffBlocks={diffBlocks} file={selectedFile ?? undefined} />}
             reviewPanel={
-              <ReviewActionsPanel
-                comments={visibleComments}
-                commit={selectedCommit}
+              <ReviewPanel
+                commit={selectedCommit ?? undefined}
                 concernAreas={concernAreas}
-                plan={previewPlan}
+                file={selectedFile ?? undefined}
                 reviewMarks={marks}
+                version={selectedVersion ?? undefined}
               />
             }
           />

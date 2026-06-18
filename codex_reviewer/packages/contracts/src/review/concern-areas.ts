@@ -46,7 +46,6 @@ export const ConcernAreaRegistrySchema = z
 
 export const ConcernAreaSelectionSchema = z
   .array(ConcernAreaSlugSchema)
-  .max(3)
   .superRefine((slugs, context) => {
     const seen = new Set<string>();
     for (const [index, slug] of slugs.entries()) {
@@ -60,7 +59,7 @@ export const ConcernAreaSelectionSchema = z
       seen.add(slug);
     }
   })
-  .describe("Ordered commit concern areas; the first selected area is primary.");
+  .describe("Ordered commit concern areas; the first selected area is first.");
 
 const concernAreaDefinitionInput = [
   {

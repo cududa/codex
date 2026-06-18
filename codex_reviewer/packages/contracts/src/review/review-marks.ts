@@ -1,15 +1,11 @@
 import { z } from "zod";
 import { NonEmptyStringSchema } from "../shared/primitives.js";
 
-export const reviewMarks = ["PASS", "FLAG", "MODIFY", "DONE"] as const;
+export const reviewMarks = ["PASS", "FLAG", "MODIFY"] as const;
 
 export const ReviewMarkSchema = z
   .enum(reviewMarks)
   .describe("Operational review mark for an upstream commit or file.");
-
-export const FinalReviewMarkSchema = z
-  .enum(["PASS", "DONE"])
-  .describe("Review marks that may appear in a completed review ledger.");
 
 export const ExplicitFileReviewMarkSchema = ReviewMarkSchema.nullable().describe(
   "A file-specific review mark; null means no explicit file-level mark is currently operational.",
@@ -20,12 +16,9 @@ export const ReviewMarkDefinitionSchema = z
     mark: ReviewMarkSchema.describe("Review mark value."),
     label: NonEmptyStringSchema.describe("Short display label for this review mark."),
     description: NonEmptyStringSchema.describe("When this review mark should be used."),
-    isFinal: z.boolean().describe("Whether this mark can appear in the completed review ledger."),
-    requiresLocalChangeRefs: z
+    requiresLocalChangeEvidence: z
       .boolean()
-      .describe(
-        "Whether this mark requires linked local commit evidence before approval or ledger generation.",
-      ),
+      .describe("Whether this mark requires linked local commit evidence before human approval."),
   })
   .strict()
   .describe("Display and workflow metadata for a review mark.");
@@ -53,35 +46,24 @@ const reviewMarkDefinitionInput = [
     mark: "PASS",
     label: "Pass",
     description: "Reviewed and no local adaptation is required.",
-    isFinal: true,
-    requiresLocalChangeRefs: false,
+    requiresLocalChangeEvidence: false,
   },
   {
     mark: "FLAG",
     label: "Flag",
     description: "Investigation is required before the review can resolve to pass or modify.",
-    isFinal: false,
-    requiresLocalChangeRefs: false,
+    requiresLocalChangeEvidence: false,
   },
   {
     mark: "MODIFY",
     label: "Modify",
     description: "The upstream change requires intentional local adaptation before approval.",
-    isFinal: false,
-    requiresLocalChangeRefs: false,
-  },
-  {
-    mark: "DONE",
-    label: "Done",
-    description: "Required local adaptation is complete and linked to local commit evidence.",
-    isFinal: true,
-    requiresLocalChangeRefs: true,
+    requiresLocalChangeEvidence: true,
   },
 ] as const;
 
 export const reviewMarkDefinitions = ReviewMarkDefinitionsSchema.parse(reviewMarkDefinitionInput);
 
 export type ReviewMark = z.infer<typeof ReviewMarkSchema>;
-export type FinalReviewMark = z.infer<typeof FinalReviewMarkSchema>;
 export type ExplicitFileReviewMark = z.infer<typeof ExplicitFileReviewMarkSchema>;
 export type ReviewMarkDefinition = z.infer<typeof ReviewMarkDefinitionSchema>;
