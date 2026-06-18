@@ -105,7 +105,7 @@ export function WorkbenchPage() {
               />
             }
             diffReview={<DiffReviewPane diffBlocks={diffBlocks} file={selectedFile} />}
-            reviewActions={
+            reviewPanel={
               <ReviewActionsPanel
                 comments={visibleComments}
                 commit={selectedCommit}

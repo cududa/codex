@@ -1,6 +1,6 @@
 import type {
   ActorKind,
-  ReviewNoteRevisionAction,
+  ReviewNoteRevisionChangeKind,
   ReviewNoteScopeType,
   ReviewScopeType,
   ThreadedCommentState,
@@ -85,7 +85,7 @@ export const reviewNoteRevisions = sqliteTable(
     actorId: text("actor_id").notNull(),
     actorDisplayName: text("actor_display_name"),
     changedAt: text("changed_at").notNull(),
-    action: text("action").$type<ReviewNoteRevisionAction>().notNull(),
+    changeKind: text("change_kind").$type<ReviewNoteRevisionChangeKind>().notNull(),
     bodyMarkdownBefore: text("body_markdown_before"),
     bodyMarkdownAfter: text("body_markdown_after"),
   },

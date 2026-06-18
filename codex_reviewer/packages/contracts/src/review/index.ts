@@ -5,7 +5,7 @@ export * from "./concern-areas.js";
 export * from "./detector-evidence.js";
 export * from "./ledger.js";
 export * from "./local-change-refs.js";
-export * from "./review-actions.js";
+export * from "./review-records.js";
 export * from "./review-marks.js";
 export * from "./review-notes.js";
 export * from "./review-plans.js";

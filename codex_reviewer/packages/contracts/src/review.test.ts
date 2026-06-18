@@ -645,7 +645,7 @@ describe("review contracts", () => {
         actorId: "human-1",
         actorDisplayName: null,
         changedAt: now,
-        action: "deleted",
+        changeKind: "deleted",
         bodyMarkdownBefore: null,
         bodyMarkdownAfter: null,
       }),
@@ -663,7 +663,6 @@ describe("review contracts", () => {
     expect(Object.keys(reviewSchemas)).toContain("AddReviewNoteCommand");
     expect(Object.keys(reviewSchemas)).toContain("GenerateReviewLedgerCommand");
     expect(Object.keys(reviewSchemas)).toContain("SetCommitReviewMarkCommand");
-    expect(Object.keys(reviewSchemas).join(" ")).not.toContain("Decision");
-    expect(Object.keys(reviewSchemas).join(" ")).not.toContain("Finalization");
+    expect(Object.keys(reviewSchemas)).toContain("ReviewNoteRevisionChangeKind");
   });
 });

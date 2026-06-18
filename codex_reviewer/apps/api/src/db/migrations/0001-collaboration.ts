@@ -90,13 +90,13 @@ export const collaborationStatements = [
     actor_id TEXT NOT NULL,
     actor_display_name TEXT,
     changed_at TEXT NOT NULL,
-    action TEXT NOT NULL CHECK (action IN ('created', 'updated', 'deleted')),
+    change_kind TEXT NOT NULL CHECK (change_kind IN ('created', 'updated', 'deleted')),
     body_markdown_before TEXT,
     body_markdown_after TEXT,
     CHECK (
-      (action = 'created' AND body_markdown_before IS NULL AND body_markdown_after IS NOT NULL) OR
-      (action = 'updated' AND body_markdown_before IS NOT NULL AND body_markdown_after IS NOT NULL) OR
-      (action = 'deleted' AND body_markdown_before IS NOT NULL AND body_markdown_after IS NULL)
+      (change_kind = 'created' AND body_markdown_before IS NULL AND body_markdown_after IS NOT NULL) OR
+      (change_kind = 'updated' AND body_markdown_before IS NOT NULL AND body_markdown_after IS NOT NULL) OR
+      (change_kind = 'deleted' AND body_markdown_before IS NOT NULL AND body_markdown_after IS NULL)
     )
   )`,
   "CREATE INDEX review_note_revisions_note_idx ON review_note_revisions(note_id)",

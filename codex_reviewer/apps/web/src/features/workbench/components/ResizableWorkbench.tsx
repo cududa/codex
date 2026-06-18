@@ -15,7 +15,7 @@ type ResizableWorkbenchProps = {
   commitQueue: ReactNode;
   fileQueue: ReactNode;
   diffReview: ReactNode;
-  reviewActions: ReactNode;
+  reviewPanel: ReactNode;
 };
 
 export function ResizableWorkbench({
@@ -23,7 +23,7 @@ export function ResizableWorkbench({
   commitQueue,
   fileQueue,
   diffReview,
-  reviewActions,
+  reviewPanel,
 }: ResizableWorkbenchProps) {
   const [collapsed, setCollapsed] = useState(() => loadCollapsedState(WORKBENCH_COLLAPSED_STORAGE_KEY));
   const persistCollapsed = (state: CollapsedState) => {
@@ -40,7 +40,7 @@ export function ResizableWorkbench({
         <MobilePane className="h-80">{commitQueue}</MobilePane>
         <MobilePane className="h-72">{fileQueue}</MobilePane>
         <MobilePane className="h-96">{diffReview}</MobilePane>
-        <MobilePane className="h-[42rem]">{reviewActions}</MobilePane>
+        <MobilePane className="h-[42rem]">{reviewPanel}</MobilePane>
       </div>
       <PanelGroup className="hidden h-full min-h-0 lg:flex" orientation="horizontal">
         <ResizePanel
@@ -103,7 +103,7 @@ export function ResizableWorkbench({
             />
           ) : (
             <PaneFrame>
-              {reviewActions}
+              {reviewPanel}
               <CollapseButton
                 label="Collapse review panel"
                 onCollapse={() => persistCollapsed({ ...collapsed, right: true })}

@@ -1,4 +1,4 @@
-import { AgentReviewReadSchema, HumanApprovalReadSchema, ReviewEventReadSchema } from "./review-actions.js";
+import { AgentReviewReadSchema, HumanApprovalReadSchema, ReviewEventReadSchema } from "./review-records.js";
 import {
   ConcernAreasResponseSchema,
   ReviewBootstrapResponseSchema,
@@ -34,7 +34,7 @@ import { ReviewLedgerEntryReadSchema, ReviewLedgerReadSchema } from "./ledger.js
 import { ReviewMarkSchema } from "./review-marks.js";
 import {
   ReviewNoteReadSchema,
-  ReviewNoteRevisionActionSchema,
+  ReviewNoteRevisionChangeKindSchema,
   ReviewNoteRevisionReadSchema,
   ReviewNoteScopeSchema,
   ReviewNoteScopeTypeSchema,
@@ -115,7 +115,7 @@ export const reviewSchemas = {
   ReviewLedgerRow: ReviewLedgerRowSchema,
   ReviewMark: ReviewMarkSchema,
   ReviewNoteRead: ReviewNoteReadSchema,
-  ReviewNoteRevisionAction: ReviewNoteRevisionActionSchema,
+  ReviewNoteRevisionChangeKind: ReviewNoteRevisionChangeKindSchema,
   ReviewNoteRevisionRead: ReviewNoteRevisionReadSchema,
   ReviewNoteRevisionRow: ReviewNoteRevisionRowSchema,
   ReviewNoteRow: ReviewNoteRowSchema,

@@ -407,7 +407,7 @@ export function createReviewWriteStore(db: ReviewDatabase): ReviewWriteStore {
           actorId: command.actor.id,
           actorDisplayName: command.actor.displayName,
           changedAt: command.occurredAt,
-          action: "created",
+          changeKind: "created",
           bodyMarkdownBefore: null,
           bodyMarkdownAfter: command.bodyMarkdown,
         });
@@ -444,7 +444,7 @@ export function createReviewWriteStore(db: ReviewDatabase): ReviewWriteStore {
           actorId: command.actor.id,
           actorDisplayName: command.actor.displayName,
           changedAt: command.occurredAt,
-          action: "updated",
+          changeKind: "updated",
           bodyMarkdownBefore: existingNote.bodyMarkdown,
           bodyMarkdownAfter: command.bodyMarkdown,
         });
@@ -486,7 +486,7 @@ export function createReviewWriteStore(db: ReviewDatabase): ReviewWriteStore {
           actorId: command.actor.id,
           actorDisplayName: command.actor.displayName,
           changedAt: command.occurredAt,
-          action: "deleted",
+          changeKind: "deleted",
           bodyMarkdownBefore: existingNote.bodyMarkdown,
           bodyMarkdownAfter: null,
         });

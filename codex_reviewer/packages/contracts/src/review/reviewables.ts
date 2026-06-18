@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ConcernAreaSelectionSchema } from "./concern-areas.js";
 import { LocalChangeRefReadSchema } from "./local-change-refs.js";
-import { AgentReviewReadSchema, HumanApprovalReadSchema } from "./review-actions.js";
+import { AgentReviewReadSchema, HumanApprovalReadSchema } from "./review-records.js";
 import { ExplicitFileReviewMarkSchema, ReviewMarkSchema } from "./review-marks.js";
 import {
   GitShaSchema,

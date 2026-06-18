@@ -161,23 +161,19 @@ describe("fresh review persistence schema", () => {
     ]);
   });
 
-  it("rejects file concern areas by having no table that can store them", async () => {
+  it("stores concern-area selections only at commit-level review surfaces", async () => {
     const connection = await migratedConnection();
 
     const tables = await connection.client.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     );
 
-    expect(tables.rows.map((row) => row.name)).not.toContain("file_concern_areas");
-    expect(tables.rows.map((row) => row.name)).not.toContain("agent_file_review_concern_areas");
-    expect(tables.rows.map((row) => row.name)).not.toContain("human_file_approval_concern_areas");
-    expect(tables.rows.map((row) => row.name)).not.toContain("version_finalizations");
     expect(tables.rows.map((row) => row.name)).toContain("agent_commit_review_concern_areas");
     expect(tables.rows.map((row) => row.name)).toContain("human_commit_approval_concern_areas");
     expect(tables.rows.map((row) => row.name)).toContain("review_ledgers");
   });
 
-  it("stores review events with typed columns instead of payload JSON", async () => {
+  it("stores review events with typed columns for material review changes", async () => {
     const connection = await migratedConnection();
 
     await connection.db.insert(reviewVersions).values({
@@ -210,7 +206,9 @@ describe("fresh review persistence schema", () => {
     });
 
     const columns = await connection.client.execute("PRAGMA table_info(review_events)");
-    expect(columns.rows.map((row) => row.name)).not.toContain("payload_json");
+    expect(columns.rows.map((row) => row.name)).toEqual(
+      expect.arrayContaining(["kind", "previous_review_mark", "new_review_mark", "agent_review_id"]),
+    );
 
     await expect(
       connection.db.insert(reviewEvents).values({
@@ -443,7 +441,7 @@ describe("fresh review persistence schema", () => {
       actorType: "human",
       actorId: "human-1",
       changedAt: now,
-      action: "created",
+      changeKind: "created",
       bodyMarkdownBefore: null,
       bodyMarkdownAfter: "Keep this rationale outside the comment thread.",
     });
@@ -458,7 +456,7 @@ describe("fresh review persistence schema", () => {
     });
     expect(ReviewNoteRevisionRowSchema.parse(revision)).toMatchObject({
       id: "command-1",
-      action: "created",
+      changeKind: "created",
     });
     await expect(
       connection.db.insert(reviewNotes).values({
@@ -478,7 +476,7 @@ describe("fresh review persistence schema", () => {
         actorType: "human",
         actorId: "human-1",
         changedAt: now,
-        action: "deleted",
+        changeKind: "deleted",
         bodyMarkdownBefore: null,
         bodyMarkdownAfter: null,
       }),

@@ -3,7 +3,7 @@ import { IdSchema, NonEmptyStringSchema } from "../shared/primitives.js";
 
 export const ActorKindSchema = z
   .enum(["human", "agent", "system"])
-  .describe("The kind of actor that performed a review action.");
+  .describe("The kind of actor that performed review work.");
 
 export const ActorRefSchema = z
   .object({

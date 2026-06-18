@@ -1,4 +1,4 @@
-import { scanPatterns } from "./scanner.js";
+import { scanLines, scanPatterns } from "./scanner.js";
 import { type GuardrailRule, type SourceFile, ruleDescriptions } from "./types.js";
 
 export const guardrailRules: readonly GuardrailRule[] = [
@@ -11,6 +11,7 @@ export const guardrailRules: readonly GuardrailRule[] = [
         /\b(primary|secondary)(Tag|Tags|Classification|Classifications)\w*/g,
         /\b(tag|tags|tagging|taggings|classification|classify)(?:\b|_|\w*[A-Z]\w*)/gi,
         /\b(decision|decisions|outcome|outcomes)(?:\b|_|\w*[A-Z]\w*)/gi,
+        /\b(reviewActions?|action_(?:schema|schemas|table|tables)|Action(?:Schema|Schemas|Read|Reads|Row|Rows|Command|Commands|Response|Responses|Params|Payload))\b/g,
         /\b(finalization|finalize|finalized|readiness|readyForApproval)(?:\b|_|\w*[A-Z]\w*)/gi,
         /\breview(Status|Readiness)\w*/g,
       ]),
@@ -23,13 +24,20 @@ export const guardrailRules: readonly GuardrailRule[] = [
         return [];
       }
 
-      return scanPatterns(file, "public-schemas-outside-contracts", [
-        /^\s*export\s+const\s+\w*Schema\s*=/gm,
+      const namedPublicSchemas = scanPatterns(file, "public-schemas-outside-contracts", [
+        /^\s*export\s+const\s+\w*(Request|Response|Command|Read|Row|Params|Payload|Tool|Resource)Schema\s*=/gm,
         /^\s*export\s+type\s+\w*(Request|Response|Command|Read|Row|Params|Payload)\b/gm,
         /^\s*export\s+interface\s+\w*(Request|Response|Command|Read|Row|Params|Payload)\b/gm,
         /^\s*(?:const|let|var)\s+\w*(Request|Response|Command|Read|Row|Params|Payload)?Schema\s*=\s*z\./gm,
-        /^\s*(?:const|let|var|return)\s+.*\bz\.(object|enum|union)\s*\(/gm,
       ]);
+      if (!isBoundarySchemaSource(file)) {
+        return namedPublicSchemas;
+      }
+
+      return [
+        ...namedPublicSchemas,
+        ...scanLines(file, "public-schemas-outside-contracts", (line) => /\bz\.(object|enum|union)\s*\(/.test(line)),
+      ];
     },
   },
   {
@@ -40,27 +48,35 @@ export const guardrailRules: readonly GuardrailRule[] = [
         return [];
       }
 
-      return scanPatterns(file, "mirrored-local-dtos", [
-        /^\s*(?:export\s+)?(?:type|interface)\s+\w*(ReviewVersion|ReviewCommit|ReviewFile|DiffBlock|ConcernArea|ReviewMark|AgentReview|HumanApproval|LocalChangeRef|ReviewEvent|DetectorRun|DetectorEvidence|ThreadedComment|ReviewNote|ReviewPlan|ReviewLedger|LedgerEntry|Bootstrap|ApiError)\w*\b/gm,
-        /^\s*(?:export\s+)?(?:type|interface)\s+\w*(Request|Response|Command|Read|Row|Payload)\b/gm,
-      ]);
+      return scanLines(file, "mirrored-local-dtos", (line) => {
+        const name = localTypeName(line);
+        return name !== null && mirrorsCanonicalDto(name);
+      });
     },
   },
   {
     id: "reshape-into-old-structures",
     description: ruleDescriptions["reshape-into-old-structures"],
-    check: (file) =>
-      scanPatterns(file, "reshape-into-old-structures", [
+    check: (file) => [
+      ...scanPatterns(file, "reshape-into-old-structures", [
         /from\s+["'][^"']*prompt_reviews[^"']*["']/g,
         /\b(prompt_reviews|PromptReviews)\b/g,
-        /\bConcernAreas?\b[\s\S]{0,200}\b(tags?|taggings?|classifications?|primaryTag|secondaryTag|tagSlug)\b/gi,
-        /\bReviewMark\b[\s\S]{0,200}\b(status|readiness|finalization|finalized)\b/gi,
-        /\b(status|readiness|finalization|finalized)\w*[\s\S]{0,200}\bReviewMark\w*/gi,
-        /\bReviewNote\b[\s\S]{0,200}\b(decision|decisions|action|actions|outcome|outcomes)\w*/gi,
-        /\b(decision|decisions|action|actions|outcome|outcomes)\w*[\s\S]{0,200}\bReviewNote\w*/gi,
-        /\b(adapter|compat|compatibility|legacy)\b/gi,
-        /\bas\s+\w*(Request|Response|Command|Read|Row|Payload)\b/g,
       ]),
+      ...scanLines(file, "reshape-into-old-structures", (line) => {
+        const lowerLine = line.toLowerCase();
+        return (
+          /\bConcernAreas?\b.*\b(tags?|taggings?|classifications?|primaryTag|secondaryTag|tagSlug)\b/i.test(line) ||
+          /\b(tags?|taggings?|classifications?|primaryTag|secondaryTag|tagSlug)\b.*\bConcernAreas?\b/i.test(line) ||
+          /\bReviewMark\w*\b.*\b(status|readiness|finalization|finalized)\w*\b/i.test(line) ||
+          /\b(status|readiness|finalization|finalized)\w*\b.*\bReviewMark\w*\b/i.test(line) ||
+          /\bReviewNote\w*\b.*\b(decision|decisions|reviewActions?|actions?|outcome|outcomes)\w*\b/i.test(line) ||
+          /\b(decision|decisions|reviewActions?|actions?|outcome|outcomes)\w*\b.*\bReviewNote\w*\b/i.test(line) ||
+          (/\b(adapter|compat|compatibility|legacy)\b/i.test(line) &&
+            /\b(ConcernArea|concernAreas|ReviewMark|ReviewNote)\b/.test(line)) ||
+          (lowerLine.includes(" as ") && /\b(Request|Response|Command|Read|Row|Payload)\b/.test(line))
+        );
+      }),
+    ],
   },
   {
     id: "generated-schema-authority",
@@ -90,8 +106,9 @@ export const guardrailRules: readonly GuardrailRule[] = [
       return [
         ...violations,
         ...scanPatterns(file, "old-persistence-or-projection", [
-          /\bdb\.(insert|update|delete)\s*\(/g,
-          /\btx\.(insert|update|delete)\s*\(/g,
+          /\bdb\.(insert|update|delete|run|execute)\s*\(/g,
+          /\btx\.(insert|update|delete|run|execute)\s*\(/g,
+          /\b(?:client|connection\.client)\.(execute|batch)\s*\(/g,
         ]),
       ];
     },
@@ -123,6 +140,19 @@ function isContractsSource(file: SourceFile): boolean {
   return file.relativePath.startsWith("packages/contracts/src/");
 }
 
+function isBoundarySchemaSource(file: SourceFile): boolean {
+  return (
+    file.relativePath.startsWith("apps/api/src/routes/") ||
+    file.relativePath.startsWith("apps/mcp/src/") ||
+    file.relativePath.startsWith("packages/mcp/src/") ||
+    file.relativePath.startsWith("apps/ingest/src/") ||
+    file.relativePath.startsWith("packages/ingest/src/") ||
+    file.relativePath.startsWith("apps/concern-map/src/") ||
+    file.relativePath.startsWith("packages/concern-map/src/") ||
+    file.relativePath.startsWith("apps/web/src/shared/api/")
+  );
+}
+
 function isMcpSource(file: SourceFile): boolean {
   return file.relativePath.startsWith("apps/mcp/src/") || file.relativePath.startsWith("packages/mcp/src/");
 }
@@ -130,7 +160,50 @@ function isMcpSource(file: SourceFile): boolean {
 function canWriteDatabaseDirectly(file: SourceFile): boolean {
   return (
     file.relativePath.startsWith("apps/api/src/review/write-store.ts") ||
+    file.relativePath.startsWith("apps/api/src/review/write-store.test.ts") ||
+    file.relativePath.startsWith("apps/api/src/db/migrate.ts") ||
     file.relativePath.startsWith("apps/api/src/db/migrations/") ||
     /(?:^|\/)db\/.*\.test\.ts$/.test(file.relativePath)
+  );
+}
+
+function localTypeName(line: string): string | null {
+  const match = /^\s*(?:export\s+)?(?:type\s+([A-Za-z][A-Za-z0-9_]*)\s*[=<]|interface\s+([A-Za-z][A-Za-z0-9_]*)\b)/.exec(
+    line,
+  );
+  return match?.[1] ?? match?.[2] ?? null;
+}
+
+function mirrorsCanonicalDto(name: string): boolean {
+  const canonicalNames = new Set([
+    "ReviewVersion",
+    "ReviewCommit",
+    "ReviewFile",
+    "DiffBlock",
+    "ConcernArea",
+    "ReviewMark",
+    "AgentReview",
+    "HumanApproval",
+    "LocalChangeRef",
+    "ReviewEvent",
+    "DetectorRun",
+    "DetectorEvidence",
+    "ThreadedComment",
+    "ReviewNote",
+    "ReviewPlan",
+    "ReviewLedger",
+    "LedgerEntry",
+    "Bootstrap",
+    "ApiError",
+  ]);
+  if (canonicalNames.has(name)) {
+    return true;
+  }
+
+  return (
+    /(?:Request|Response|Command|Read|Row|Payload)$/.test(name) ||
+    /(?:ReviewVersion|ReviewCommit|ReviewFile|DiffBlock|ConcernArea|ReviewMark|AgentReview|HumanApproval|LocalChangeRef|ReviewEvent|DetectorRun|DetectorEvidence|ThreadedComment|ReviewNote|ReviewPlan|ReviewLedger|LedgerEntry|Bootstrap|ApiError)(?:View|Dto|DTO|Read|Row|Response|Request|Payload|Command|Model|Data)$/.test(
+      name,
+    )
   );
 }

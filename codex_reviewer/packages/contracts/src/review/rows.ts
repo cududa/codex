@@ -3,7 +3,7 @@ import { ActorKindSchema } from "./actors.js";
 import { ConcernAreaSlugSchema } from "./concern-areas.js";
 import { DetectorRunStateSchema } from "./detector-evidence.js";
 import { FinalReviewMarkSchema, ReviewMarkSchema } from "./review-marks.js";
-import { ReviewNoteRevisionActionSchema, ReviewNoteScopeTypeSchema } from "./review-notes.js";
+import { ReviewNoteRevisionChangeKindSchema, ReviewNoteScopeTypeSchema } from "./review-notes.js";
 import { ChangeKindSchema } from "./reviewables.js";
 import { DiffSideSchema, ReviewScopeTypeSchema } from "./scopes.js";
 import { ThreadedCommentStateSchema } from "./threaded-comments.js";
@@ -713,34 +713,34 @@ export const ReviewNoteRevisionRowSchema = z
     actorId: IdSchema.describe("Stored actor identifier."),
     actorDisplayName: nullableText.describe("Stored actor display name or null."),
     changedAt: IsoDateTimeSchema.describe("Stored revision timestamp."),
-    action: ReviewNoteRevisionActionSchema.describe("Stored note lifecycle action."),
+    changeKind: ReviewNoteRevisionChangeKindSchema.describe("Stored note lifecycle change kind."),
     bodyMarkdownBefore: nullableMarkdown.describe("Stored previous note body or null."),
     bodyMarkdownAfter: nullableMarkdown.describe("Stored new note body or null."),
   })
   .strict()
   .superRefine((row, context) => {
-    if (row.action === "created" && row.bodyMarkdownBefore !== null) {
+    if (row.changeKind === "created" && row.bodyMarkdownBefore !== null) {
       context.addIssue({
         code: "custom",
         message: "created note revisions cannot include bodyMarkdownBefore",
         path: ["bodyMarkdownBefore"],
       });
     }
-    if (row.action !== "deleted" && row.bodyMarkdownAfter === null) {
+    if (row.changeKind !== "deleted" && row.bodyMarkdownAfter === null) {
       context.addIssue({
         code: "custom",
         message: "created and updated note revisions require bodyMarkdownAfter",
         path: ["bodyMarkdownAfter"],
       });
     }
-    if (row.action !== "created" && row.bodyMarkdownBefore === null) {
+    if (row.changeKind !== "created" && row.bodyMarkdownBefore === null) {
       context.addIssue({
         code: "custom",
         message: "updated and deleted note revisions require bodyMarkdownBefore",
         path: ["bodyMarkdownBefore"],
       });
     }
-    if (row.action === "deleted" && row.bodyMarkdownAfter !== null) {
+    if (row.changeKind === "deleted" && row.bodyMarkdownAfter !== null) {
       context.addIssue({
         code: "custom",
         message: "deleted note revisions cannot include bodyMarkdownAfter",

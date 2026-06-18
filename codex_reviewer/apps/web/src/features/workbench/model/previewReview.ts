@@ -142,7 +142,7 @@ export const previewFilesByCommitId = new Map<string, ReviewFileRead[]>([
         id: "file-e",
         commitId: "commit-c",
         position: 0,
-        path: "codex_reviewer/packages/contracts/src/review/review-actions.ts",
+        path: "codex_reviewer/packages/contracts/src/review/review-records.ts",
         changeKind: "modified",
         reviewMark: "FLAG",
         localChangeRefs: [],

@@ -67,6 +67,28 @@ export function scanPatterns(
   return patterns.flatMap((pattern) => scanPattern(file, ruleId, pattern));
 }
 
+export function scanLines(
+  file: SourceFile,
+  ruleId: GuardrailRuleId,
+  matches: (line: string) => boolean,
+): readonly GuardrailViolation[] {
+  return file.content
+    .split("\n")
+    .flatMap((line, index) =>
+      matches(line)
+        ? [
+            {
+              ruleId,
+              description: ruleDescriptions[ruleId],
+              filePath: file.relativePath,
+              line: index + 1,
+              snippet: line.trim(),
+            },
+          ]
+        : [],
+    );
+}
+
 export function formatViolations(violations: readonly GuardrailViolation[]): string {
   if (violations.length === 0) {
     return "";

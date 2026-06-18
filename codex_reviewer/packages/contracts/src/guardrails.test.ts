@@ -29,6 +29,7 @@ describe("Stage 8 rewrite guardrails", () => {
       sourceFile("apps/mcp/src/tools.ts", 'server.tool("classify_commit", {});'),
       sourceFile("packages/ingest/src/github.ts", "const taggings = upstream.taggings;"),
       sourceFile("packages/concern-map/src/detector.ts", "const outcome = detector.outcome;"),
+      sourceFile("apps/web/src/panel.tsx", "const reviewActions = oldReview.actions;"),
     ]);
 
     expect(violations).toContainViolation("old-review-vocabulary", "primaryTagSlug");
@@ -36,16 +37,19 @@ describe("Stage 8 rewrite guardrails", () => {
     expect(violations).toContainViolation("old-review-vocabulary", "classify");
     expect(violations).toContainViolation("old-review-vocabulary", "taggings");
     expect(violations).toContainViolation("old-review-vocabulary", "outcome");
+    expect(violations).toContainViolation("old-review-vocabulary", "reviewActions");
   });
 
   it("fails public schemas outside contracts", () => {
     const violations = runGuardrails([
       sourceFile("apps/api/src/routes/review.ts", "export const SetMarkRequestSchema = z.object({ reviewMark: z.string() });"),
       sourceFile("apps/web/src/shared/api/client.ts", "const ReviewResponseSchema = z.object({ id: z.string() });"),
+      sourceFile("apps/api/src/routes/local.ts", "const body = z.object({ commitId: z.string() });"),
     ]);
 
     expect(violations).toContainViolation("public-schemas-outside-contracts", "SetMarkRequestSchema");
     expect(violations).toContainViolation("public-schemas-outside-contracts", "ReviewResponseSchema");
+    expect(violations).toContainViolation("public-schemas-outside-contracts", "z.object");
   });
 
   it("allows public schemas inside contracts", () => {
@@ -82,10 +86,12 @@ describe("Stage 8 rewrite guardrails", () => {
     const violations = runGuardrails([
       sourceFile("apps/api/src/openapi.ts", 'import schema from "./generated/openapi.json";'),
       sourceFile("apps/mcp/src/schema.ts", 'const raw = readFileSync("generated-schema.json", "utf8");'),
+      sourceFile("apps/web/src/schema-types.ts", 'import type { paths } from "./generated/swagger-types";'),
     ]);
 
     expect(violations).toContainViolation("generated-schema-authority", "openapi");
     expect(violations).toContainViolation("generated-schema-authority", "generated-schema");
+    expect(violations).toContainViolation("generated-schema-authority", "swagger-types");
   });
 
   it("fails old persistence and projection concepts", () => {
@@ -103,12 +109,14 @@ describe("Stage 8 rewrite guardrails", () => {
   it("fails direct DB writes outside centralized persistence, migrations, and DB tests", () => {
     const violations = runGuardrails([
       sourceFile("apps/api/src/routes/review.ts", "await db.insert(reviewCommits).values(input);"),
+      sourceFile("apps/api/src/routes/raw.ts", 'await connection.client.execute("INSERT INTO review_commits VALUES (?)");'),
       sourceFile("apps/api/src/review/write-store.ts", "await tx.insert(reviewCommits).values(row);"),
       sourceFile("apps/api/src/db/migrations/0001-core.ts", "await db.insert(reviewVersions).values(row);"),
       sourceFile("apps/api/src/db/schema.test.ts", "await connection.db.insert(reviewVersions).values(row);"),
     ]);
 
     expect(violations).toContainViolation("old-persistence-or-projection", "db.insert");
+    expect(violations).toContainViolation("old-persistence-or-projection", "connection.client.execute");
     expect(violations).not.toContainViolation("old-persistence-or-projection", "tx.insert");
   });
 
@@ -121,6 +129,7 @@ describe("Stage 8 rewrite guardrails", () => {
           'import { db } from "../db/client";',
           "await db.update(reviewCommits).set({ reviewMark: mark });",
           "const approve = RecordHumanApprovalCommandSchema.parse(input);",
+          "const ReviewResourceSchema = z.object({ commitId: z.string() });",
         ].join("\n"),
       ),
     ]);
@@ -128,6 +137,7 @@ describe("Stage 8 rewrite guardrails", () => {
     expect(violations).toContainViolation("mcp-bypasses-contracts", "SetMarkToolSchema");
     expect(violations).toContainViolation("mcp-bypasses-contracts", "db.update");
     expect(violations).toContainViolation("mcp-bypasses-contracts", "RecordHumanApprovalCommandSchema");
+    expect(violations).toContainViolation("mcp-bypasses-contracts", "ReviewResourceSchema");
   });
 
   it("has zero active-code guardrail violations", () => {

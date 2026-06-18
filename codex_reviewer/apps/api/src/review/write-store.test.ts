@@ -191,19 +191,19 @@ describe("review write store", () => {
     expect(await connection.db.select().from(reviewNoteRevisions)).toEqual([
       expect.objectContaining({
         id: "command-create-note",
-        action: "created",
+        changeKind: "created",
         bodyMarkdownBefore: null,
         bodyMarkdownAfter: "Initial rationale.",
       }),
       expect.objectContaining({
         id: "command-update-note",
-        action: "updated",
+        changeKind: "updated",
         bodyMarkdownBefore: "Initial rationale.",
         bodyMarkdownAfter: "Clarified rationale.",
       }),
       expect.objectContaining({
         id: "command-delete-note",
-        action: "deleted",
+        changeKind: "deleted",
         bodyMarkdownBefore: "Clarified rationale.",
         bodyMarkdownAfter: null,
       }),
