@@ -5,9 +5,13 @@ import {
   ReviewCommitReadSchema,
   ReviewFileReadSchema,
   ReviewMarkSchema,
+  SetCommitConcernAreasRequestSchema,
+  SetCommitReviewMarkRequestSchema,
+  SetFileReviewMarkRequestSchema,
   ReviewVersionsResponseSchema,
   concernAreaSlugs,
   concernAreas,
+  maxSelectedConcernAreas,
   requireConcernArea,
   reviewMarkDefinitions,
   reviewMarks,
@@ -42,6 +46,15 @@ describe("review contracts", () => {
       ConcernAreaSelectionSchema.parse(["message-roles", "tool-affordances", "permission-defaults"]),
     ).toEqual(["message-roles", "tool-affordances", "permission-defaults"]);
     expect(() => ConcernAreaSelectionSchema.parse(["message-roles", "message-roles"])).toThrow();
+    expect(maxSelectedConcernAreas).toBe(3);
+    expect(() =>
+      ConcernAreaSelectionSchema.parse([
+        "message-roles",
+        "tool-affordances",
+        "permission-defaults",
+        "hidden-context",
+      ]),
+    ).toThrow();
   });
 
   it("defines review marks as PASS, FLAG, and MODIFY only", () => {
@@ -66,7 +79,49 @@ describe("review contracts", () => {
         requiresLocalChangeEvidence: true,
       },
     ]);
-    expect(() => ReviewMarkSchema.parse("REVIEWED")).toThrow();
+    expect(() => ReviewMarkSchema.parse("INVALID_REVIEW_MARK")).toThrow();
+  });
+
+  it("requires actors for review-state write requests", () => {
+    const actor = { type: "human", id: "human-1", displayName: "Cullen" };
+
+    expect(
+      SetCommitReviewMarkRequestSchema.parse({
+        actor,
+        reviewMark: "PASS",
+      }),
+    ).toEqual({
+      actor,
+      reviewMark: "PASS",
+    });
+    expect(
+      SetFileReviewMarkRequestSchema.parse({
+        actor,
+        reviewMark: null,
+      }),
+    ).toEqual({
+      actor,
+      reviewMark: null,
+    });
+    expect(
+      SetCommitConcernAreasRequestSchema.parse({
+        actor,
+        concernAreas: ["tool-affordances", "hidden-context"],
+      }),
+    ).toEqual({
+      actor,
+      concernAreas: ["tool-affordances", "hidden-context"],
+    });
+    expect(() => SetCommitReviewMarkRequestSchema.parse({ reviewMark: "INVALID_REVIEW_MARK" })).toThrow();
+    expect(() =>
+      SetFileReviewMarkRequestSchema.parse({ actor, reviewMark: "INVALID_REVIEW_MARK" }),
+    ).toThrow();
+    expect(() =>
+      SetCommitConcernAreasRequestSchema.parse({
+        actor,
+        concernAreas: ["hidden-context", "hidden-context"],
+      }),
+    ).toThrow();
   });
 
   it("models commit concern areas only at commit level", () => {

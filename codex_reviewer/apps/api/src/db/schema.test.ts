@@ -8,6 +8,7 @@ import {
   commitConcernAreas,
   diffBlocks,
   reviewCommits,
+  reviewEvents,
   reviewFiles,
   reviewVersions,
 } from "./schema/index.js";
@@ -33,6 +34,7 @@ describe("review persistence schema", () => {
       "commit_concern_areas",
       "diff_blocks",
       "review_commits",
+      "review_events",
       "review_files",
       "review_versions",
       "schema_migrations",
@@ -142,6 +144,57 @@ describe("review persistence schema", () => {
 
     const fileColumns = await connection.client.execute("PRAGMA table_info(review_files)");
     expect(fileColumns.rows.map((row) => row.name)).not.toContain("concern_area_slug");
+  });
+
+  it("keeps the concern-area selection limit consistent with the contract", async () => {
+    const connection = await migratedConnection();
+
+    await insertCoreSlice(connection);
+
+    await connection.db.insert(commitConcernAreas).values({
+      commitId: "commit-1",
+      concernAreaSlug: "hidden-context",
+      position: 2,
+    });
+    await expect(
+      connection.db.insert(commitConcernAreas).values({
+        commitId: "commit-1",
+        concernAreaSlug: "message-roles",
+        position: 3,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("stores review audit events as history rows", async () => {
+    const connection = await migratedConnection();
+
+    await connection.db.insert(reviewEvents).values({
+      id: "event-1",
+      scopeType: "commit",
+      scopeId: "commit-1",
+      actorType: "human",
+      actorId: "human-1",
+      actorDisplayName: "Cullen",
+      kind: "review_mark_changed",
+      summary: "Commit review mark changed from FLAG to PASS.",
+      payloadJson: JSON.stringify({ previousReviewMark: "FLAG", reviewMark: "PASS" }),
+      createdAt: now,
+    });
+
+    await expect(connection.db.select().from(reviewEvents)).resolves.toEqual([
+      {
+        id: "event-1",
+        scopeType: "commit",
+        scopeId: "commit-1",
+        actorType: "human",
+        actorId: "human-1",
+        actorDisplayName: "Cullen",
+        kind: "review_mark_changed",
+        summary: "Commit review mark changed from FLAG to PASS.",
+        payloadJson: JSON.stringify({ previousReviewMark: "FLAG", reviewMark: "PASS" }),
+        createdAt: now,
+      },
+    ]);
   });
 
   it("enforces diff block line ranges", async () => {

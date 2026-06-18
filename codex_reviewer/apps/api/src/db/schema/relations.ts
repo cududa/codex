@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { commitConcernAreas, diffBlocks, reviewCommits, reviewFiles, reviewVersions } from "./core.js";
+import {
+  commitConcernAreas,
+  diffBlocks,
+  reviewCommits,
+  reviewEvents,
+  reviewFiles,
+  reviewVersions,
+} from "./core.js";
 
 export const reviewVersionRelations = relations(reviewVersions, ({ many }) => ({
   commits: many(reviewCommits),
@@ -26,3 +33,5 @@ export const commitConcernAreaRelations = relations(commitConcernAreas, ({ one }
     references: [reviewCommits.id],
   }),
 }));
+
+export const reviewEventRelations = relations(reviewEvents, () => ({}));

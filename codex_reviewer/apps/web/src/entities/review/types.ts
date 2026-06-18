@@ -1,12 +1,15 @@
 export type {
+  ActorRef,
   ConcernArea,
   ConcernAreaSlug,
   DiffBlockRead,
+  ExplicitFileReviewMark,
   ReviewBootstrapResponse,
   ReviewCommitRead,
   ReviewFileRead,
   ReviewMark,
   ReviewMarkDefinition,
+  ReviewStateWriteResponse,
   ReviewVersionRead,
   ReviewVersionsResponse,
 } from "@prompt-reviews/contracts";

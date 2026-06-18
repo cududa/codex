@@ -2,11 +2,16 @@ import {
   ConcernAreasResponseSchema,
   ReviewBootstrapResponseSchema,
   ReviewMarksResponseSchema,
+  ReviewStateWriteResponseSchema,
   ReviewVersionResponseSchema,
   ReviewVersionsResponseSchema,
+  SetCommitConcernAreasRequestSchema,
+  SetCommitReviewMarkRequestSchema,
+  SetFileReviewMarkRequestSchema,
   concernAreas,
   reviewMarkDefinitions,
 } from "@prompt-reviews/contracts";
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import type { ApiBindings } from "../server/types.js";
 
@@ -47,6 +52,60 @@ export function createReviewRoutes() {
     const version = await c.var.context.reviewReadStore.getReviewVersion(c.req.param("versionId"));
     return c.json(ReviewVersionResponseSchema.parse({ version }));
   });
+
+  routes.patch(
+    "/commits/:commitId/review-mark",
+    zValidator("json", SetCommitReviewMarkRequestSchema, (result) => {
+      if (!result.success) {
+        throw result.error;
+      }
+    }),
+    async (c) => {
+      const payload = c.req.valid("json");
+      const version = await c.var.context.reviewWriteStore.setCommitReviewMark({
+        commitId: c.req.param("commitId"),
+        reviewMark: payload.reviewMark,
+        actor: payload.actor,
+      });
+      return c.json(ReviewStateWriteResponseSchema.parse({ version }));
+    },
+  );
+
+  routes.patch(
+    "/files/:fileId/review-mark",
+    zValidator("json", SetFileReviewMarkRequestSchema, (result) => {
+      if (!result.success) {
+        throw result.error;
+      }
+    }),
+    async (c) => {
+      const payload = c.req.valid("json");
+      const version = await c.var.context.reviewWriteStore.setFileReviewMark({
+        fileId: c.req.param("fileId"),
+        reviewMark: payload.reviewMark,
+        actor: payload.actor,
+      });
+      return c.json(ReviewStateWriteResponseSchema.parse({ version }));
+    },
+  );
+
+  routes.put(
+    "/commits/:commitId/concern-areas",
+    zValidator("json", SetCommitConcernAreasRequestSchema, (result) => {
+      if (!result.success) {
+        throw result.error;
+      }
+    }),
+    async (c) => {
+      const payload = c.req.valid("json");
+      const version = await c.var.context.reviewWriteStore.setCommitConcernAreas({
+        commitId: c.req.param("commitId"),
+        concernAreas: payload.concernAreas,
+        actor: payload.actor,
+      });
+      return c.json(ReviewStateWriteResponseSchema.parse({ version }));
+    },
+  );
 
   return routes;
 }

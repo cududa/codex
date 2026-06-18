@@ -32,6 +32,20 @@ export function concernAreaSummary(slugs: ConcernAreaSlug[], areas: ConcernArea[
   return rest.length === 0 ? label : `${label} +${rest.length}`;
 }
 
+export function toggleConcernAreaSelection(
+  selected: ConcernAreaSlug[],
+  slug: ConcernAreaSlug,
+  checked: boolean,
+): ConcernAreaSlug[] {
+  if (!checked) {
+    return selected.filter((selectedSlug) => selectedSlug !== slug);
+  }
+  if (selected.includes(slug)) {
+    return selected;
+  }
+  return [...selected, slug];
+}
+
 export function changeSymbol(changeKind: string): "+" | "-" | "/" {
   if (changeKind === "deleted") {
     return "-";

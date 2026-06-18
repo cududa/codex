@@ -1,5 +1,8 @@
-import type { ChangeKind, ConcernAreaSlug, ReviewMark } from "@prompt-reviews/contracts";
+import type { ActorKind, ChangeKind, ConcernAreaSlug, ReviewMark } from "@prompt-reviews/contracts";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+
+export type ReviewEventScopeType = "version" | "commit" | "file" | "diffBlock";
+export type ReviewEventKind = "review_mark_changed" | "concern_areas_changed";
 
 export const reviewVersions = sqliteTable("review_versions", {
   id: text("id").primaryKey(),
@@ -91,5 +94,25 @@ export const commitConcernAreas = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.commitId, table.concernAreaSlug] }),
     uniqueIndex("commit_concern_areas_position_unique").on(table.commitId, table.position),
+  ],
+);
+
+export const reviewEvents = sqliteTable(
+  "review_events",
+  {
+    id: text("id").primaryKey(),
+    scopeType: text("scope_type").$type<ReviewEventScopeType>().notNull(),
+    scopeId: text("scope_id").notNull(),
+    actorType: text("actor_type").$type<ActorKind>().notNull(),
+    actorId: text("actor_id").notNull(),
+    actorDisplayName: text("actor_display_name"),
+    kind: text("kind").$type<ReviewEventKind>().notNull(),
+    summary: text("summary").notNull(),
+    payloadJson: text("payload_json").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("review_events_scope_idx").on(table.scopeType, table.scopeId),
+    index("review_events_created_at_idx").on(table.createdAt),
   ],
 );

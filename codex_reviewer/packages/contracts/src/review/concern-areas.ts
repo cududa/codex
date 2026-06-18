@@ -12,6 +12,8 @@ export const concernAreaSlugs = [
   "permission-defaults",
 ] as const;
 
+export const maxSelectedConcernAreas = 3;
+
 export const ConcernAreaSlugSchema = z
   .enum(concernAreaSlugs)
   .describe("Stable identifier for one of the eight canonical review concern areas.");
@@ -46,6 +48,7 @@ export const ConcernAreaRegistrySchema = z
 
 export const ConcernAreaSelectionSchema = z
   .array(ConcernAreaSlugSchema)
+  .max(maxSelectedConcernAreas)
   .superRefine((slugs, context) => {
     const seen = new Set<string>();
     for (const [index, slug] of slugs.entries()) {

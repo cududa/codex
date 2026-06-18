@@ -1,5 +1,8 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { concernAreas, reviewMarkDefinitions } from "@prompt-reviews/contracts";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDatabaseConnection, type ReviewDatabaseConnection } from "../db/client.js";
 import { migrateDatabase } from "../db/migrate.js";
 import {
@@ -10,10 +13,18 @@ import {
   reviewVersions,
 } from "../db/schema/index.js";
 import { createReviewReadStore } from "../review/read-store.js";
+import { createReviewWriteStore } from "../review/write-store.js";
 import { createApiApp } from "./app.js";
 import type { ApiDependencies } from "./types.js";
 
 const now = "2026-06-17T12:00:00.000Z";
+const tempDirectories: string[] = [];
+
+afterEach(() => {
+  for (const directory of tempDirectories.splice(0)) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 describe("createApiApp", () => {
   it("serves health through the shared response contract", async () => {
@@ -154,6 +165,128 @@ describe("createApiApp", () => {
     });
   });
 
+  it("persists commit review mark writes and returns the updated review version", async () => {
+    const { connection, dependencies } = await testRuntime();
+    await seedReviewVersion(connection);
+    const app = createApiApp(dependencies);
+
+    const response = await app.request("/api/review/commits/commit-1/review-mark", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "human", id: "human-1", displayName: "Cullen" },
+        reviewMark: "PASS",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      version: {
+        id: "version-1",
+        commits: [{ id: "commit-1", reviewMark: "PASS" }],
+      },
+    });
+  });
+
+  it("persists file review mark writes and concern-area writes through canonical routes", async () => {
+    const { connection, dependencies } = await testRuntime();
+    await seedReviewVersion(connection);
+    const app = createApiApp(dependencies);
+
+    const fileResponse = await app.request("/api/review/files/file-1/review-mark", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "human", id: "human-1" },
+        reviewMark: "MODIFY",
+      }),
+    });
+    const concernResponse = await app.request("/api/review/commits/commit-1/concern-areas", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "human", id: "human-1" },
+        concernAreas: ["hidden-context", "message-roles"],
+      }),
+    });
+
+    expect(fileResponse.status).toBe(200);
+    expect(await fileResponse.json()).toMatchObject({
+      version: {
+        commits: [{ files: [{ id: "file-1", reviewMark: "MODIFY" }] }],
+      },
+    });
+    expect(concernResponse.status).toBe(200);
+    expect(await concernResponse.json()).toMatchObject({
+      version: {
+        commits: [{ id: "commit-1", concernAreas: ["hidden-context", "message-roles"] }],
+      },
+    });
+  });
+
+  it("rejects invalid write payloads with contract-shaped validation errors", async () => {
+    const { connection, dependencies } = await testRuntime();
+    await seedReviewVersion(connection);
+    const app = createApiApp(dependencies);
+
+    const response = await app.request("/api/review/commits/commit-1/review-mark", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "human", id: "human-1" },
+        reviewMark: "INVALID_REVIEW_MARK",
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: {
+        code: "validation_failed",
+        message: "Invalid API payload.",
+      },
+    });
+  });
+
+  it("maps missing review records and workflow conflicts to contract-shaped errors", async () => {
+    const { connection, dependencies } = await testRuntime();
+    await seedReviewVersion(connection);
+    const app = createApiApp(dependencies);
+
+    const missingResponse = await app.request("/api/review/files/missing/review-mark", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "human", id: "human-1" },
+        reviewMark: "FLAG",
+      }),
+    });
+    await app.request("/api/review/files/file-1/review-mark", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "human", id: "human-1" },
+        reviewMark: "FLAG",
+      }),
+    });
+    const conflictResponse = await app.request("/api/review/commits/commit-1/review-mark", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "human", id: "human-1" },
+        reviewMark: "PASS",
+      }),
+    });
+
+    expect(missingResponse.status).toBe(404);
+    expect(await missingResponse.json()).toMatchObject({
+      error: { code: "not_found" },
+    });
+    expect(conflictResponse.status).toBe(409);
+    expect(await conflictResponse.json()).toMatchObject({
+      error: { code: "state_conflict" },
+    });
+  });
+
   it("returns contract-shaped errors", async () => {
     const { dependencies } = await testRuntime();
     const app = createApiApp(dependencies);
@@ -174,8 +307,11 @@ async function testRuntime(): Promise<{
   connection: ReviewDatabaseConnection;
   dependencies: ApiDependencies;
 }> {
-  const connection = createDatabaseConnection("file::memory:");
+  const directory = mkdtempSync(join(tmpdir(), "codex-reviewer-"));
+  tempDirectories.push(directory);
+  const connection = createDatabaseConnection(`file:${join(directory, "review.db")}`);
   await migrateDatabase(connection.client);
+  const reviewReadStore = createReviewReadStore(connection.db);
   return {
     connection,
     dependencies: {
@@ -187,7 +323,8 @@ async function testRuntime(): Promise<{
         error: vi.fn(),
         info: vi.fn(),
       } as unknown as ApiDependencies["logger"],
-      reviewReadStore: createReviewReadStore(connection.db),
+      reviewReadStore,
+      reviewWriteStore: createReviewWriteStore(connection.db, reviewReadStore),
     },
   };
 }

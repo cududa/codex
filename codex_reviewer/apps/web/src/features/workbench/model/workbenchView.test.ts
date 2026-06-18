@@ -6,6 +6,7 @@ import {
   concernAreaSummary,
   reviewMarkLabel,
   reviewMarkTone,
+  toggleConcernAreaSelection,
 } from "./workbenchView";
 
 describe("workbench view helpers", () => {
@@ -14,6 +15,22 @@ describe("workbench view helpers", () => {
     expect(
       concernAreaSummary(["tool-affordances", "permission-defaults", "hidden-context"], concernAreas),
     ).toBe("Tool Affordances +2");
+  });
+
+  it("preserves concern-area selection order while toggling", () => {
+    expect(toggleConcernAreaSelection(["tool-affordances"], "hidden-context", true)).toEqual([
+      "tool-affordances",
+      "hidden-context",
+    ]);
+    expect(
+      toggleConcernAreaSelection(["tool-affordances", "hidden-context"], "permission-defaults", true),
+    ).toEqual(["tool-affordances", "hidden-context", "permission-defaults"]);
+    expect(
+      toggleConcernAreaSelection(["tool-affordances", "hidden-context"], "tool-affordances", false),
+    ).toEqual(["hidden-context"]);
+    expect(
+      toggleConcernAreaSelection(["tool-affordances", "hidden-context"], "hidden-context", true),
+    ).toEqual(["tool-affordances", "hidden-context"]);
   });
 
   it("maps review marks to display labels and tones", () => {

@@ -1,7 +1,16 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { concernAreas as canonicalConcernAreas, reviewMarkDefinitions } from "@prompt-reviews/contracts";
-import type { ReviewCommitRead, ReviewFileRead, ReviewVersionRead } from "@/entities/review/types";
+import { setCommitConcernAreas, setCommitReviewMark, setFileReviewMark } from "@/entities/review/api";
+import type {
+  ConcernAreaSlug,
+  ExplicitFileReviewMark,
+  ReviewCommitRead,
+  ReviewFileRead,
+  ReviewMark,
+  ReviewVersionRead,
+} from "@/entities/review/types";
 import { Button } from "@/shared/ui/Button";
 import { CommitQueue } from "./components/CommitQueue";
 import { DiffReviewPane } from "./components/DiffReviewPane";
@@ -13,6 +22,7 @@ import { VersionRail } from "./components/VersionRail";
 import { useWorkbenchData } from "./hooks/appData";
 
 export function WorkbenchPage() {
+  const queryClient = useQueryClient();
   const { health, metadata, reviewBootstrap, reviewVersions } = useWorkbenchData();
   const versions = reviewVersions.data?.versions ?? [];
   const [selectedVersionId, setSelectedVersionId] = useState<ReviewVersionRead["id"] | null>(null);
@@ -26,11 +36,32 @@ export function WorkbenchPage() {
   const diffBlocks = selectedFile?.diffBlocks ?? [];
   const concernAreas = reviewBootstrap.data?.concernAreas ?? canonicalConcernAreas;
   const marks = reviewBootstrap.data?.reviewMarks ?? reviewMarkDefinitions;
+  const invalidateReviewVersions = () =>
+    queryClient.invalidateQueries({
+      queryKey: ["review", "versions"],
+    });
+  const commitMarkMutation = useMutation({
+    mutationFn: setCommitReviewMark,
+    onSuccess: invalidateReviewVersions,
+  });
+  const fileMarkMutation = useMutation({
+    mutationFn: setFileReviewMark,
+    onSuccess: invalidateReviewVersions,
+  });
+  const concernAreasMutation = useMutation({
+    mutationFn: setCommitConcernAreas,
+    onSuccess: invalidateReviewVersions,
+  });
   const error =
     health.error?.message ??
     metadata.error?.message ??
     reviewBootstrap.error?.message ??
-    reviewVersions.error?.message;
+    reviewVersions.error?.message ??
+    commitMarkMutation.error?.message ??
+    fileMarkMutation.error?.message ??
+    concernAreasMutation.error?.message;
+  const reviewStatePending =
+    commitMarkMutation.isPending || fileMarkMutation.isPending || concernAreasMutation.isPending;
 
   useEffect(() => {
     setSelectedVersionId((current) =>
@@ -118,6 +149,34 @@ export function WorkbenchPage() {
                 commit={selectedCommit ?? undefined}
                 concernAreas={concernAreas}
                 file={selectedFile ?? undefined}
+                onCommitConcernAreasChange={(nextConcernAreas: ConcernAreaSlug[]) => {
+                  if (selectedCommit === null) {
+                    return;
+                  }
+                  concernAreasMutation.mutate({
+                    commitId: selectedCommit.id,
+                    concernAreas: nextConcernAreas,
+                  });
+                }}
+                onCommitReviewMarkChange={(reviewMark: ReviewMark) => {
+                  if (selectedCommit === null) {
+                    return;
+                  }
+                  commitMarkMutation.mutate({
+                    commitId: selectedCommit.id,
+                    reviewMark,
+                  });
+                }}
+                onFileReviewMarkChange={(reviewMark: ExplicitFileReviewMark) => {
+                  if (selectedFile === null) {
+                    return;
+                  }
+                  fileMarkMutation.mutate({
+                    fileId: selectedFile.id,
+                    reviewMark,
+                  });
+                }}
+                pending={reviewStatePending}
                 reviewMarks={marks}
                 version={selectedVersion ?? undefined}
               />

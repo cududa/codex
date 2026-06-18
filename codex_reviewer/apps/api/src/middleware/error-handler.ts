@@ -2,6 +2,7 @@ import { ApiErrorResponseSchema } from "@prompt-reviews/contracts";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
+import { ReviewStoreError } from "../review/errors.js";
 import type { ApiBindings } from "../server/types.js";
 
 export function handleApiError(error: Error, c: Context<ApiBindings>) {
@@ -19,6 +20,18 @@ function mapError(error: Error) {
       body: {
         error: {
           code: error.status === 404 ? "not_found" : "bad_request",
+          message: error.message,
+        },
+      },
+    } as const;
+  }
+
+  if (error instanceof ReviewStoreError) {
+    return {
+      status: error.code === "not_found" ? 404 : 409,
+      body: {
+        error: {
+          code: error.code,
           message: error.message,
         },
       },
