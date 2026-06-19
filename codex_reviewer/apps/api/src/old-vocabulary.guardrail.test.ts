@@ -34,17 +34,22 @@ const blockedTerms = [
 
 const allowedMatches = [
   {
-    path: "packages/contracts/src/review.test.ts",
+    path: "packages/contracts/src/review/review-marks.test.ts",
     label: "DONE",
     lineIncludes: 'ReviewMarkSchema.parse("DONE")',
   },
   {
-    path: "apps/api/src/db/schema.test.ts",
+    path: "apps/api/src/db/schema/core-spine.test.ts",
     label: "DONE",
     lineIncludes: '"DONE"',
   },
   {
-    path: "apps/api/src/review/ingest-service.test.ts",
+    path: "apps/api/src/db/schema/agent-reviews.test.ts",
+    label: "DONE",
+    lineIncludes: '"DONE"',
+  },
+  {
+    path: "apps/api/src/review/ingest-service.invariants.test.ts",
     label: "DONE",
     lineIncludes: 'not.toContain("DONE")',
   },
@@ -73,17 +78,15 @@ function scanSourceRoot(root: string, repoRoot: string): string[] {
   return sourceFiles(root).flatMap((file) => {
     const text = readFileSync(file, "utf8");
     const relativePath = relative(repoRoot, file);
-    return text
-      .split("\n")
-      .flatMap((line, index) =>
-        blockedTerms.flatMap(({ label, pattern }) => {
-          pattern.lastIndex = 0;
-          if (!pattern.test(line) || isAllowedMatch(relativePath, label, line)) {
-            return [];
-          }
-          return [`${relativePath}:${index + 1}: ${label}`];
-        }),
-      );
+    return text.split("\n").flatMap((line, index) =>
+      blockedTerms.flatMap(({ label, pattern }) => {
+        pattern.lastIndex = 0;
+        if (!pattern.test(line) || isAllowedMatch(relativePath, label, line)) {
+          return [];
+        }
+        return [`${relativePath}:${index + 1}: ${label}`];
+      }),
+    );
   });
 }
 

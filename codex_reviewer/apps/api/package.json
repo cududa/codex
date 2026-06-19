@@ -26,6 +26,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@prompt-reviews/review-test-support": "workspace:*",
     "@types/node": "25.9.3",
     "tsx": "4.22.4",
     "typescript": "6.0.3",
