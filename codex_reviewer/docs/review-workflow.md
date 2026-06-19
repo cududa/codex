@@ -35,8 +35,27 @@ marks. A `PASS` commit does not require file-level review records.
 
 Concern areas belong to commits only. They are an ordered list of controlled
 vocabulary values. The first selected concern area is first in the list; if it
-is removed, the next value becomes first. There is no primary/secondary tag
-system.
+is removed, the next value becomes first. Selections are currently limited to at
+most three values per commit. There is no primary/secondary tag system.
+
+## Ingest And Concern Map
+
+Ingest creates the initial persisted review version, commits, files, and diff
+blocks.
+
+During ingest, the deterministic concern-map process initializes current review
+state before any human or agent has reviewed the version:
+
+- commit review marks
+- commit concern areas
+- explicit file review marks when file-level review state is needed
+
+Concern-map output uses the same canonical concern-area contract as the rest of
+the product: canonical slugs, ordering, uniqueness, and maximum selected concern
+area count.
+
+This initial assignment is not detector evidence and not agent review evidence.
+It writes the current review state for the newly ingested version.
 
 ## Agent Review
 
@@ -77,6 +96,21 @@ approved.
 
 Agents must not create, update, or revoke human approvals.
 
+## Access Paths
+
+The web app, API routes, MCP tools, ingest pipeline, agents, and detector
+processes all feed the same product commands and durable rows. They are access
+paths, not separate domain models.
+
+Codex CLI or desktop-app agents may use MCP tools to record agent reviews,
+threaded comments, review notes, review plans, and allowed local-change refs.
+They must not use MCP to create, update, or revoke human approvals or generate
+the review ledger.
+
+Human approval and ledger generation require human actor contracts at the API
+boundary. Agent-accessible tools must not expose those commands under alternate
+names.
+
 ## Comments, Notes, And Plans
 
 Threaded comments are discussion. They can be created by humans or agents and
@@ -105,7 +139,7 @@ History must cover:
 - plan updates
 
 The audit trail is history, not the source of current state. The product is not
-event-sourced.
+event-sourced. See `docs/review-events.md` for the event kind and payload map.
 
 ## Version Completion
 

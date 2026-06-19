@@ -5,6 +5,14 @@ The active implementation is a CRUD application spine for persisted review
 versions, commits, files, ordered commit concern areas, diff blocks, review
 state writes, and review audit events.
 
+Authority docs:
+
+- [`docs/product-model.md`](docs/product-model.md)
+- [`docs/review-workflow.md`](docs/review-workflow.md)
+- [`docs/review-events.md`](docs/review-events.md)
+- [`docs/code-kill-list.md`](docs/code-kill-list.md)
+- [`docs/canonical-review-note.md`](docs/canonical-review-note.md)
+
 ## Shape
 
 - `packages/contracts` owns canonical Zod contracts and inferred TypeScript
