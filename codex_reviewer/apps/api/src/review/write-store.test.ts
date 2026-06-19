@@ -1,7 +1,12 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ActorRefSchema, ReviewEventTargetSchema } from "@prompt-reviews/contracts";
+import {
+  ActorRefSchema,
+  ConcernAreasChangedEventPayloadSchema,
+  ReviewEventTargetSchema,
+  ReviewMarkChangedEventPayloadSchema,
+} from "@prompt-reviews/contracts";
 import { asc, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { createDatabaseConnection, type ReviewDatabaseConnection } from "../db/client.js";
@@ -56,7 +61,7 @@ describe("review write store", () => {
       kind: "review_mark_changed",
       summary: "Commit review mark changed from FLAG to PASS.",
     });
-    expect(JSON.parse(event?.payloadJson ?? "{}")).toEqual({
+    expect(ReviewMarkChangedEventPayloadSchema.parse(JSON.parse(event?.payloadJson ?? "{}"))).toEqual({
       target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
       previousReviewMark: "FLAG",
       newReviewMark: "PASS",
@@ -114,7 +119,9 @@ describe("review write store", () => {
     ]);
     const events = await connection.db.select().from(reviewEvents).orderBy(asc(reviewEvents.createdAt));
     expect(events).toHaveLength(2);
-    expect(events.map((event) => JSON.parse(event.payloadJson))).toEqual([
+    expect(
+      events.map((event) => ReviewMarkChangedEventPayloadSchema.parse(JSON.parse(event.payloadJson))),
+    ).toEqual([
       {
         target: ReviewEventTargetSchema.parse({ type: "file", id: "file-1" }),
         previousReviewMark: null,
@@ -177,7 +184,7 @@ describe("review write store", () => {
       { commitId: "commit-1", concernAreaSlug: "message-roles", position: 1 },
     ]);
     const [event] = await connection.db.select().from(reviewEvents);
-    expect(JSON.parse(event?.payloadJson ?? "{}")).toEqual({
+    expect(ConcernAreasChangedEventPayloadSchema.parse(JSON.parse(event?.payloadJson ?? "{}"))).toEqual({
       target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
       commitId: "commit-1",
       previousConcernAreas: ["tool-affordances", "permission-defaults"],

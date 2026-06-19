@@ -1,6 +1,6 @@
 import {
   ReviewBootstrapResponseSchema,
-  ReviewStateWriteResponseSchema,
+  ReviewMarkWriteResponseSchema,
   ReviewVersionsResponseSchema,
   SetCommitConcernAreasRequestSchema,
   SetCommitReviewMarkRequestSchema,
@@ -30,7 +30,7 @@ export function setCommitReviewMark(input: { commitId: string; reviewMark: Revie
     reviewMark: input.reviewMark,
   });
   return requestJson(
-    ReviewStateWriteResponseSchema,
+    ReviewMarkWriteResponseSchema,
     `/api/review/commits/${encodeURIComponent(input.commitId)}/review-mark`,
     {
       method: "PATCH",
@@ -49,7 +49,7 @@ export function setFileReviewMark(input: {
     reviewMark: input.reviewMark,
   });
   return requestJson(
-    ReviewStateWriteResponseSchema,
+    ReviewMarkWriteResponseSchema,
     `/api/review/files/${encodeURIComponent(input.fileId)}/review-mark`,
     {
       method: "PATCH",
@@ -68,7 +68,7 @@ export function setCommitConcernAreas(input: {
     concernAreas: input.concernAreas,
   });
   return requestJson(
-    ReviewStateWriteResponseSchema,
+    ReviewMarkWriteResponseSchema,
     `/api/review/commits/${encodeURIComponent(input.commitId)}/concern-areas`,
     {
       method: "PUT",

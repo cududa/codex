@@ -9,7 +9,7 @@ export type {
   ReviewFileRead,
   ReviewMark,
   ReviewMarkDefinition,
-  ReviewStateWriteResponse,
+  ReviewMarkWriteResponse,
   ReviewVersionRead,
   ReviewVersionsResponse,
 } from "@prompt-reviews/contracts";

@@ -49,12 +49,14 @@ export const ReviewVersionResponseSchema = z
   .strict()
   .describe("Response containing one persisted review version.");
 
-export const ReviewStateWriteResponseSchema = z
+export const ReviewMarkWriteResponseSchema = z
   .object({
-    version: ReviewVersionReadSchema.describe("Updated review version after a persisted state change."),
+    version: ReviewVersionReadSchema.describe(
+      "Updated review version after a review mark or concern-area write.",
+    ),
   })
   .strict()
-  .describe("Response containing the owning review version after a state write.");
+  .describe("Response containing the owning review version after a review mark or concern-area write.");
 
 export const IngestReviewVersionRequestSchema = z
   .object({
@@ -63,7 +65,9 @@ export const IngestReviewVersionRequestSchema = z
     targetRefOrSha: NonEmptyStringSchema.describe("Submitted target ref or SHA for the upstream range."),
     label: NonEmptyStringSchema.optional().describe("Optional human-readable review version label."),
     source: NonEmptyStringSchema.describe("System-scoped ingest source."),
-    concernMapVersion: NonEmptyStringSchema.describe("Version identifier for deterministic concern-map rules."),
+    concernMapVersion: NonEmptyStringSchema.describe(
+      "Version identifier for deterministic concern-map rules.",
+    ),
   })
   .strict()
   .describe("Request to ingest one initialized review version from a repository range.");
@@ -105,7 +109,7 @@ export type ReviewMarksResponse = z.infer<typeof ReviewMarksResponseSchema>;
 export type ReviewBootstrapResponse = z.infer<typeof ReviewBootstrapResponseSchema>;
 export type ReviewVersionsResponse = z.infer<typeof ReviewVersionsResponseSchema>;
 export type ReviewVersionResponse = z.infer<typeof ReviewVersionResponseSchema>;
-export type ReviewStateWriteResponse = z.infer<typeof ReviewStateWriteResponseSchema>;
+export type ReviewMarkWriteResponse = z.infer<typeof ReviewMarkWriteResponseSchema>;
 export type IngestReviewVersionRequest = z.infer<typeof IngestReviewVersionRequestSchema>;
 export type IngestReviewVersionResponse = z.infer<typeof IngestReviewVersionResponseSchema>;
 export type SetCommitReviewMarkRequest = z.infer<typeof SetCommitReviewMarkRequestSchema>;

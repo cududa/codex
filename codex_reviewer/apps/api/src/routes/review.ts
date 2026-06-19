@@ -4,7 +4,7 @@ import {
   IngestReviewVersionResponseSchema,
   ReviewBootstrapResponseSchema,
   ReviewMarksResponseSchema,
-  ReviewStateWriteResponseSchema,
+  ReviewMarkWriteResponseSchema,
   ReviewVersionResponseSchema,
   ReviewVersionsResponseSchema,
   SetCommitConcernAreasRequestSchema,
@@ -82,7 +82,7 @@ export function createReviewRoutes() {
         reviewMark: payload.reviewMark,
         actor: payload.actor,
       });
-      return c.json(ReviewStateWriteResponseSchema.parse({ version }));
+      return c.json(ReviewMarkWriteResponseSchema.parse({ version }));
     },
   );
 
@@ -100,7 +100,7 @@ export function createReviewRoutes() {
         reviewMark: payload.reviewMark,
         actor: payload.actor,
       });
-      return c.json(ReviewStateWriteResponseSchema.parse({ version }));
+      return c.json(ReviewMarkWriteResponseSchema.parse({ version }));
     },
   );
 
@@ -118,7 +118,7 @@ export function createReviewRoutes() {
         concernAreas: payload.concernAreas,
         actor: payload.actor,
       });
-      return c.json(ReviewStateWriteResponseSchema.parse({ version }));
+      return c.json(ReviewMarkWriteResponseSchema.parse({ version }));
     },
   );
 

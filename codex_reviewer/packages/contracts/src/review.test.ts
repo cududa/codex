@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   ConcernAreaSelectionSchema,
+  ConcernAreasChangedEventPayloadSchema,
   IngestReviewVersionRequestSchema,
   IngestReviewVersionResponseSchema,
   ReviewBootstrapResponseSchema,
   ReviewCommitReadSchema,
   ReviewEventTargetSchema,
   ReviewFileReadSchema,
+  ReviewMarkChangedEventPayloadSchema,
   ReviewMarkSchema,
+  ReviewMarkWriteResponseSchema,
   AgentActorRefSchema,
   HumanActorRefSchema,
   SetCommitConcernAreasRequestSchema,
@@ -101,6 +104,80 @@ describe("review contracts", () => {
     expect(() => ReviewEventTargetSchema.parse({ type: "comment", id: "comment-1" })).toThrow();
     expect(() =>
       ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1", commitId: "commit-1" }),
+    ).toThrow();
+  });
+
+  it("validates canonical review event payload kernels", () => {
+    expect(
+      ReviewMarkChangedEventPayloadSchema.parse({
+        target: { type: "commit", id: "commit-1" },
+        previousReviewMark: "FLAG",
+        newReviewMark: "PASS",
+      }),
+    ).toEqual({
+      target: { type: "commit", id: "commit-1" },
+      previousReviewMark: "FLAG",
+      newReviewMark: "PASS",
+    });
+    expect(
+      ReviewMarkChangedEventPayloadSchema.parse({
+        target: { type: "file", id: "file-1" },
+        previousReviewMark: null,
+        newReviewMark: "MODIFY",
+      }),
+    ).toEqual({
+      target: { type: "file", id: "file-1" },
+      previousReviewMark: null,
+      newReviewMark: "MODIFY",
+    });
+    expect(
+      ConcernAreasChangedEventPayloadSchema.parse({
+        target: { type: "commit", id: "commit-1" },
+        commitId: "commit-1",
+        previousConcernAreas: ["tool-affordances"],
+        newConcernAreas: ["hidden-context", "message-roles"],
+      }),
+    ).toEqual({
+      target: { type: "commit", id: "commit-1" },
+      commitId: "commit-1",
+      previousConcernAreas: ["tool-affordances"],
+      newConcernAreas: ["hidden-context", "message-roles"],
+    });
+
+    expect(() =>
+      ReviewMarkChangedEventPayloadSchema.parse({
+        target: { type: "version", id: "version-1" },
+        previousReviewMark: "FLAG",
+        newReviewMark: "PASS",
+      }),
+    ).toThrow();
+    expect(() =>
+      ReviewMarkChangedEventPayloadSchema.parse({
+        target: { type: "commit", id: "commit-1" },
+        previousReviewMark: null,
+        newReviewMark: "PASS",
+      }),
+    ).toThrow();
+    expect(() =>
+      ReviewMarkChangedEventPayloadSchema.parse({
+        target: { type: "commit", id: "commit-1" },
+        reviewMark: "PASS",
+      }),
+    ).toThrow();
+    expect(() =>
+      ConcernAreasChangedEventPayloadSchema.parse({
+        target: { type: "commit", id: "commit-1" },
+        commitId: "commit-1",
+        concernAreas: ["hidden-context"],
+      }),
+    ).toThrow();
+    expect(() =>
+      ConcernAreasChangedEventPayloadSchema.parse({
+        target: { type: "commit", id: "commit-1" },
+        commitId: "commit-2",
+        previousConcernAreas: ["tool-affordances"],
+        newConcernAreas: ["hidden-context"],
+      }),
     ).toThrow();
   });
 
@@ -315,6 +392,28 @@ describe("review contracts", () => {
       }),
     ).toMatchObject({
       created: true,
+      version: { id: "version-1" },
+    });
+  });
+
+  it("validates mark and concern writes with a specific response contract", () => {
+    expect(
+      ReviewMarkWriteResponseSchema.parse({
+        version: {
+          id: "version-1",
+          label: "Upstream review",
+          repositoryId: "openai/codex",
+          baseRef: "local-main",
+          targetRef: "upstream/main",
+          baseSha: "1234567",
+          targetSha: "abcdef1",
+          createdAt: now,
+          updatedAt: null,
+          commitCount: 0,
+          commits: [],
+        },
+      }),
+    ).toMatchObject({
       version: { id: "version-1" },
     });
   });

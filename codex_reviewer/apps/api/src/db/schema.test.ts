@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ReviewEventTargetSchema } from "@prompt-reviews/contracts";
+import { ReviewEventTargetSchema, ReviewMarkChangedEventPayloadSchema } from "@prompt-reviews/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 import { createDatabaseConnection, type ReviewDatabaseConnection } from "./client.js";
 import { migrateDatabase } from "./migrate.js";
@@ -256,11 +256,13 @@ describe("review persistence schema", () => {
       actorDisplayName: "Cullen",
       kind: "review_mark_changed",
       summary: "Commit review mark changed from FLAG to PASS.",
-      payloadJson: JSON.stringify({
-        target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
-        previousReviewMark: "FLAG",
-        newReviewMark: "PASS",
-      }),
+      payloadJson: JSON.stringify(
+        ReviewMarkChangedEventPayloadSchema.parse({
+          target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
+          previousReviewMark: "FLAG",
+          newReviewMark: "PASS",
+        }),
+      ),
       createdAt: now,
     });
 
@@ -274,11 +276,13 @@ describe("review persistence schema", () => {
         actorDisplayName: "Cullen",
         kind: "review_mark_changed",
         summary: "Commit review mark changed from FLAG to PASS.",
-        payloadJson: JSON.stringify({
-          target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
-          previousReviewMark: "FLAG",
-          newReviewMark: "PASS",
-        }),
+        payloadJson: JSON.stringify(
+          ReviewMarkChangedEventPayloadSchema.parse({
+            target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
+            previousReviewMark: "FLAG",
+            newReviewMark: "PASS",
+          }),
+        ),
         createdAt: now,
       },
     ]);
