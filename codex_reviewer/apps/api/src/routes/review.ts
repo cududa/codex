@@ -1,5 +1,7 @@
 import {
   ConcernAreasResponseSchema,
+  IngestReviewVersionRequestSchema,
+  IngestReviewVersionResponseSchema,
   ReviewBootstrapResponseSchema,
   ReviewMarksResponseSchema,
   ReviewStateWriteResponseSchema,
@@ -47,6 +49,19 @@ export function createReviewRoutes() {
     const versions = await c.var.context.reviewReadStore.listReviewVersions();
     return c.json(ReviewVersionsResponseSchema.parse({ versions }));
   });
+
+  routes.post(
+    "/versions/ingest",
+    zValidator("json", IngestReviewVersionRequestSchema, (result) => {
+      if (!result.success) {
+        throw result.error;
+      }
+    }),
+    async (c) => {
+      const response = await c.var.context.reviewIngestService.ingestReviewVersion(c.req.valid("json"));
+      return c.json(IngestReviewVersionResponseSchema.parse(response));
+    },
+  );
 
   routes.get("/versions/:versionId", async (c) => {
     const version = await c.var.context.reviewReadStore.getReviewVersion(c.req.param("versionId"));

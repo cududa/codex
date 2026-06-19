@@ -10,6 +10,7 @@ import {
   reviewCommits,
   reviewEvents,
   reviewFiles,
+  reviewVersionIngests,
   reviewVersions,
 } from "./schema/index.js";
 
@@ -36,6 +37,7 @@ describe("review persistence schema", () => {
       "review_commits",
       "review_events",
       "review_files",
+      "review_version_ingests",
       "review_versions",
       "schema_migrations",
     ]);
@@ -53,7 +55,7 @@ describe("review persistence schema", () => {
         repositoryId: "openai/codex",
         baseRef: "local-main",
         targetRef: "upstream/main",
-        baseSha: null,
+        baseSha: "1234567",
         targetSha: "abcdef1",
         createdAt: now,
         updatedAt: null,
@@ -113,6 +115,8 @@ describe("review persistence schema", () => {
       id: "version-1",
       label: "Upstream review",
       repositoryId: "openai/codex",
+      baseSha: "1234567",
+      targetSha: "abcdef1",
       createdAt: now,
     });
 
@@ -124,7 +128,81 @@ describe("review persistence schema", () => {
           VALUES
             (?, ?, ?, ?, ?, ?, ?)
         `,
-        args: ["commit-1", "version-1", "abcdef1", 0, "Bad mark", "REVIEWED", now],
+        args: ["commit-1", "version-1", "abcdef1", 0, "Bad mark", "DONE", now],
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("requires resolved SHAs and enforces one ingested version per resolved repository range", async () => {
+    const connection = await migratedConnection();
+
+    await expect(
+      connection.client.execute({
+        sql: `
+          INSERT INTO review_versions
+            (id, label, repository_id, base_ref, target_ref, target_sha, created_at)
+          VALUES
+            (?, ?, ?, ?, ?, ?, ?)
+        `,
+        args: ["version-missing-base", "Upstream review", "openai/codex", "local-main", "upstream/main", "abcdef1", now],
+      }),
+    ).rejects.toThrow();
+
+    await insertCoreSlice(connection);
+    await expect(
+      connection.db.insert(reviewVersions).values({
+        id: "version-duplicate",
+        label: "Same resolved range",
+        repositoryId: "openai/codex",
+        baseRef: "other-base",
+        targetRef: "other-target",
+        baseSha: "1234567",
+        targetSha: "abcdef1",
+        createdAt: now,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("stores exactly one ingest metadata row per ingested review version", async () => {
+    const connection = await migratedConnection();
+
+    await insertCoreSlice(connection);
+    await connection.db.insert(reviewVersionIngests).values({
+      versionId: "version-1",
+      repositoryId: "openai/codex",
+      baseRefOrSha: "local-main",
+      targetRefOrSha: "upstream/main",
+      baseSha: "1234567",
+      targetSha: "abcdef1",
+      concernMapVersion: "deterministic-concern-map-v1",
+      source: "system-ingest",
+      createdAt: now,
+    });
+
+    await expect(connection.db.select().from(reviewVersionIngests)).resolves.toEqual([
+      {
+        versionId: "version-1",
+        repositoryId: "openai/codex",
+        baseRefOrSha: "local-main",
+        targetRefOrSha: "upstream/main",
+        baseSha: "1234567",
+        targetSha: "abcdef1",
+        concernMapVersion: "deterministic-concern-map-v1",
+        source: "system-ingest",
+        createdAt: now,
+      },
+    ]);
+    await expect(
+      connection.db.insert(reviewVersionIngests).values({
+        versionId: "version-1",
+        repositoryId: "openai/codex",
+        baseRefOrSha: "other-base",
+        targetRefOrSha: "other-target",
+        baseSha: "1234567",
+        targetSha: "abcdef1",
+        concernMapVersion: "deterministic-concern-map-v1",
+        source: "system-ingest",
+        createdAt: now,
       }),
     ).rejects.toThrow();
   });
@@ -230,6 +308,7 @@ async function insertCoreSlice(connection: ReviewDatabaseConnection): Promise<vo
     repositoryId: "openai/codex",
     baseRef: "local-main",
     targetRef: "upstream/main",
+    baseSha: "1234567",
     targetSha: "abcdef1",
     createdAt: now,
   });

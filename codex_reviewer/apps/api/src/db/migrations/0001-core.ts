@@ -5,10 +5,23 @@ export const coreStatements = [
     repository_id TEXT NOT NULL,
     base_ref TEXT,
     target_ref TEXT,
-    base_sha TEXT,
-    target_sha TEXT,
+    base_sha TEXT NOT NULL,
+    target_sha TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT
+  )`,
+  "CREATE UNIQUE INDEX review_versions_resolved_range_unique ON review_versions(repository_id, base_sha, target_sha)",
+
+  `CREATE TABLE review_version_ingests (
+    version_id TEXT PRIMARY KEY NOT NULL REFERENCES review_versions(id) ON DELETE CASCADE,
+    repository_id TEXT NOT NULL,
+    base_ref_or_sha TEXT NOT NULL,
+    target_ref_or_sha TEXT NOT NULL,
+    base_sha TEXT NOT NULL,
+    target_sha TEXT NOT NULL,
+    concern_map_version TEXT NOT NULL,
+    source TEXT NOT NULL,
+    created_at TEXT NOT NULL
   )`,
 
   `CREATE TABLE review_commits (

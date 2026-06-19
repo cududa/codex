@@ -12,6 +12,8 @@ import {
   reviewFiles,
   reviewVersions,
 } from "../db/schema/index.js";
+import { createReviewIngestService, deterministicConcernMapVersion } from "../review/ingest-service.js";
+import type { GitRangeReader } from "../review/git-range-reader.js";
 import { createReviewReadStore } from "../review/read-store.js";
 import { createReviewWriteStore } from "../review/write-store.js";
 import { createApiApp } from "./app.js";
@@ -97,7 +99,7 @@ describe("createApiApp", () => {
           repositoryId: "openai/codex",
           baseRef: "local-main",
           targetRef: "upstream/main",
-          baseSha: null,
+          baseSha: "1234567",
           targetSha: "abcdef1",
           createdAt: now,
           updatedAt: null,
@@ -161,6 +163,72 @@ describe("createApiApp", () => {
       version: {
         id: "version-1",
         commits: [{ id: "commit-1", files: [{ id: "file-1" }] }],
+      },
+    });
+  });
+
+  it("validates ingest requests and returns the ingest response contract", async () => {
+    const gitRangeReader = fakeGitRangeReader();
+    const { dependencies } = await testRuntime({ gitRangeReader });
+    const app = createApiApp(dependencies);
+
+    const response = await app.request("/api/review/versions/ingest", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        repositoryId: "openai/codex",
+        baseRefOrSha: "local-main",
+        targetRefOrSha: "upstream/main",
+        source: "system-ingest",
+        concernMapVersion: deterministicConcernMapVersion,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      created: true,
+      version: {
+        repositoryId: "openai/codex",
+        baseRef: "local-main",
+        targetRef: "upstream/main",
+        baseSha: "1234567",
+        targetSha: "abcdef1",
+        commits: [
+          {
+            reviewMark: "FLAG",
+            concernAreas: ["harness-prompts"],
+            files: [
+              {
+                reviewMark: null,
+                diffBlocks: [{ position: 0, heading: "prompt" }],
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it("rejects invalid ingest payloads with contract-shaped validation errors", async () => {
+    const { dependencies } = await testRuntime();
+    const app = createApiApp(dependencies);
+
+    const response = await app.request("/api/review/versions/ingest", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        repositoryId: "openai/codex",
+        baseRefOrSha: "local-main",
+        targetRefOrSha: "upstream/main",
+        source: "system-ingest",
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: {
+        code: "validation_failed",
+        message: "Invalid API payload.",
       },
     });
   });
@@ -303,7 +371,7 @@ describe("createApiApp", () => {
   });
 });
 
-async function testRuntime(): Promise<{
+async function testRuntime(options: { gitRangeReader?: GitRangeReader } = {}): Promise<{
   connection: ReviewDatabaseConnection;
   dependencies: ApiDependencies;
 }> {
@@ -316,6 +384,7 @@ async function testRuntime(): Promise<{
     connection,
     dependencies: {
       config: {
+        databaseUrl: `file:${join(directory, "review.db")}`,
         host: "127.0.0.1",
         port: 0,
       },
@@ -323,6 +392,9 @@ async function testRuntime(): Promise<{
         error: vi.fn(),
         info: vi.fn(),
       } as unknown as ApiDependencies["logger"],
+      reviewIngestService: createReviewIngestService(connection.db, reviewReadStore, {
+        gitRangeReader: options.gitRangeReader ?? fakeGitRangeReader(),
+      }),
       reviewReadStore,
       reviewWriteStore: createReviewWriteStore(connection.db, reviewReadStore),
     },
@@ -336,6 +408,7 @@ async function seedReviewVersion(connection: ReviewDatabaseConnection): Promise<
     repositoryId: "openai/codex",
     baseRef: "local-main",
     targetRef: "upstream/main",
+    baseSha: "1234567",
     targetSha: "abcdef1",
     createdAt: now,
   });
@@ -374,4 +447,38 @@ async function seedReviewVersion(connection: ReviewDatabaseConnection): Promise<
     newEndLine: 1,
     patch: "@@ -1 +1 @@\n-old\n+new",
   });
+}
+
+function fakeGitRangeReader(): GitRangeReader {
+  return {
+    async resolveCommit(refOrSha) {
+      return { "local-main": "1234567", "upstream/main": "abcdef1" }[refOrSha] ?? null;
+    },
+    async listCommits() {
+      return [
+        {
+          sha: "abcdef1",
+          title: "Adjust prompt text",
+          message: null,
+          authorName: "OpenAI",
+          committedAt: now,
+          files: [
+            {
+              path: "codex-rs/core/src/prompt.rs",
+              oldPath: null,
+              changeKind: "modified",
+              patch: [
+                "diff --git a/codex-rs/core/src/prompt.rs b/codex-rs/core/src/prompt.rs",
+                "--- a/codex-rs/core/src/prompt.rs",
+                "+++ b/codex-rs/core/src/prompt.rs",
+                "@@ -1 +1 @@ prompt",
+                "-old",
+                "+new",
+              ].join("\n"),
+            },
+          ],
+        },
+      ];
+    },
+  };
 }

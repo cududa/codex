@@ -27,8 +27,30 @@ function mapError(error: Error) {
   }
 
   if (error instanceof ReviewStoreError) {
+    if (error.code === "bad_request") {
+      return {
+        status: 400,
+        body: {
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        },
+      } as const;
+    }
+    if (error.code === "not_found") {
+      return {
+        status: 404,
+        body: {
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        },
+      } as const;
+    }
     return {
-      status: error.code === "not_found" ? 404 : 409,
+      status: 409,
       body: {
         error: {
           code: error.code,

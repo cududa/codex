@@ -76,7 +76,7 @@ function validVersion() {
     repositoryId: "openai/codex",
     baseRef: "local-main",
     targetRef: "upstream/main",
-    baseSha: null,
+    baseSha: "1234567",
     targetSha: "abcdef1",
     createdAt: "2026-06-17T12:00:00.000Z",
     updatedAt: null,

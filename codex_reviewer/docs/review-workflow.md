@@ -57,6 +57,13 @@ area count.
 This initial assignment is not detector evidence and not agent review evidence.
 It writes the current review state for the newly ingested version.
 
+The concern-area registry is controlled product vocabulary. Runtime editability
+applies to a commit's selected concern areas, not to the registry itself. After
+ingest, humans may correct the ordered concern-area selection for a commit
+through the normal review-state write path; that correction updates
+`commit_concern_areas` and appends `concern_areas_changed`. This is not a
+concern-map rerun, detector evidence, or agent review evidence.
+
 ## Agent Review
 
 Agents may record review evidence for commits and files.

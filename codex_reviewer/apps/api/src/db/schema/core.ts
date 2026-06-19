@@ -4,16 +4,40 @@ import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "driz
 export type ReviewEventScopeType = "version" | "commit" | "file" | "diffBlock";
 export type ReviewEventKind = "review_mark_changed" | "concern_areas_changed";
 
-export const reviewVersions = sqliteTable("review_versions", {
-  id: text("id").primaryKey(),
-  label: text("label").notNull(),
+export const reviewVersions = sqliteTable(
+  "review_versions",
+  {
+    id: text("id").primaryKey(),
+    label: text("label").notNull(),
+    repositoryId: text("repository_id").notNull(),
+    baseRef: text("base_ref"),
+    targetRef: text("target_ref"),
+    baseSha: text("base_sha").notNull(),
+    targetSha: text("target_sha").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at"),
+  },
+  (table) => [
+    uniqueIndex("review_versions_resolved_range_unique").on(
+      table.repositoryId,
+      table.baseSha,
+      table.targetSha,
+    ),
+  ],
+);
+
+export const reviewVersionIngests = sqliteTable("review_version_ingests", {
+  versionId: text("version_id")
+    .primaryKey()
+    .references(() => reviewVersions.id, { onDelete: "cascade" }),
   repositoryId: text("repository_id").notNull(),
-  baseRef: text("base_ref"),
-  targetRef: text("target_ref"),
-  baseSha: text("base_sha"),
-  targetSha: text("target_sha"),
+  baseRefOrSha: text("base_ref_or_sha").notNull(),
+  targetRefOrSha: text("target_ref_or_sha").notNull(),
+  baseSha: text("base_sha").notNull(),
+  targetSha: text("target_sha").notNull(),
+  concernMapVersion: text("concern_map_version").notNull(),
+  source: text("source").notNull(),
   createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at"),
 });
 
 export const reviewCommits = sqliteTable(

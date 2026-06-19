@@ -5,11 +5,19 @@ import {
   reviewCommits,
   reviewEvents,
   reviewFiles,
+  reviewVersionIngests,
   reviewVersions,
 } from "./core.js";
 
 export const reviewVersionRelations = relations(reviewVersions, ({ many }) => ({
   commits: many(reviewCommits),
+}));
+
+export const reviewVersionIngestRelations = relations(reviewVersionIngests, ({ one }) => ({
+  version: one(reviewVersions, {
+    fields: [reviewVersionIngests.versionId],
+    references: [reviewVersions.id],
+  }),
 }));
 
 export const reviewCommitRelations = relations(reviewCommits, ({ one, many }) => ({

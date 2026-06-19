@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ActorRefSchema } from "@prompt-reviews/contracts";
 import { asc, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { createDatabaseConnection, type ReviewDatabaseConnection } from "../db/client.js";
@@ -17,7 +18,7 @@ import { createReviewReadStore } from "./read-store.js";
 import { createReviewWriteStore } from "./write-store.js";
 
 const now = "2026-06-17T12:00:00.000Z";
-const actor = { type: "human", id: "human-1", displayName: "Cullen" } as const;
+const actor = ActorRefSchema.parse({ type: "human", id: "human-1", displayName: "Cullen" });
 const tempDirectories: string[] = [];
 
 afterEach(() => {
@@ -273,6 +274,7 @@ async function seedReviewVersion(connection: ReviewDatabaseConnection): Promise<
     repositoryId: "openai/codex",
     baseRef: "local-main",
     targetRef: "upstream/main",
+    baseSha: "1234567",
     targetSha: "abcdef1",
     createdAt: now,
   });

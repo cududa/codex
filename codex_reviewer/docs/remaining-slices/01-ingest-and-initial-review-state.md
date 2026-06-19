@@ -187,6 +187,11 @@ It uses the same canonical concern-area vocabulary as
 - uniqueness
 - maximum selected concern area count
 
+Ingest initializes the baseline concern-area selection. Later human correction
+of a commit's selected concern areas is outside ingest, uses the normal
+review-state write path, and appends `concern_areas_changed`. Corrections do
+not rerun ingest or the concern map.
+
 It must not create:
 
 - classifications

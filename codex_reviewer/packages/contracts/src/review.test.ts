@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   ConcernAreaSelectionSchema,
+  IngestReviewVersionRequestSchema,
+  IngestReviewVersionResponseSchema,
   ReviewBootstrapResponseSchema,
   ReviewCommitReadSchema,
   ReviewFileReadSchema,
@@ -80,6 +82,35 @@ describe("review contracts", () => {
       },
     ]);
     expect(() => ReviewMarkSchema.parse("INVALID_REVIEW_MARK")).toThrow();
+    expect(() => ReviewMarkSchema.parse("DONE")).toThrow();
+  });
+
+  it("validates deterministic ingest command contracts", () => {
+    const request = IngestReviewVersionRequestSchema.parse({
+      repositoryId: "openai/codex",
+      baseRefOrSha: "local-main",
+      targetRefOrSha: "upstream/main",
+      label: "Upstream review",
+      source: "system-ingest",
+      concernMapVersion: "deterministic-concern-map-v1",
+    });
+
+    expect(request).toEqual({
+      repositoryId: "openai/codex",
+      baseRefOrSha: "local-main",
+      targetRefOrSha: "upstream/main",
+      label: "Upstream review",
+      source: "system-ingest",
+      concernMapVersion: "deterministic-concern-map-v1",
+    });
+    expect(() =>
+      IngestReviewVersionRequestSchema.parse({
+        repositoryId: "openai/codex",
+        baseRefOrSha: "local-main",
+        targetRefOrSha: "upstream/main",
+        source: "system-ingest",
+      }),
+    ).toThrow();
   });
 
   it("requires actors for review-state write requests", () => {
@@ -173,7 +204,7 @@ describe("review contracts", () => {
             repositoryId: "openai/codex",
             baseRef: "local-main",
             targetRef: "upstream/main",
-            baseSha: null,
+            baseSha: "1234567",
             targetSha: "abcdef1",
             createdAt: now,
             updatedAt: null,
@@ -225,6 +256,30 @@ describe("review contracts", () => {
       }),
     ).toMatchObject({
       versions: [{ commitCount: 1 }],
+    });
+  });
+
+  it("validates deterministic ingest responses without review-state write wrappers", () => {
+    expect(
+      IngestReviewVersionResponseSchema.parse({
+        created: true,
+        version: {
+          id: "version-1",
+          label: "Upstream review",
+          repositoryId: "openai/codex",
+          baseRef: "local-main",
+          targetRef: "upstream/main",
+          baseSha: "1234567",
+          targetSha: "abcdef1",
+          createdAt: now,
+          updatedAt: null,
+          commitCount: 0,
+          commits: [],
+        },
+      }),
+    ).toMatchObject({
+      created: true,
+      version: { id: "version-1" },
     });
   });
 
