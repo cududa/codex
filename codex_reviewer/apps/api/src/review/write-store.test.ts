@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ActorRefSchema } from "@prompt-reviews/contracts";
+import { ActorRefSchema, ReviewEventTargetSchema } from "@prompt-reviews/contracts";
 import { asc, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { createDatabaseConnection, type ReviewDatabaseConnection } from "../db/client.js";
@@ -57,8 +57,9 @@ describe("review write store", () => {
       summary: "Commit review mark changed from FLAG to PASS.",
     });
     expect(JSON.parse(event?.payloadJson ?? "{}")).toEqual({
+      target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
       previousReviewMark: "FLAG",
-      reviewMark: "PASS",
+      newReviewMark: "PASS",
     });
   });
 
@@ -114,8 +115,16 @@ describe("review write store", () => {
     const events = await connection.db.select().from(reviewEvents).orderBy(asc(reviewEvents.createdAt));
     expect(events).toHaveLength(2);
     expect(events.map((event) => JSON.parse(event.payloadJson))).toEqual([
-      { previousReviewMark: null, reviewMark: "MODIFY" },
-      { previousReviewMark: "MODIFY", reviewMark: null },
+      {
+        target: ReviewEventTargetSchema.parse({ type: "file", id: "file-1" }),
+        previousReviewMark: null,
+        newReviewMark: "MODIFY",
+      },
+      {
+        target: ReviewEventTargetSchema.parse({ type: "file", id: "file-1" }),
+        previousReviewMark: "MODIFY",
+        newReviewMark: null,
+      },
     ]);
   });
 
@@ -169,8 +178,10 @@ describe("review write store", () => {
     ]);
     const [event] = await connection.db.select().from(reviewEvents);
     expect(JSON.parse(event?.payloadJson ?? "{}")).toEqual({
+      target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
+      commitId: "commit-1",
       previousConcernAreas: ["tool-affordances", "permission-defaults"],
-      concernAreas: ["hidden-context", "message-roles"],
+      newConcernAreas: ["hidden-context", "message-roles"],
     });
   });
 

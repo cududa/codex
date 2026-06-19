@@ -5,6 +5,7 @@ import {
   IngestReviewVersionResponseSchema,
   ReviewBootstrapResponseSchema,
   ReviewCommitReadSchema,
+  ReviewEventTargetSchema,
   ReviewFileReadSchema,
   ReviewMarkSchema,
   SetCommitConcernAreasRequestSchema,
@@ -83,6 +84,21 @@ describe("review contracts", () => {
     ]);
     expect(() => ReviewMarkSchema.parse("INVALID_REVIEW_MARK")).toThrow();
     expect(() => ReviewMarkSchema.parse("DONE")).toThrow();
+  });
+
+  it("validates review event payload targets", () => {
+    expect(ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" })).toEqual({
+      type: "commit",
+      id: "commit-1",
+    });
+    expect(ReviewEventTargetSchema.parse({ type: "diffBlock", id: "diff-1" })).toEqual({
+      type: "diffBlock",
+      id: "diff-1",
+    });
+    expect(() => ReviewEventTargetSchema.parse({ type: "comment", id: "comment-1" })).toThrow();
+    expect(() =>
+      ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1", commitId: "commit-1" }),
+    ).toThrow();
   });
 
   it("validates deterministic ingest command contracts", () => {

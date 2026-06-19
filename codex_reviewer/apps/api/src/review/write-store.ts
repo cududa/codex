@@ -1,5 +1,6 @@
 import {
   ConcernAreaSelectionSchema,
+  ReviewEventTargetSchema,
   type ActorRef,
   type ConcernAreaSelection,
   type ExplicitFileReviewMark,
@@ -67,8 +68,9 @@ export function createReviewWriteStore(db: ReviewDatabase, readStore: ReviewRead
           kind: "review_mark_changed",
           summary: `Commit review mark changed from ${commit.reviewMark} to ${reviewMark}.`,
           payloadJson: JSON.stringify({
+            target: ReviewEventTargetSchema.parse({ type: "commit", id: commit.id }),
             previousReviewMark: commit.reviewMark,
-            reviewMark,
+            newReviewMark: reviewMark,
           }),
           createdAt: updatedAt,
         });
@@ -105,8 +107,9 @@ export function createReviewWriteStore(db: ReviewDatabase, readStore: ReviewRead
           kind: "review_mark_changed",
           summary: `File review mark changed from ${file.reviewMark ?? "null"} to ${reviewMark ?? "null"}.`,
           payloadJson: JSON.stringify({
+            target: ReviewEventTargetSchema.parse({ type: "file", id: file.id }),
             previousReviewMark: file.reviewMark,
-            reviewMark,
+            newReviewMark: reviewMark,
           }),
           createdAt: updatedAt,
         });
@@ -155,8 +158,10 @@ export function createReviewWriteStore(db: ReviewDatabase, readStore: ReviewRead
           kind: "concern_areas_changed",
           summary: "Commit concern areas changed.",
           payloadJson: JSON.stringify({
+            target: ReviewEventTargetSchema.parse({ type: "commit", id: commit.id }),
+            commitId: commit.id,
             previousConcernAreas,
-            concernAreas: parsedConcernAreas,
+            newConcernAreas: parsedConcernAreas,
           }),
           createdAt: updatedAt,
         });

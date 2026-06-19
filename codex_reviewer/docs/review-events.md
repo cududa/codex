@@ -38,6 +38,7 @@ Recorded when ordered commit concern areas change.
 
 Minimum payload:
 
+- `target`
 - `commitId`
 - `previousConcernAreas`
 - `newConcernAreas`
