@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AgentActorRefSchema } from "./actors.js";
 import { ConcernAreaSelectionSchema } from "./concern-areas.js";
 import { ExplicitFileReviewMarkSchema, ReviewMarkSchema } from "./review-marks.js";
 import {
@@ -48,6 +49,33 @@ export const DiffBlockReadSchema = z
   })
   .describe("One anchorable diff block inside a reviewed file.");
 
+export const CommitAgentReviewReadSchema = z
+  .object({
+    id: IdSchema.describe("Agent review evidence row identifier."),
+    commitId: IdSchema.describe("Reviewed commit identifier."),
+    reviewedMark: ReviewMarkSchema.describe("Review mark the agent believes is correct."),
+    reviewedConcernAreas: ConcernAreaSelectionSchema.describe(
+      "Ordered commit concern areas the agent believes are correct.",
+    ),
+    notesMarkdown: MarkdownStringSchema.nullable().describe("Optional agent-authored review notes."),
+    reviewer: AgentActorRefSchema.describe("Agent that recorded the review evidence."),
+    createdAt: IsoDateTimeSchema.describe("When the agent review evidence was recorded."),
+  })
+  .strict()
+  .describe("Agent-authored evidence attached to a reviewed commit.");
+
+export const FileAgentReviewReadSchema = z
+  .object({
+    id: IdSchema.describe("Agent review evidence row identifier."),
+    fileId: IdSchema.describe("Reviewed file identifier."),
+    reviewedMark: ReviewMarkSchema.describe("Review mark the agent believes is correct."),
+    notesMarkdown: MarkdownStringSchema.nullable().describe("Optional agent-authored review notes."),
+    reviewer: AgentActorRefSchema.describe("Agent that recorded the review evidence."),
+    createdAt: IsoDateTimeSchema.describe("When the agent review evidence was recorded."),
+  })
+  .strict()
+  .describe("Agent-authored evidence attached to a reviewed file.");
+
 export const ReviewFileReadSchema = z
   .object({
     id: IdSchema.describe("Reviewed file identifier."),
@@ -59,6 +87,7 @@ export const ReviewFileReadSchema = z
     reviewMark: ExplicitFileReviewMarkSchema.describe("Explicit file-level review mark, or null."),
     createdAt: IsoDateTimeSchema.describe("When the file row was created."),
     updatedAt: IsoDateTimeSchema.nullable().describe("When file review state last changed, or null."),
+    agentReviews: z.array(FileAgentReviewReadSchema).describe("Agent-authored evidence for this file."),
     diffBlocks: z.array(DiffBlockReadSchema).describe("Diff blocks owned by this file."),
   })
   .strict()
@@ -78,6 +107,7 @@ export const ReviewCommitReadSchema = z
     concernAreas: ConcernAreaSelectionSchema.describe("Ordered commit-level concern areas."),
     createdAt: IsoDateTimeSchema.describe("When the commit row was created."),
     updatedAt: IsoDateTimeSchema.nullable().describe("When commit review state last changed, or null."),
+    agentReviews: z.array(CommitAgentReviewReadSchema).describe("Agent-authored evidence for this commit."),
     files: z.array(ReviewFileReadSchema).describe("Files changed by this commit."),
   })
   .strict()
@@ -102,6 +132,8 @@ export const ReviewVersionReadSchema = z
 
 export type ChangeKind = z.infer<typeof ChangeKindSchema>;
 export type DiffBlockRead = z.infer<typeof DiffBlockReadSchema>;
+export type CommitAgentReviewRead = z.infer<typeof CommitAgentReviewReadSchema>;
+export type FileAgentReviewRead = z.infer<typeof FileAgentReviewReadSchema>;
 export type ReviewFileRead = z.infer<typeof ReviewFileReadSchema>;
 export type ReviewCommitRead = z.infer<typeof ReviewCommitReadSchema>;
 export type ReviewVersionRead = z.infer<typeof ReviewVersionReadSchema>;

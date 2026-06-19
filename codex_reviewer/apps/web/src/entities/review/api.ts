@@ -2,18 +2,28 @@ import {
   ReviewBootstrapResponseSchema,
   ReviewMarkWriteResponseSchema,
   ReviewVersionsResponseSchema,
+  RecordAgentReviewResponseSchema,
+  RecordCommitAgentReviewRequestSchema,
+  RecordFileAgentReviewRequestSchema,
   SetCommitConcernAreasRequestSchema,
   SetCommitReviewMarkRequestSchema,
   SetFileReviewMarkRequestSchema,
+  AgentActorRefSchema,
   ActorRefSchema,
 } from "@prompt-reviews/contracts";
 import { requestJson } from "@/shared/api/http";
-import type { ActorRef, ConcernAreaSlug, ExplicitFileReviewMark, ReviewMark } from "./types";
+import type { ActorRef, AgentActorRef, ConcernAreaSlug, ExplicitFileReviewMark, ReviewMark } from "./types";
 
 export const localHumanActor: ActorRef = ActorRefSchema.parse({
   type: "human",
   id: "local-human",
   displayName: "Local Human",
+});
+
+export const localAgentActor: AgentActorRef = AgentActorRefSchema.parse({
+  type: "agent",
+  id: "local-agent",
+  displayName: "Local Agent",
 });
 
 export function getReviewBootstrap() {
@@ -72,6 +82,50 @@ export function setCommitConcernAreas(input: {
     `/api/review/commits/${encodeURIComponent(input.commitId)}/concern-areas`,
     {
       method: "PUT",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function recordCommitAgentReview(input: {
+  commitId: string;
+  reviewedMark: ReviewMark;
+  reviewedConcernAreas: ConcernAreaSlug[];
+  notesMarkdown: string | null;
+  actor?: AgentActorRef;
+}) {
+  const payload = RecordCommitAgentReviewRequestSchema.parse({
+    actor: input.actor ?? localAgentActor,
+    reviewedMark: input.reviewedMark,
+    reviewedConcernAreas: input.reviewedConcernAreas,
+    notesMarkdown: input.notesMarkdown,
+  });
+  return requestJson(
+    RecordAgentReviewResponseSchema,
+    `/api/review/commits/${encodeURIComponent(input.commitId)}/agent-reviews`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function recordFileAgentReview(input: {
+  fileId: string;
+  reviewedMark: ReviewMark;
+  notesMarkdown: string | null;
+  actor?: AgentActorRef;
+}) {
+  const payload = RecordFileAgentReviewRequestSchema.parse({
+    actor: input.actor ?? localAgentActor,
+    reviewedMark: input.reviewedMark,
+    notesMarkdown: input.notesMarkdown,
+  });
+  return requestJson(
+    RecordAgentReviewResponseSchema,
+    `/api/review/files/${encodeURIComponent(input.fileId)}/agent-reviews`,
+    {
+      method: "POST",
       body: JSON.stringify(payload),
     },
   );

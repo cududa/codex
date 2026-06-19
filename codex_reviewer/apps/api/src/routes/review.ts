@@ -2,6 +2,9 @@ import {
   ConcernAreasResponseSchema,
   IngestReviewVersionRequestSchema,
   IngestReviewVersionResponseSchema,
+  RecordAgentReviewResponseSchema,
+  RecordCommitAgentReviewRequestSchema,
+  RecordFileAgentReviewRequestSchema,
   ReviewBootstrapResponseSchema,
   ReviewMarksResponseSchema,
   ReviewMarkWriteResponseSchema,
@@ -119,6 +122,45 @@ export function createReviewRoutes() {
         actor: payload.actor,
       });
       return c.json(ReviewMarkWriteResponseSchema.parse({ version }));
+    },
+  );
+
+  routes.post(
+    "/commits/:commitId/agent-reviews",
+    zValidator("json", RecordCommitAgentReviewRequestSchema, (result) => {
+      if (!result.success) {
+        throw result.error;
+      }
+    }),
+    async (c) => {
+      const payload = c.req.valid("json");
+      const version = await c.var.context.agentReviewStore.recordCommitAgentReview({
+        commitId: c.req.param("commitId"),
+        actor: payload.actor,
+        reviewedMark: payload.reviewedMark,
+        reviewedConcernAreas: payload.reviewedConcernAreas,
+        notesMarkdown: payload.notesMarkdown,
+      });
+      return c.json(RecordAgentReviewResponseSchema.parse({ version }));
+    },
+  );
+
+  routes.post(
+    "/files/:fileId/agent-reviews",
+    zValidator("json", RecordFileAgentReviewRequestSchema, (result) => {
+      if (!result.success) {
+        throw result.error;
+      }
+    }),
+    async (c) => {
+      const payload = c.req.valid("json");
+      const version = await c.var.context.agentReviewStore.recordFileAgentReview({
+        fileId: c.req.param("fileId"),
+        actor: payload.actor,
+        reviewedMark: payload.reviewedMark,
+        notesMarkdown: payload.notesMarkdown,
+      });
+      return c.json(RecordAgentReviewResponseSchema.parse({ version }));
     },
   );
 

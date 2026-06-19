@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ActorRefSchema } from "./actors.js";
+import { ActorRefSchema, AgentActorRefSchema } from "./actors.js";
 import { ConcernAreaSchema, ConcernAreaSelectionSchema } from "./concern-areas.js";
 import {
   ExplicitFileReviewMarkSchema,
@@ -7,7 +7,7 @@ import {
   ReviewMarkSchema,
 } from "./review-marks.js";
 import { ReviewVersionReadSchema } from "./reviewables.js";
-import { NonEmptyStringSchema } from "../shared/primitives.js";
+import { MarkdownStringSchema, NonEmptyStringSchema } from "../shared/primitives.js";
 
 export const ConcernAreasResponseSchema = z
   .object({
@@ -58,6 +58,13 @@ export const ReviewMarkWriteResponseSchema = z
   .strict()
   .describe("Response containing the owning review version after a review mark or concern-area write.");
 
+export const RecordAgentReviewResponseSchema = z
+  .object({
+    version: ReviewVersionReadSchema.describe("Review version after recording agent review evidence."),
+  })
+  .strict()
+  .describe("Response containing the owning review version after recording agent review evidence.");
+
 export const IngestReviewVersionRequestSchema = z
   .object({
     repositoryId: NonEmptyStringSchema.describe("Stable repository identity for this review version."),
@@ -104,14 +111,38 @@ export const SetCommitConcernAreasRequestSchema = z
   .strict()
   .describe("Request to replace the ordered concern areas for a commit.");
 
+export const RecordCommitAgentReviewRequestSchema = z
+  .object({
+    actor: AgentActorRefSchema.describe("Agent recording review evidence."),
+    reviewedMark: ReviewMarkSchema.describe("Review mark the agent believes is correct."),
+    reviewedConcernAreas: ConcernAreaSelectionSchema.describe(
+      "Ordered commit concern areas the agent believes are correct.",
+    ),
+    notesMarkdown: MarkdownStringSchema.nullable().describe("Optional agent-authored review notes."),
+  })
+  .strict()
+  .describe("Request to record agent review evidence for a commit.");
+
+export const RecordFileAgentReviewRequestSchema = z
+  .object({
+    actor: AgentActorRefSchema.describe("Agent recording review evidence."),
+    reviewedMark: ReviewMarkSchema.describe("Review mark the agent believes is correct."),
+    notesMarkdown: MarkdownStringSchema.nullable().describe("Optional agent-authored review notes."),
+  })
+  .strict()
+  .describe("Request to record agent review evidence for a file.");
+
 export type ConcernAreasResponse = z.infer<typeof ConcernAreasResponseSchema>;
 export type ReviewMarksResponse = z.infer<typeof ReviewMarksResponseSchema>;
 export type ReviewBootstrapResponse = z.infer<typeof ReviewBootstrapResponseSchema>;
 export type ReviewVersionsResponse = z.infer<typeof ReviewVersionsResponseSchema>;
 export type ReviewVersionResponse = z.infer<typeof ReviewVersionResponseSchema>;
 export type ReviewMarkWriteResponse = z.infer<typeof ReviewMarkWriteResponseSchema>;
+export type RecordAgentReviewResponse = z.infer<typeof RecordAgentReviewResponseSchema>;
 export type IngestReviewVersionRequest = z.infer<typeof IngestReviewVersionRequestSchema>;
 export type IngestReviewVersionResponse = z.infer<typeof IngestReviewVersionResponseSchema>;
 export type SetCommitReviewMarkRequest = z.infer<typeof SetCommitReviewMarkRequestSchema>;
 export type SetFileReviewMarkRequest = z.infer<typeof SetFileReviewMarkRequestSchema>;
 export type SetCommitConcernAreasRequest = z.infer<typeof SetCommitConcernAreasRequestSchema>;
+export type RecordCommitAgentReviewRequest = z.infer<typeof RecordCommitAgentReviewRequestSchema>;
+export type RecordFileAgentReviewRequest = z.infer<typeof RecordFileAgentReviewRequestSchema>;

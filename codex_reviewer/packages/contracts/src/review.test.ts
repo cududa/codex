@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  AgentReviewRecordedEventPayloadSchema,
   ConcernAreaSelectionSchema,
   ConcernAreasChangedEventPayloadSchema,
   IngestReviewVersionRequestSchema,
   IngestReviewVersionResponseSchema,
+  RecordAgentReviewResponseSchema,
+  RecordCommitAgentReviewRequestSchema,
+  RecordFileAgentReviewRequestSchema,
   ReviewBootstrapResponseSchema,
   ReviewCommitReadSchema,
   ReviewEventTargetSchema,
@@ -143,6 +147,30 @@ describe("review contracts", () => {
       previousConcernAreas: ["tool-affordances"],
       newConcernAreas: ["hidden-context", "message-roles"],
     });
+    expect(
+      AgentReviewRecordedEventPayloadSchema.parse({
+        agentReviewId: "agent-review-1",
+        target: { type: "commit", id: "commit-1" },
+        reviewedMark: "MODIFY",
+        reviewedConcernAreas: ["tool-affordances", "hidden-context"],
+      }),
+    ).toEqual({
+      agentReviewId: "agent-review-1",
+      target: { type: "commit", id: "commit-1" },
+      reviewedMark: "MODIFY",
+      reviewedConcernAreas: ["tool-affordances", "hidden-context"],
+    });
+    expect(
+      AgentReviewRecordedEventPayloadSchema.parse({
+        agentReviewId: "agent-review-2",
+        target: { type: "file", id: "file-1" },
+        reviewedMark: "PASS",
+      }),
+    ).toEqual({
+      agentReviewId: "agent-review-2",
+      target: { type: "file", id: "file-1" },
+      reviewedMark: "PASS",
+    });
 
     expect(() =>
       ReviewMarkChangedEventPayloadSchema.parse({
@@ -177,6 +205,22 @@ describe("review contracts", () => {
         commitId: "commit-2",
         previousConcernAreas: ["tool-affordances"],
         newConcernAreas: ["hidden-context"],
+      }),
+    ).toThrow();
+    expect(() =>
+      AgentReviewRecordedEventPayloadSchema.parse({
+        agentReviewId: "agent-review-1",
+        target: { type: "file", id: "file-1" },
+        reviewedMark: "PASS",
+        reviewedConcernAreas: ["tool-affordances"],
+      }),
+    ).toThrow();
+    expect(() =>
+      AgentReviewRecordedEventPayloadSchema.parse({
+        agentReviewId: "agent-review-1",
+        target: { type: "commit", id: "commit-1" },
+        reviewedMark: "PASS",
+        concernAreas: ["tool-affordances"],
       }),
     ).toThrow();
   });
@@ -268,6 +312,76 @@ describe("review contracts", () => {
     ).toThrow();
   });
 
+  it("requires agent actors for agent review evidence writes", () => {
+    const agent = { type: "agent", id: "agent-1", displayName: "Codex" };
+    const human = { type: "human", id: "human-1", displayName: "Cullen" };
+
+    expect(
+      RecordCommitAgentReviewRequestSchema.parse({
+        actor: agent,
+        reviewedMark: "MODIFY",
+        reviewedConcernAreas: ["tool-affordances", "hidden-context"],
+        notesMarkdown: "The current mark matches the diff.",
+      }),
+    ).toEqual({
+      actor: agent,
+      reviewedMark: "MODIFY",
+      reviewedConcernAreas: ["tool-affordances", "hidden-context"],
+      notesMarkdown: "The current mark matches the diff.",
+    });
+    expect(
+      RecordFileAgentReviewRequestSchema.parse({
+        actor: agent,
+        reviewedMark: "PASS",
+        notesMarkdown: null,
+      }),
+    ).toEqual({
+      actor: agent,
+      reviewedMark: "PASS",
+      notesMarkdown: null,
+    });
+
+    expect(() =>
+      RecordCommitAgentReviewRequestSchema.parse({
+        actor: human,
+        reviewedMark: "PASS",
+        reviewedConcernAreas: [],
+        notesMarkdown: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      RecordFileAgentReviewRequestSchema.parse({
+        actor: human,
+        reviewedMark: "PASS",
+        notesMarkdown: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      RecordFileAgentReviewRequestSchema.parse({
+        actor: agent,
+        reviewedMark: "PASS",
+        reviewedConcernAreas: ["tool-affordances"],
+        notesMarkdown: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      RecordCommitAgentReviewRequestSchema.parse({
+        actor: agent,
+        reviewedMark: "PASS",
+        reviewedConcernAreas: ["tool-affordances", "tool-affordances"],
+        notesMarkdown: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      RecordCommitAgentReviewRequestSchema.parse({
+        actor: agent,
+        reviewedMark: "PASS",
+        reviewedConcernAreas: [],
+        notesMarkdown: "",
+      }),
+    ).toThrow();
+  });
+
   it("models commit concern areas only at commit level", () => {
     expect(
       ReviewCommitReadSchema.parse({
@@ -283,6 +397,17 @@ describe("review contracts", () => {
         concernAreas: ["tool-affordances"],
         createdAt: now,
         updatedAt: null,
+        agentReviews: [
+          {
+            id: "agent-review-1",
+            commitId: "commit-1",
+            reviewedMark: "MODIFY",
+            reviewedConcernAreas: ["tool-affordances"],
+            notesMarkdown: "Agent reviewed the commit.",
+            reviewer: { type: "agent", id: "agent-1", displayName: "Codex" },
+            createdAt: now,
+          },
+        ],
         files: [],
       }),
     ).toMatchObject({
@@ -302,6 +427,7 @@ describe("review contracts", () => {
         concernAreas: ["tool-affordances"],
         createdAt: now,
         updatedAt: null,
+        agentReviews: [],
         diffBlocks: [],
       }),
     ).toThrow();
@@ -336,6 +462,17 @@ describe("review contracts", () => {
                 concernAreas: ["tool-affordances"],
                 createdAt: now,
                 updatedAt: null,
+                agentReviews: [
+                  {
+                    id: "agent-review-1",
+                    commitId: "commit-1",
+                    reviewedMark: "MODIFY",
+                    reviewedConcernAreas: ["tool-affordances"],
+                    notesMarkdown: "Agent reviewed the commit.",
+                    reviewer: { type: "agent", id: "agent-1", displayName: "Codex" },
+                    createdAt: now,
+                  },
+                ],
                 files: [
                   {
                     id: "file-1",
@@ -347,6 +484,16 @@ describe("review contracts", () => {
                     reviewMark: null,
                     createdAt: now,
                     updatedAt: null,
+                    agentReviews: [
+                      {
+                        id: "agent-review-2",
+                        fileId: "file-1",
+                        reviewedMark: "PASS",
+                        notesMarkdown: null,
+                        reviewer: { type: "agent", id: "agent-1", displayName: "Codex" },
+                        createdAt: now,
+                      },
+                    ],
                     diffBlocks: [
                       {
                         id: "diff-1",
@@ -399,6 +546,28 @@ describe("review contracts", () => {
   it("validates mark and concern writes with a specific response contract", () => {
     expect(
       ReviewMarkWriteResponseSchema.parse({
+        version: {
+          id: "version-1",
+          label: "Upstream review",
+          repositoryId: "openai/codex",
+          baseRef: "local-main",
+          targetRef: "upstream/main",
+          baseSha: "1234567",
+          targetSha: "abcdef1",
+          createdAt: now,
+          updatedAt: null,
+          commitCount: 0,
+          commits: [],
+        },
+      }),
+    ).toMatchObject({
+      version: { id: "version-1" },
+    });
+  });
+
+  it("validates agent review evidence responses without review-state mutation naming", () => {
+    expect(
+      RecordAgentReviewResponseSchema.parse({
         version: {
           id: "version-1",
           label: "Upstream review",

@@ -1,11 +1,18 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ReviewEventTargetSchema, ReviewMarkChangedEventPayloadSchema } from "@prompt-reviews/contracts";
+import {
+  AgentReviewRecordedEventPayloadSchema,
+  ReviewEventTargetSchema,
+  ReviewMarkChangedEventPayloadSchema,
+} from "@prompt-reviews/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 import { createDatabaseConnection, type ReviewDatabaseConnection } from "./client.js";
+import { databaseMigrations } from "./migrations/index.js";
 import { migrateDatabase } from "./migrate.js";
 import {
+  agentReviewConcernAreas,
+  agentReviews,
   commitConcernAreas,
   diffBlocks,
   reviewCommits,
@@ -33,6 +40,8 @@ describe("review persistence schema", () => {
     );
 
     expect(tables.rows.map((row) => row.name)).toEqual([
+      "agent_review_concern_areas",
+      "agent_reviews",
       "commit_concern_areas",
       "diff_blocks",
       "review_commits",
@@ -145,7 +154,15 @@ describe("review persistence schema", () => {
           VALUES
             (?, ?, ?, ?, ?, ?, ?)
         `,
-        args: ["version-missing-base", "Upstream review", "openai/codex", "local-main", "upstream/main", "abcdef1", now],
+        args: [
+          "version-missing-base",
+          "Upstream review",
+          "openai/codex",
+          "local-main",
+          "upstream/main",
+          "abcdef1",
+          now,
+        ],
       }),
     ).rejects.toThrow();
 
@@ -285,6 +302,275 @@ describe("review persistence schema", () => {
         ),
         createdAt: now,
       },
+    ]);
+  });
+
+  it("stores agent review evidence rows with ordered commit concern areas", async () => {
+    const connection = await migratedConnection();
+
+    await insertCoreSlice(connection);
+    await connection.db.insert(agentReviews).values({
+      id: "agent-review-1",
+      commitId: "commit-1",
+      fileId: null,
+      reviewedMark: "MODIFY",
+      reviewerActorType: "agent",
+      reviewerActorId: "agent-1",
+      reviewerActorDisplayName: "Codex",
+      notesMarkdown: "The current commit mark is correct.",
+      createdAt: now,
+    });
+    await connection.db.insert(agentReviewConcernAreas).values([
+      {
+        agentReviewId: "agent-review-1",
+        commitId: "commit-1",
+        concernAreaSlug: "hidden-context",
+        position: 0,
+      },
+      {
+        agentReviewId: "agent-review-1",
+        commitId: "commit-1",
+        concernAreaSlug: "tool-affordances",
+        position: 1,
+      },
+    ]);
+
+    await expect(connection.db.select().from(agentReviews)).resolves.toEqual([
+      {
+        id: "agent-review-1",
+        commitId: "commit-1",
+        fileId: null,
+        reviewedMark: "MODIFY",
+        reviewerActorType: "agent",
+        reviewerActorId: "agent-1",
+        reviewerActorDisplayName: "Codex",
+        notesMarkdown: "The current commit mark is correct.",
+        createdAt: now,
+      },
+    ]);
+    await expect(connection.db.select().from(agentReviewConcernAreas)).resolves.toEqual([
+      {
+        agentReviewId: "agent-review-1",
+        commitId: "commit-1",
+        concernAreaSlug: "hidden-context",
+        position: 0,
+      },
+      {
+        agentReviewId: "agent-review-1",
+        commitId: "commit-1",
+        concernAreaSlug: "tool-affordances",
+        position: 1,
+      },
+    ]);
+  });
+
+  it("enforces agent review target and concern-area invariants in the database", async () => {
+    const connection = await migratedConnection();
+
+    await insertCoreSlice(connection);
+    await expect(
+      connection.db.insert(agentReviews).values({
+        id: "agent-review-targetless",
+        commitId: null,
+        fileId: null,
+        reviewedMark: "PASS",
+        reviewerActorType: "agent",
+        reviewerActorId: "agent-1",
+        createdAt: now,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      connection.db.insert(agentReviews).values({
+        id: "agent-review-two-targets",
+        commitId: "commit-1",
+        fileId: "file-1",
+        reviewedMark: "PASS",
+        reviewerActorType: "agent",
+        reviewerActorId: "agent-1",
+        createdAt: now,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      connection.client.execute({
+        sql: `
+          INSERT INTO agent_reviews
+            (id, commit_id, file_id, reviewed_mark, reviewer_actor_type, reviewer_actor_id, created_at)
+          VALUES
+            (?, ?, ?, ?, ?, ?, ?)
+        `,
+        args: ["agent-review-human", "commit-1", null, "PASS", "human", "human-1", now],
+      }),
+    ).rejects.toThrow();
+    await expect(
+      connection.client.execute({
+        sql: `
+          INSERT INTO agent_reviews
+            (id, commit_id, file_id, reviewed_mark, reviewer_actor_type, reviewer_actor_id, created_at)
+          VALUES
+            (?, ?, ?, ?, ?, ?, ?)
+        `,
+        args: ["agent-review-bad-mark", "commit-1", null, "DONE", "agent", "agent-1", now],
+      }),
+    ).rejects.toThrow();
+
+    await connection.db.insert(agentReviews).values({
+      id: "agent-review-file",
+      commitId: null,
+      fileId: "file-1",
+      reviewedMark: "PASS",
+      reviewerActorType: "agent",
+      reviewerActorId: "agent-1",
+      createdAt: now,
+    });
+    await expect(
+      connection.db.insert(agentReviewConcernAreas).values({
+        agentReviewId: "agent-review-file",
+        commitId: "commit-1",
+        concernAreaSlug: "hidden-context",
+        position: 0,
+      }),
+    ).rejects.toThrow();
+
+    await connection.db.insert(agentReviews).values({
+      id: "agent-review-commit",
+      commitId: "commit-1",
+      fileId: null,
+      reviewedMark: "PASS",
+      reviewerActorType: "agent",
+      reviewerActorId: "agent-1",
+      createdAt: now,
+    });
+    await expect(
+      connection.db.insert(agentReviewConcernAreas).values({
+        agentReviewId: "agent-review-commit",
+        commitId: "missing",
+        concernAreaSlug: "hidden-context",
+        position: 0,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      connection.client.execute({
+        sql: `
+          INSERT INTO agent_review_concern_areas
+            (agent_review_id, commit_id, concern_area_slug, position)
+          VALUES
+            (?, ?, ?, ?)
+        `,
+        args: ["agent-review-commit", "commit-1", "not-canonical", 0],
+      }),
+    ).rejects.toThrow();
+    await expect(
+      connection.db.insert(agentReviewConcernAreas).values({
+        agentReviewId: "agent-review-commit",
+        commitId: "commit-1",
+        concernAreaSlug: "hidden-context",
+        position: 3,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("allows agent review audit events through migration constraints", async () => {
+    const connection = await migratedConnection();
+
+    await connection.db.insert(reviewEvents).values({
+      id: "event-1",
+      scopeType: "commit",
+      scopeId: "commit-1",
+      actorType: "agent",
+      actorId: "agent-1",
+      actorDisplayName: "Codex",
+      kind: "agent_review_recorded",
+      summary: "Agent review evidence recorded for commit.",
+      payloadJson: JSON.stringify(
+        AgentReviewRecordedEventPayloadSchema.parse({
+          agentReviewId: "agent-review-1",
+          target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
+          reviewedMark: "MODIFY",
+          reviewedConcernAreas: ["hidden-context"],
+        }),
+      ),
+      createdAt: now,
+    });
+
+    await expect(connection.db.select().from(reviewEvents)).resolves.toMatchObject([
+      {
+        kind: "agent_review_recorded",
+        actorType: "agent",
+      },
+    ]);
+  });
+
+  it("upgrades previously applied review event constraints for agent review history", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "codex-reviewer-"));
+    tempDirectories.push(directory);
+    const connection = createDatabaseConnection(`file:${join(directory, "review.db")}`);
+
+    await migrateDatabase(connection.client, databaseMigrations.slice(0, 1));
+    await connection.client.execute(`
+      CREATE TABLE review_events (
+        id TEXT PRIMARY KEY NOT NULL,
+        scope_type TEXT NOT NULL CHECK (scope_type IN ('version', 'commit', 'file', 'diffBlock')),
+        scope_id TEXT NOT NULL,
+        actor_type TEXT NOT NULL CHECK (actor_type IN ('human', 'agent', 'system')),
+        actor_id TEXT NOT NULL,
+        actor_display_name TEXT,
+        kind TEXT NOT NULL CHECK (kind IN ('review_mark_changed', 'concern_areas_changed')),
+        summary TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    `);
+    await connection.client.execute(
+      "CREATE INDEX review_events_scope_idx ON review_events(scope_type, scope_id)",
+    );
+    await connection.client.execute("CREATE INDEX review_events_created_at_idx ON review_events(created_at)");
+    await connection.client.execute({
+      sql: "INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)",
+      args: ["0002_review_events", now],
+    });
+    await connection.db.insert(reviewEvents).values({
+      id: "event-1",
+      scopeType: "commit",
+      scopeId: "commit-1",
+      actorType: "human",
+      actorId: "human-1",
+      actorDisplayName: null,
+      kind: "review_mark_changed",
+      summary: "Commit review mark changed from FLAG to PASS.",
+      payloadJson: JSON.stringify(
+        ReviewMarkChangedEventPayloadSchema.parse({
+          target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
+          previousReviewMark: "FLAG",
+          newReviewMark: "PASS",
+        }),
+      ),
+      createdAt: now,
+    });
+
+    await migrateDatabase(connection.client);
+    await connection.db.insert(reviewEvents).values({
+      id: "event-2",
+      scopeType: "commit",
+      scopeId: "commit-1",
+      actorType: "agent",
+      actorId: "agent-1",
+      actorDisplayName: "Codex",
+      kind: "agent_review_recorded",
+      summary: "Agent review evidence recorded for commit.",
+      payloadJson: JSON.stringify(
+        AgentReviewRecordedEventPayloadSchema.parse({
+          agentReviewId: "agent-review-1",
+          target: ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1" }),
+          reviewedMark: "PASS",
+          reviewedConcernAreas: [],
+        }),
+      ),
+      createdAt: now,
+    });
+
+    await expect(connection.db.select().from(reviewEvents)).resolves.toMatchObject([
+      { id: "event-1", kind: "review_mark_changed" },
+      { id: "event-2", kind: "agent_review_recorded" },
     ]);
   });
 

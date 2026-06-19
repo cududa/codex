@@ -6,12 +6,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDatabaseConnection, type ReviewDatabaseConnection } from "../db/client.js";
 import { migrateDatabase } from "../db/migrate.js";
 import {
+  agentReviewConcernAreas,
+  agentReviews,
   commitConcernAreas,
   diffBlocks,
   reviewCommits,
   reviewFiles,
   reviewVersions,
 } from "../db/schema/index.js";
+import { createAgentReviewStore } from "../review/agent-review-store.js";
 import { createReviewIngestService, deterministicConcernMapVersion } from "../review/ingest-service.js";
 import type { GitRangeReader } from "../review/git-range-reader.js";
 import { createReviewReadStore } from "../review/read-store.js";
@@ -118,6 +121,7 @@ describe("createApiApp", () => {
               concernAreas: ["tool-affordances"],
               createdAt: now,
               updatedAt: null,
+              agentReviews: [],
               files: [
                 {
                   id: "file-1",
@@ -129,6 +133,7 @@ describe("createApiApp", () => {
                   reviewMark: null,
                   createdAt: now,
                   updatedAt: null,
+                  agentReviews: [],
                   diffBlocks: [
                     {
                       id: "diff-1",
@@ -292,6 +297,119 @@ describe("createApiApp", () => {
     });
   });
 
+  it("records commit and file agent review evidence through dedicated routes", async () => {
+    const { connection, dependencies } = await testRuntime();
+    await seedReviewVersion(connection);
+    const app = createApiApp(dependencies);
+
+    const commitResponse = await app.request("/api/review/commits/commit-1/agent-reviews", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "agent", id: "agent-1", displayName: "Codex" },
+        reviewedMark: "MODIFY",
+        reviewedConcernAreas: ["hidden-context", "message-roles"],
+        notesMarkdown: "The evidence challenges the current mark.",
+      }),
+    });
+    const fileResponse = await app.request("/api/review/files/file-1/agent-reviews", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "agent", id: "agent-1", displayName: "Codex" },
+        reviewedMark: "PASS",
+        notesMarkdown: null,
+      }),
+    });
+
+    expect(commitResponse.status).toBe(200);
+    expect(await commitResponse.json()).toMatchObject({
+      version: {
+        commits: [
+          {
+            id: "commit-1",
+            reviewMark: "FLAG",
+            concernAreas: ["tool-affordances"],
+            agentReviews: [
+              {
+                reviewedMark: "MODIFY",
+                reviewedConcernAreas: ["hidden-context", "message-roles"],
+                notesMarkdown: "The evidence challenges the current mark.",
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(fileResponse.status).toBe(200);
+    expect(await fileResponse.json()).toMatchObject({
+      version: {
+        commits: [
+          {
+            files: [
+              {
+                id: "file-1",
+                reviewMark: null,
+                agentReviews: [{ reviewedMark: "PASS", notesMarkdown: null }],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    await expect(connection.db.select().from(agentReviews)).resolves.toHaveLength(2);
+    await expect(connection.db.select().from(agentReviewConcernAreas)).resolves.toHaveLength(2);
+    await expect(connection.db.select().from(reviewCommits)).resolves.toMatchObject([
+      { id: "commit-1", reviewMark: "FLAG" },
+    ]);
+    await expect(connection.db.select().from(reviewFiles)).resolves.toMatchObject([
+      { id: "file-1", reviewMark: null },
+    ]);
+  });
+
+  it("rejects invalid agent review route payloads", async () => {
+    const { connection, dependencies } = await testRuntime();
+    await seedReviewVersion(connection);
+    const app = createApiApp(dependencies);
+
+    const humanActorResponse = await app.request("/api/review/commits/commit-1/agent-reviews", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "human", id: "human-1" },
+        reviewedMark: "PASS",
+        reviewedConcernAreas: [],
+        notesMarkdown: null,
+      }),
+    });
+    const fileConcernResponse = await app.request("/api/review/files/file-1/agent-reviews", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "agent", id: "agent-1" },
+        reviewedMark: "PASS",
+        reviewedConcernAreas: ["hidden-context"],
+        notesMarkdown: null,
+      }),
+    });
+    const missingResponse = await app.request("/api/review/commits/missing/agent-reviews", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        actor: { type: "agent", id: "agent-1" },
+        reviewedMark: "PASS",
+        reviewedConcernAreas: [],
+        notesMarkdown: null,
+      }),
+    });
+
+    expect(humanActorResponse.status).toBe(400);
+    expect(fileConcernResponse.status).toBe(400);
+    expect(missingResponse.status).toBe(404);
+    expect(await missingResponse.json()).toMatchObject({ error: { code: "not_found" } });
+    await expect(connection.db.select().from(agentReviews)).resolves.toEqual([]);
+  });
+
   it("rejects invalid write payloads with contract-shaped validation errors", async () => {
     const { connection, dependencies } = await testRuntime();
     await seedReviewVersion(connection);
@@ -392,6 +510,7 @@ async function testRuntime(options: { gitRangeReader?: GitRangeReader } = {}): P
         error: vi.fn(),
         info: vi.fn(),
       } as unknown as ApiDependencies["logger"],
+      agentReviewStore: createAgentReviewStore(connection.db, reviewReadStore),
       reviewIngestService: createReviewIngestService(connection.db, reviewReadStore, {
         gitRangeReader: options.gitRangeReader ?? fakeGitRangeReader(),
       }),

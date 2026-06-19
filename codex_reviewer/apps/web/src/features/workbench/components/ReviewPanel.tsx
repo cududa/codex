@@ -1,4 +1,4 @@
-import { CheckCircle2, ClipboardList, FileCode2, GitBranch } from "lucide-react";
+import { Bot, CheckCircle2, ClipboardList, FileCode2, GitBranch } from "lucide-react";
 import { maxSelectedConcernAreas } from "@prompt-reviews/contracts";
 import type {
   ConcernArea,
@@ -169,6 +169,57 @@ export function ReviewPanel({
               </label>
             </>
           )}
+        </Panel>
+
+        <Panel className="p-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+            <Bot className="size-4 text-slate-500" aria-hidden="true" />
+            Agent Reviews
+          </div>
+          <div className="mt-3 grid gap-2">
+            {commit === undefined && file === undefined ? (
+              <div className="text-sm text-slate-700">Select a commit or file</div>
+            ) : null}
+            {commit?.agentReviews.map((review) => (
+              <div className="rounded border border-slate-200 bg-slate-50 p-2" key={review.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-xs font-semibold text-slate-700">
+                    {review.reviewer.displayName ?? review.reviewer.id}
+                  </span>
+                  <ReviewMarkPill compact definitions={reviewMarks} mark={review.reviewedMark} />
+                </div>
+                <div className="mt-2 text-xs text-slate-500">
+                  {concernAreaSummary(review.reviewedConcernAreas, concernAreas)}
+                </div>
+                {review.notesMarkdown === null ? null : (
+                  <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-slate-700">
+                    {review.notesMarkdown}
+                  </p>
+                )}
+              </div>
+            ))}
+            {file?.agentReviews.map((review) => (
+              <div className="rounded border border-slate-200 bg-slate-50 p-2" key={review.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-xs font-semibold text-slate-700">
+                    {review.reviewer.displayName ?? review.reviewer.id}
+                  </span>
+                  <ReviewMarkPill compact definitions={reviewMarks} mark={review.reviewedMark} />
+                </div>
+                {review.notesMarkdown === null ? null : (
+                  <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-slate-700">
+                    {review.notesMarkdown}
+                  </p>
+                )}
+              </div>
+            ))}
+            {commit !== undefined && file === undefined && commit.agentReviews.length === 0 ? (
+              <div className="text-sm text-slate-700">No commit agent reviews</div>
+            ) : null}
+            {file !== undefined && file.agentReviews.length === 0 ? (
+              <div className="text-sm text-slate-700">No file agent reviews</div>
+            ) : null}
+          </div>
         </Panel>
       </div>
     </aside>

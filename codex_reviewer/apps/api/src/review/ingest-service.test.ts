@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createDatabaseConnection, type ReviewDatabaseConnection } from "../db/client.js";
 import { migrateDatabase } from "../db/migrate.js";
 import {
+  agentReviewConcernAreas,
+  agentReviews,
   commitConcernAreas,
   diffBlocks,
   reviewCommits,
@@ -117,7 +119,9 @@ describe("review ingest service", () => {
       { sha: "3333333", position: 1, reviewMark: "PASS" },
     ]);
     const fileRows = await connection.db.select().from(reviewFiles);
-    expect(fileRows.map((row) => ({ path: row.path, position: row.position, reviewMark: row.reviewMark }))).toEqual(
+    expect(
+      fileRows.map((row) => ({ path: row.path, position: row.position, reviewMark: row.reviewMark })),
+    ).toEqual(
       expect.arrayContaining([
         { path: "codex-rs/core/src/prompt.rs", position: 0, reviewMark: null },
         { path: "codex-rs/core/src/sandbox.rs", position: 1, reviewMark: null },
@@ -202,7 +206,8 @@ describe("review ingest service", () => {
     );
     expect(tables.rows.map((row) => row.name)).not.toContain("detector_runs");
     expect(tables.rows.map((row) => row.name)).not.toContain("detector_evidence");
-    expect(tables.rows.map((row) => row.name)).not.toContain("agent_reviews");
+    await expect(connection.db.select().from(agentReviews)).resolves.toEqual([]);
+    await expect(connection.db.select().from(agentReviewConcernAreas)).resolves.toEqual([]);
   });
 
   it("rejects unsupported concern-map versions without partial rows", async () => {
@@ -271,12 +276,14 @@ function createStore(connection: ReviewDatabaseConnection, gitRangeReader: GitRa
 function fixtureGitRangeReader(): GitRangeReader {
   return {
     async resolveCommit(refOrSha) {
-      return {
-        "base-alias": baseSha,
-        "local-main": baseSha,
-        "target-alias": targetSha,
-        "upstream/main": targetSha,
-      }[refOrSha] ?? null;
+      return (
+        {
+          "base-alias": baseSha,
+          "local-main": baseSha,
+          "target-alias": targetSha,
+          "upstream/main": targetSha,
+        }[refOrSha] ?? null
+      );
     },
 
     async listCommits() {
@@ -284,7 +291,8 @@ function fixtureGitRangeReader(): GitRangeReader {
         {
           sha: "2222222",
           title: "Adjust prompt role hidden compaction goal tool sandbox behavior",
-          message: "Updates prompt text, message role boundaries, hidden context, goals, tools, and permissions.",
+          message:
+            "Updates prompt text, message role boundaries, hidden context, goals, tools, and permissions.",
           authorName: "OpenAI",
           committedAt: now,
           files: [

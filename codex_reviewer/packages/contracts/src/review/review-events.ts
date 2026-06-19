@@ -32,6 +32,20 @@ const ConcernAreasChangedTargetSchema = z
   })
   .strict();
 
+const CommitAgentReviewTargetSchema = z
+  .object({
+    type: z.literal("commit"),
+    id: IdSchema,
+  })
+  .strict();
+
+const FileAgentReviewTargetSchema = z
+  .object({
+    type: z.literal("file"),
+    id: IdSchema,
+  })
+  .strict();
+
 export const ReviewMarkChangedEventPayloadSchema = z
   .union([
     z
@@ -65,6 +79,29 @@ export const ConcernAreasChangedEventPayloadSchema = z
   })
   .describe("Payload for concern_areas_changed audit events.");
 
+export const AgentReviewRecordedEventPayloadSchema = z
+  .union([
+    z
+      .object({
+        agentReviewId: IdSchema.describe("Agent review evidence row identifier."),
+        target: CommitAgentReviewTargetSchema.describe("Commit reviewed by the agent."),
+        reviewedMark: ReviewMarkSchema.describe("Review mark the agent believes is correct."),
+        reviewedConcernAreas: ConcernAreaSelectionSchema.describe(
+          "Ordered commit concern areas the agent believes are correct.",
+        ),
+      })
+      .strict(),
+    z
+      .object({
+        agentReviewId: IdSchema.describe("Agent review evidence row identifier."),
+        target: FileAgentReviewTargetSchema.describe("File reviewed by the agent."),
+        reviewedMark: ReviewMarkSchema.describe("Review mark the agent believes is correct."),
+      })
+      .strict(),
+  ])
+  .describe("Payload for agent_review_recorded audit events.");
+
 export type ReviewEventTarget = z.infer<typeof ReviewEventTargetSchema>;
 export type ReviewMarkChangedEventPayload = z.infer<typeof ReviewMarkChangedEventPayloadSchema>;
 export type ConcernAreasChangedEventPayload = z.infer<typeof ConcernAreasChangedEventPayloadSchema>;
+export type AgentReviewRecordedEventPayload = z.infer<typeof AgentReviewRecordedEventPayloadSchema>;

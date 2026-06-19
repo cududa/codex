@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { setCommitConcernAreas, setCommitReviewMark, setFileReviewMark } from "./api";
+import {
+  recordCommitAgentReview,
+  recordFileAgentReview,
+  setCommitConcernAreas,
+  setCommitReviewMark,
+  setFileReviewMark,
+} from "./api";
 
 describe("review API writes", () => {
   afterEach(() => {
@@ -53,6 +59,48 @@ describe("review API writes", () => {
       headers: { "content-type": "application/json" },
     });
   });
+
+  it("calls the commit agent review evidence route with an agent actor", async () => {
+    const fetch = mockFetch();
+
+    await recordCommitAgentReview({
+      commitId: "commit-1",
+      reviewedMark: "MODIFY",
+      reviewedConcernAreas: ["tool-affordances", "hidden-context"],
+      notesMarkdown: "The mark should remain challenged.",
+    });
+
+    expect(fetch).toHaveBeenCalledWith("/api/review/commits/commit-1/agent-reviews", {
+      method: "POST",
+      body: JSON.stringify({
+        actor: { type: "agent", id: "local-agent", displayName: "Local Agent" },
+        reviewedMark: "MODIFY",
+        reviewedConcernAreas: ["tool-affordances", "hidden-context"],
+        notesMarkdown: "The mark should remain challenged.",
+      }),
+      headers: { "content-type": "application/json" },
+    });
+  });
+
+  it("calls the file agent review evidence route without concern areas", async () => {
+    const fetch = mockFetch();
+
+    await recordFileAgentReview({
+      fileId: "file-1",
+      reviewedMark: "PASS",
+      notesMarkdown: null,
+    });
+
+    expect(fetch).toHaveBeenCalledWith("/api/review/files/file-1/agent-reviews", {
+      method: "POST",
+      body: JSON.stringify({
+        actor: { type: "agent", id: "local-agent", displayName: "Local Agent" },
+        reviewedMark: "PASS",
+        notesMarkdown: null,
+      }),
+      headers: { "content-type": "application/json" },
+    });
+  });
 });
 
 function mockFetch() {
@@ -95,6 +143,7 @@ function validVersion() {
         concernAreas: ["tool-affordances"],
         createdAt: "2026-06-17T12:00:00.000Z",
         updatedAt: null,
+        agentReviews: [],
         files: [
           {
             id: "file-1",
@@ -106,6 +155,7 @@ function validVersion() {
             reviewMark: null,
             createdAt: "2026-06-17T12:00:00.000Z",
             updatedAt: null,
+            agentReviews: [],
             diffBlocks: [],
           },
         ],

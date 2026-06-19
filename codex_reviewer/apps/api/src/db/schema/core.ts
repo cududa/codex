@@ -1,8 +1,18 @@
 import type { ActorKind, ChangeKind, ConcernAreaSlug, ReviewMark } from "@prompt-reviews/contracts";
-import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export type ReviewEventScopeType = "version" | "commit" | "file" | "diffBlock";
-export type ReviewEventKind = "review_mark_changed" | "concern_areas_changed";
+export type ReviewEventKind = "review_mark_changed" | "concern_areas_changed" | "agent_review_recorded";
 
 export const reviewVersions = sqliteTable(
   "review_versions",
@@ -118,6 +128,65 @@ export const commitConcernAreas = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.commitId, table.concernAreaSlug] }),
     uniqueIndex("commit_concern_areas_position_unique").on(table.commitId, table.position),
+  ],
+);
+
+export const agentReviews = sqliteTable(
+  "agent_reviews",
+  {
+    id: text("id").primaryKey(),
+    commitId: text("commit_id").references(() => reviewCommits.id, { onDelete: "cascade" }),
+    fileId: text("file_id").references(() => reviewFiles.id, { onDelete: "cascade" }),
+    reviewedMark: text("reviewed_mark").$type<ReviewMark>().notNull(),
+    reviewerActorType: text("reviewer_actor_type").$type<"agent">().notNull(),
+    reviewerActorId: text("reviewer_actor_id").notNull(),
+    reviewerActorDisplayName: text("reviewer_actor_display_name"),
+    notesMarkdown: text("notes_markdown"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    check("agent_reviews_exactly_one_target", sql`(${table.commitId} IS NULL) <> (${table.fileId} IS NULL)`),
+    check("agent_reviews_reviewed_mark_check", sql`${table.reviewedMark} IN ('PASS', 'FLAG', 'MODIFY')`),
+    check("agent_reviews_reviewer_actor_type_check", sql`${table.reviewerActorType} = 'agent'`),
+    index("agent_reviews_commit_idx").on(table.commitId),
+    index("agent_reviews_file_idx").on(table.fileId),
+    index("agent_reviews_created_at_idx").on(table.createdAt),
+    uniqueIndex("agent_reviews_id_commit_unique").on(table.id, table.commitId),
+  ],
+);
+
+export const agentReviewConcernAreas = sqliteTable(
+  "agent_review_concern_areas",
+  {
+    agentReviewId: text("agent_review_id").notNull(),
+    commitId: text("commit_id")
+      .notNull()
+      .references(() => reviewCommits.id, { onDelete: "cascade" }),
+    concernAreaSlug: text("concern_area_slug").$type<ConcernAreaSlug>().notNull(),
+    position: integer("position").notNull(),
+  },
+  (table) => [
+    check(
+      "agent_review_concern_areas_slug_check",
+      sql`${table.concernAreaSlug} IN (
+        'harness-prompts',
+        'message-roles',
+        'hidden-context',
+        'goal-continuation',
+        'goal-behavior',
+        'context-compaction',
+        'tool-affordances',
+        'permission-defaults'
+      )`,
+    ),
+    check("agent_review_concern_areas_position_check", sql`${table.position} >= 0 AND ${table.position} < 3`),
+    primaryKey({ columns: [table.agentReviewId, table.concernAreaSlug] }),
+    uniqueIndex("agent_review_concern_areas_position_unique").on(table.agentReviewId, table.position),
+    foreignKey({
+      name: "agent_review_concern_areas_agent_review_commit_fk",
+      columns: [table.agentReviewId, table.commitId],
+      foreignColumns: [agentReviews.id, agentReviews.commitId],
+    }).onDelete("cascade"),
   ],
 );
 

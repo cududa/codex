@@ -6,7 +6,7 @@ export const reviewEventStatements = [
     actor_type TEXT NOT NULL CHECK (actor_type IN ('human', 'agent', 'system')),
     actor_id TEXT NOT NULL,
     actor_display_name TEXT,
-    kind TEXT NOT NULL CHECK (kind IN ('review_mark_changed', 'concern_areas_changed')),
+    kind TEXT NOT NULL CHECK (kind IN ('review_mark_changed', 'concern_areas_changed', 'agent_review_recorded')),
     summary TEXT NOT NULL,
     payload_json TEXT NOT NULL,
     created_at TEXT NOT NULL
