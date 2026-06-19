@@ -8,9 +8,12 @@ import {
   ReviewEventTargetSchema,
   ReviewFileReadSchema,
   ReviewMarkSchema,
+  AgentActorRefSchema,
+  HumanActorRefSchema,
   SetCommitConcernAreasRequestSchema,
   SetCommitReviewMarkRequestSchema,
   SetFileReviewMarkRequestSchema,
+  SystemActorRefSchema,
   ReviewVersionsResponseSchema,
   concernAreaSlugs,
   concernAreas,
@@ -99,6 +102,23 @@ describe("review contracts", () => {
     expect(() =>
       ReviewEventTargetSchema.parse({ type: "commit", id: "commit-1", commitId: "commit-1" }),
     ).toThrow();
+  });
+
+  it("validates exact actor subtype contracts", () => {
+    const human = { type: "human", id: "human-1", displayName: "Cullen" };
+    const agent = { type: "agent", id: "agent-1", displayName: "Codex" };
+    const system = { type: "system", id: "system-1", displayName: "Ingest" };
+
+    expect(HumanActorRefSchema.parse(human)).toEqual(human);
+    expect(AgentActorRefSchema.parse(agent)).toEqual(agent);
+    expect(SystemActorRefSchema.parse(system)).toEqual(system);
+
+    expect(() => HumanActorRefSchema.parse(agent)).toThrow();
+    expect(() => HumanActorRefSchema.parse(system)).toThrow();
+    expect(() => AgentActorRefSchema.parse(human)).toThrow();
+    expect(() => AgentActorRefSchema.parse(system)).toThrow();
+    expect(() => SystemActorRefSchema.parse(human)).toThrow();
+    expect(() => SystemActorRefSchema.parse(agent)).toThrow();
   });
 
   it("validates deterministic ingest command contracts", () => {

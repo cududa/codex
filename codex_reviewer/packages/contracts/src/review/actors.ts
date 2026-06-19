@@ -22,7 +22,12 @@ export const AgentActorRefSchema = ActorRefSchema.extend({
   type: z.literal("agent").describe("Agent actors may verify work but may not approve it."),
 }).describe("An agent actor reference.");
 
+export const SystemActorRefSchema = ActorRefSchema.extend({
+  type: z.literal("system").describe("System actors may run deterministic ingest or detector processes."),
+}).describe("A system actor reference.");
+
 export type ActorKind = z.infer<typeof ActorKindSchema>;
 export type ActorRef = z.infer<typeof ActorRefSchema>;
 export type HumanActorRef = z.infer<typeof HumanActorRefSchema>;
 export type AgentActorRef = z.infer<typeof AgentActorRefSchema>;
+export type SystemActorRef = z.infer<typeof SystemActorRefSchema>;
