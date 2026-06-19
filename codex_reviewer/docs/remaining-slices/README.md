@@ -12,10 +12,20 @@ schemas, service behavior, route coverage, read composition, minimal workbench
 consumption, and targeted tests. Do not rebuild old prototype surfaces beside
 the spine.
 
-Do not start a later slice until the current slice is real in code.
+Default implementation order is numeric. Do not skip ahead by accident.
+
+A human may intentionally reorder independent slices, but that override must be
+explicit. Reordering does not relax product boundaries, source cleanup, event
+contracts, actor contracts, database invariants, or test requirements.
+
+Dependency gates still apply even with an explicit reorder. For example, human
+approval must not ship before durable unresolved-comment counts exist, and the
+ledger must not ship before comments, local change refs, and human approvals
+are real in source and tests.
 
 Slice docs:
 
+- `00-slice-foundation-invariants.md`
 - `01-ingest-and-initial-review-state.md`
 - `02-agent-review-evidence.md`
 - `03-threaded-comments.md`

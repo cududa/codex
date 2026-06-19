@@ -135,10 +135,9 @@ Add contracts for:
 Detector write contracts must identify the detector/system source explicitly.
 They are not agent reviews and not human approvals.
 
-Add an exact system/detector actor contract for these writes, for example
-`SystemActorRefSchema` extending `ActorRefSchema` with `type: "system"`, or a
-stricter detector source schema. Do not accept `HumanActorRefSchema`,
-`AgentActorRefSchema`, or generic `ActorRefSchema` for detector writes.
+Detector writes must use `SystemActorRefSchema`. Do not accept
+`HumanActorRefSchema`, `AgentActorRefSchema`, or generic `ActorRefSchema` for
+detector writes.
 
 Detector runs and evidence should use explicit response contracts:
 
@@ -206,6 +205,7 @@ composition. Do not add detector counter columns to review spine tables.
 Contract tests:
 
 - detector run state is exactly `running | completed | failed`
+- detector writes use `SystemActorRefSchema` and reject human/agent actors
 - evidence scopes are version/commit/file/diffBlock only
 - suggested review mark is nullable and limited to `PASS | FLAG | MODIFY`
 - concern area is nullable or canonical only

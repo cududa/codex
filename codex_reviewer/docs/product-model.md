@@ -118,6 +118,32 @@ This is state on commits and files, not a separate entity. `DONE` is not a
 review mark; completion is represented by human approval, linked local change
 evidence when required, and a generated review ledger.
 
+### ActorRef
+
+A stable reference to the actor responsible for a review operation.
+
+Actor kinds are controlled:
+
+- `human`
+- `agent`
+- `system`
+
+Use exact actor contracts at command boundaries:
+
+- `HumanActorRefSchema` for human approval and review ledger generation
+- `AgentActorRefSchema` for agent review evidence
+- `SystemActorRefSchema` for detector processes and future system-authored
+  commands that need actor-shaped attribution
+
+Do not accept the generic `ActorRefSchema` at a command boundary when the
+product boundary requires a specific actor kind. Generic actor refs are
+appropriate only for operations that intentionally allow multiple actor kinds,
+such as local-change linking.
+
+The first ingest implementation uses an explicit system-scoped `source` field
+and persisted `concernMapVersion` rather than an actor-shaped reviewer. That
+source must not be modeled as a human reviewer or agent reviewer.
+
 ### LocalChangeRef
 
 A link to local work that adapts or fixes something required by the review.

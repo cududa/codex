@@ -118,6 +118,11 @@ Human approval and ledger generation require human actor contracts at the API
 boundary. Agent-accessible tools must not expose those commands under alternate
 names.
 
+Detector processes require system actor contracts at the API/service boundary.
+Deterministic ingest records an explicit system-scoped source and
+`concernMapVersion`. Neither path may be modeled as a human reviewer or agent
+reviewer.
+
 ## Comments, Notes, And Plans
 
 Threaded comments are discussion. They can be created by humans or agents and
