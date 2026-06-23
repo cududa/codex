@@ -1,3 +1,6 @@
 model = "gpt-5.1"
 
-# Consider setting [mcp_servers] here!
+[mcp_servers.review-dedeluger]
+command = "pnpm"
+args = ["--filter", "@review-dedeluger/api", "mcp:stdio"]
+cwd = "../review-dedeluger"

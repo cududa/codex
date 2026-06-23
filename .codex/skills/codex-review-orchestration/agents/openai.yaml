@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Review Orchestration"
+  short_description: "Coordinate focused Codex commit reviews"
+  default_prompt: "Use $codex-review-orchestration to map the review queue, lock the review lens, assign focused packets, and keep uncertainty visible."
