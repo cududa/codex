@@ -1,7 +1,8 @@
 {
     "rust-analyzer.checkOnSave": true,
-    "rust-analyzer.check.command": "clippy",
-    "rust-analyzer.check.extraArgs": ["--tests"],
+    "rust-analyzer.check.command": "check",
+    "rust-analyzer.check.extraArgs": [],
+    "rust-analyzer.check.workspace": false,
     "rust-analyzer.rustfmt.extraArgs": ["--config", "imports_granularity=Item"],
     "rust-analyzer.cargo.targetDir": "${workspaceFolder}/codex-rs/target/rust-analyzer",
     "[rust]": {
