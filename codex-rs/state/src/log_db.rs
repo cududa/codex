@@ -199,6 +199,13 @@ where
 
     fn on_event(&self, event: &Event<'_>, ctx: tracing_subscriber::layer::Context<'_, S>) {
         let metadata = event.metadata();
+        // `tracing-log` checks filters with the original log target before
+        // dispatching an event whose tracing target is `log`, so the outer
+        // target filter cannot reliably reject these bridged events.
+        if metadata.target() == "log" {
+            return;
+        }
+
         let mut visitor = MessageVisitor::default();
         event.record(&mut visitor);
         let thread_id = visitor
