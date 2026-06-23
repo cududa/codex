@@ -2,8 +2,8 @@
 
 This workflow is for maintaining a local Codex variant while regularly
 reviewing incoming OpenAI Codex releases. The goal is to make each upstream
-version comparison durable, repeatable, and reviewable without manually walking
-file diffs every time.
+version comparison durable, repeatable, and reviewable commit-by-commit without
+manually walking file diffs every time.
 
 Review Dedeluger can benefit from this workflow because it receives a clean Git
 range to ingest, but the workflow itself should stand on ordinary Git refs,
@@ -20,15 +20,15 @@ tips?"
 For release review, the better question is:
 
 ```text
-What would change if the next official OpenAI Codex version were applied to our
-current maintained Codex version?
+Which upstream OpenAI Codex commits are incoming relative to our maintained
+Codex version, and how should we handle each one?
 ```
 
 Represent that question with explicit refs:
 
 ```text
 base:   our maintained version tag
-target: an integration branch with the upstream version applied
+target: a history-preserving review branch with the upstream version merged
 ```
 
 Example:
@@ -37,6 +37,10 @@ Example:
 base:   cududa-v0.130.0
 target: review/openai-v0.131.0-on-cududa-v0.130.0
 ```
+
+The target branch must preserve upstream commit history. Do not squash the
+incoming release for this workflow, because Review Dedeluger is meant to review
+the individual commits between the maintained baseline and the incoming version.
 
 ## Ref Naming
 
@@ -113,6 +117,22 @@ Before moving on, confirm the tag:
 git show --stat cududa-v0.130.0
 ```
 
+## Keep The Review Artifact Clean
+
+Before creating or merging into a review branch, make sure unrelated local edits
+are either committed, stashed, or otherwise kept out of the merge.
+
+This matters especially for local workflow files, notes, or scratch changes
+that may exist while preparing the review:
+
+```bash
+git status
+git stash push -m "preserve local review notes" -- local/review_workflow/README.md
+```
+
+Only stash files that are unrelated to the review artifact. If a local change is
+part of the maintained baseline, commit it first and tag that committed state.
+
 ## Create An Incoming Version Review Branch
 
 Start from the local maintained baseline:
@@ -121,24 +141,47 @@ Start from the local maintained baseline:
 git switch -c review/openai-v0.131.0-on-cududa-v0.130.0 cududa-v0.130.0
 ```
 
-Apply the official upstream version as a squash merge:
+Merge the official upstream version while preserving upstream history:
 
 ```bash
-git merge --squash rust-v0.131.0
+git merge --no-ff rust-v0.131.0
 ```
 
-Resolve conflicts if Git reports any. Then commit the applied upstream release:
+Do not use `git merge --squash`, `git cherry-pick --no-commit`, or patch
+application for the review branch. Those can preserve the final file contents,
+but they destroy the per-commit review surface.
 
-```bash
-git commit -m "Apply OpenAI Codex v0.131.0 onto cududa v0.130.0"
-```
+If Git reports conflicts, resolve them and finish the merge. The resulting
+branch should contain the upstream commits as ancestry, plus a merge commit if
+one was needed.
 
 This branch is a review artifact. It should answer:
 
 ```text
-What would OpenAI Codex v0.131.0 add, remove, or change relative to our
-maintained v0.130.0?
+Which OpenAI Codex v0.131.0 commits are incoming relative to our maintained
+v0.130.0, and what does each commit change?
 ```
+
+Before using the branch for review, confirm the commit list is present:
+
+```bash
+git log --oneline --reverse cududa-v0.130.0..review/openai-v0.131.0-on-cududa-v0.130.0
+```
+
+This range should show the incoming upstream commit sequence, usually followed
+by the merge commit if conflicts were resolved. Seeing many commits is expected.
+If this shows only one applied-release commit, the branch is wrong for this
+workflow.
+
+Also confirm the upstream release tag is preserved in branch history:
+
+```bash
+git merge-base --is-ancestor rust-v0.131.0 review/openai-v0.131.0-on-cududa-v0.130.0
+```
+
+An exit code of `0` means the upstream release tag is an ancestor of the review
+branch. Any other exit code means the branch does not preserve the upstream
+release history correctly.
 
 ## Review The Incoming Version
 
@@ -149,15 +192,21 @@ git diff --stat cududa-v0.130.0..review/openai-v0.131.0-on-cududa-v0.130.0
 git diff cududa-v0.130.0..review/openai-v0.131.0-on-cududa-v0.130.0
 ```
 
-Review Dedeluger should ingest the same conceptual range:
+The commit sequence to review is:
+
+```bash
+git log --oneline --reverse cududa-v0.130.0..review/openai-v0.131.0-on-cududa-v0.130.0
+```
+
+Review Dedeluger should ingest the same range:
 
 ```text
 base:   cududa-v0.130.0
 target: review/openai-v0.131.0-on-cududa-v0.130.0
 ```
 
-That keeps Review Dedeluger focused on the real review question instead of on
-raw branch divergence.
+That keeps Review Dedeluger focused on the real review question: the ordered
+incoming commits and their changed files.
 
 ## Adapt And Land The Maintained Version
 
@@ -168,8 +217,9 @@ baseline:
 git switch -c adapt/cududa-v0.131.0 cududa-v0.130.0
 ```
 
-Bring in the reviewed upstream application. Depending on the situation, this
-can be a merge, cherry-pick, or manual application of the reviewed result.
+Bring in the reviewed upstream history and any local adaptations needed for
+your maintained version. Depending on the situation, this can be a merge,
+selected cherry-picks, or a branch based on the reviewed merge result.
 
 The important rule is that the final adapted branch should represent the next
 maintained local version:
@@ -189,7 +239,7 @@ The next cycle then starts from `cududa-v0.131.0`.
 ## Why Not Compare Directly Against upstream/main?
 
 Directly comparing local `main` to `upstream/main` is useful for quick
-orientation, but it is usually a poor durable review artifact.
+orientation, but it is usually a poor durable release-review artifact.
 
 It can mix together:
 
@@ -201,19 +251,18 @@ It can mix together:
 - branch maintenance history
 
 For release review, prefer comparing a local maintained version tag to a
-purpose-built integration branch.
+purpose-built history-preserving review branch.
 
 ## When To Use upstream/main
 
 Use `upstream/main` when the goal is to preview the current official development
 tip rather than a named release.
 
-In that case, name the branch accordingly:
+In that case, name the branch accordingly and preserve history:
 
 ```bash
 git switch -c review/openai-main-on-cududa-v0.130.0 cududa-v0.130.0
-git merge --squash upstream/main
-git commit -m "Apply OpenAI Codex upstream main onto cududa v0.130.0"
+git merge --no-ff upstream/main
 ```
 
 Then compare:
@@ -240,23 +289,59 @@ Before ingesting or reviewing a range:
 git rev-parse <base-ref>
 git rev-parse <target-ref>
 git diff --stat <base-ref>..<target-ref>
+git log --oneline --reverse <base-ref>..<target-ref>
 ```
 
 If the diff stat is unexpectedly enormous, stop and check whether the target is
 a release tag, a main-branch tip, or a branch that includes unrelated local
 work.
 
+If the log shows a single commit that represents the whole incoming release,
+stop. That branch collapsed the commit history and is not suitable for
+commit-by-commit review.
+
+Also verify that the upstream release tag is in the target branch history:
+
+```bash
+git merge-base --is-ancestor <upstream-release-tag> <target-ref>
+```
+
+For example:
+
+```bash
+git merge-base --is-ancestor rust-v0.131.0 review/openai-v0.131.0-on-cududa-v0.130.0
+```
+
+## Recover From A Bad Review Branch
+
+If a review branch was created with a squash merge, patch application, or other
+history-collapsing approach, delete it and recreate it from the maintained
+baseline. Do not reuse it for commit-by-commit review.
+
+For example:
+
+```bash
+git switch main
+git branch -D review/openai-v0.131.0-on-cududa-v0.130.0
+git switch -c review/openai-v0.131.0-on-cududa-v0.130.0 cududa-v0.130.0
+git merge --no-ff rust-v0.131.0
+```
+
+Then rerun the practical checks before sending the branch to Review Dedeluger.
+
 ## Recommended Release Loop
 
 1. Tag the current maintained version, such as `cududa-v0.130.0`.
-2. Fetch official upstream tags.
-3. Create a review branch from the maintained tag.
-4. Squash-merge the official OpenAI version into that branch.
-5. Resolve conflicts and commit the review artifact.
-6. Review the range from the maintained tag to the review branch.
-7. Adapt and land the next maintained version.
-8. Tag the result, such as `cududa-v0.131.0`.
+2. Stash or commit unrelated local edits so the review artifact stays clean.
+3. Fetch official upstream tags.
+4. Create a review branch from the maintained tag.
+5. Merge the official OpenAI version into that branch with history preserved.
+6. Resolve conflicts and finish the merge if needed.
+7. Confirm the incoming upstream commits are visible in `git log`.
+8. Confirm the upstream release tag is an ancestor of the review branch.
+9. Review the range from the maintained tag to the review branch.
+10. Adapt and land the next maintained version.
+11. Tag the result, such as `cududa-v0.131.0`.
 
 This keeps each review anchored to a durable local baseline and a concrete
-incoming upstream version.
-
+incoming upstream version while preserving the per-commit review surface.
