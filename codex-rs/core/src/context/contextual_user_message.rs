@@ -5,7 +5,6 @@ use codex_protocol::models::ContentItem;
 use super::EnvironmentContext;
 use super::FragmentRegistration;
 use super::FragmentRegistrationProxy;
-use super::GoalContext;
 use super::LegacyApplyPatchExecCommandWarning;
 use super::LegacyModelMismatchWarning;
 use super::LegacyUnifiedExecProcessLimitWarning;
@@ -14,6 +13,7 @@ use super::SubagentNotification;
 use super::TurnAborted;
 use super::UserInstructions;
 use super::UserShellCommand;
+use super::is_goal_context_text;
 
 static USER_INSTRUCTIONS_REGISTRATION: FragmentRegistrationProxy<UserInstructions> =
     FragmentRegistrationProxy::new();
@@ -26,8 +26,6 @@ static USER_SHELL_COMMAND_REGISTRATION: FragmentRegistrationProxy<UserShellComma
 static TURN_ABORTED_REGISTRATION: FragmentRegistrationProxy<TurnAborted> =
     FragmentRegistrationProxy::new();
 static SUBAGENT_NOTIFICATION_REGISTRATION: FragmentRegistrationProxy<SubagentNotification> =
-    FragmentRegistrationProxy::new();
-static GOAL_CONTEXT_REGISTRATION: FragmentRegistrationProxy<GoalContext> =
     FragmentRegistrationProxy::new();
 static LEGACY_UNIFIED_EXEC_PROCESS_LIMIT_WARNING_REGISTRATION: FragmentRegistrationProxy<
     LegacyUnifiedExecProcessLimitWarning,
@@ -46,7 +44,6 @@ static CONTEXTUAL_USER_FRAGMENTS: &[&dyn FragmentRegistration] = &[
     &USER_SHELL_COMMAND_REGISTRATION,
     &TURN_ABORTED_REGISTRATION,
     &SUBAGENT_NOTIFICATION_REGISTRATION,
-    &GOAL_CONTEXT_REGISTRATION,
     &LEGACY_UNIFIED_EXEC_PROCESS_LIMIT_WARNING_REGISTRATION,
     &LEGACY_APPLY_PATCH_EXEC_COMMAND_WARNING_REGISTRATION,
     &LEGACY_MODEL_MISMATCH_WARNING_REGISTRATION,
@@ -62,7 +59,9 @@ pub(crate) fn is_contextual_user_fragment(content_item: &ContentItem) -> bool {
     let ContentItem::InputText { text } = content_item else {
         return false;
     };
-    parse_hook_prompt_fragment(text).is_some() || is_standard_contextual_user_text(text)
+    parse_hook_prompt_fragment(text).is_some()
+        || is_goal_context_text(text)
+        || is_standard_contextual_user_text(text)
 }
 
 pub(crate) fn parse_visible_hook_prompt_message(
@@ -79,7 +78,7 @@ pub(crate) fn parse_visible_hook_prompt_message(
             fragments.push(fragment);
             continue;
         }
-        if is_standard_contextual_user_text(text) {
+        if is_goal_context_text(text) || is_standard_contextual_user_text(text) {
             continue;
         }
         return None;

@@ -5,8 +5,7 @@
 //! events, and owns helper hooks used by goal lifecycle behavior.
 
 use crate::StateDbHandle;
-use crate::context::ContextualUserFragment;
-use crate::context::GoalContext;
+use crate::context::render_goal_context;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
 use crate::state::ActiveTurn;
@@ -97,6 +96,7 @@ enum GoalSteeringKind {
     Initial,
     Continuation,
     BudgetLimit,
+    ObjectiveUpdated,
 }
 
 struct GoalSteeringMessage {
@@ -111,11 +111,13 @@ impl GoalSteeringMessage {
         match kind {
             GoalSteeringKind::Initial
             | GoalSteeringKind::Continuation
-            | GoalSteeringKind::BudgetLimit => {}
+            | GoalSteeringKind::BudgetLimit
+            | GoalSteeringKind::ObjectiveUpdated => {}
         }
+        let text = render_goal_context(&prompt);
         ResponseInputItem::Message {
             role: role.as_response_role().to_string(),
-            content: vec![ContentItem::InputText { text: prompt }],
+            content: vec![ContentItem::InputText { text }],
             phase: None,
         }
     }
@@ -692,15 +694,25 @@ impl Session {
                     self.mark_initial_goal_steering_pending(goal_id.clone())
                         .await;
                 }
-                let turn_id = self
-                    .active_turn_context()
-                    .await
+                let active_turn_context = self.active_turn_context().await;
+                let turn_id = active_turn_context
+                    .as_ref()
                     .map(|turn_context| turn_context.sub_id.clone());
                 let current_token_usage = self.total_token_usage().await.unwrap_or_default();
                 self.mark_active_goal_accounting(goal_id, turn_id, current_token_usage)
                     .await;
                 if let Some(goal) = goal_for_steering {
-                    let item = goal_context_input_item(objective_updated_prompt(&goal));
+                    let role = if let Some(turn_context) = active_turn_context.as_ref() {
+                        turn_context.config.goals.steering_role
+                    } else {
+                        self.get_config().await.goals.steering_role
+                    };
+                    let item = GoalSteeringMessage {
+                        kind: GoalSteeringKind::ObjectiveUpdated,
+                        role,
+                        prompt: objective_updated_prompt(&goal),
+                    }
+                    .into_response_input_item();
                     if self.inject_response_items(vec![item]).await.is_err() {
                         tracing::debug!(
                             "skipping objective-updated goal steering because no turn is active"
@@ -1440,6 +1452,9 @@ impl Session {
             GoalSteeringKind::BudgetLimit => {
                 unreachable!("budget-limit steering is not used for goal continuation turns")
             }
+            GoalSteeringKind::ObjectiveUpdated => {
+                unreachable!("objective-updated steering is not used for goal continuation turns")
+            }
         };
         Some(GoalContinuationCandidate {
             goal_id,
@@ -1578,9 +1593,15 @@ fn initial_goal_prompt(goal: &ThreadGoal) -> String {
         "Begin working toward the active thread goal.\n\n\
         This is the first turn for this goal. If this goal was resumed, treat this as the first \
         turn of the active run. Do not assume prior progress has been made in this active run. \
-        Read the objective carefully, work from the repository state and evidence you gather, and \
-        pursue the objective directly until it is complete, paused, blocked, or limited by \
-        budget.\n\n\
+        Read the objective carefully and pursue it directly until it is complete, paused, or \
+        limited by budget.\n\n\
+        Work from the sources that are authoritative for the current objective. Nearby repository \
+        artifacts, examples, demos, tests, and existing callers are valuable context for current \
+        integration patterns and historical behavior, but their authority depends on their \
+        relevance to the active objective. Use them to inform the work without letting proximity, \
+        concreteness, or recency narrow the requested outcome. When sources point in different \
+        directions, or after a long investigation through local artifacts, call get_goal to \
+        re-ground on the active objective before choosing the next implementation direction.\n\n\
         <untrusted_objective>\n{objective}\n</untrusted_objective>\n\n\
         Budget:\n\
         - Time spent pursuing goal: {time_used_seconds} seconds\n\
@@ -1639,17 +1660,6 @@ fn escape_xml_text(input: &str) -> String {
         .replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
-}
-
-fn goal_context_input_item(prompt: String) -> ResponseInputItem {
-    let context = GoalContext { prompt };
-    ResponseInputItem::Message {
-        role: <GoalContext as ContextualUserFragment>::ROLE.to_string(),
-        content: vec![ContentItem::InputText {
-            text: context.render(),
-        }],
-        phase: None,
-    }
 }
 
 pub(crate) fn protocol_goal_from_state(goal: codex_state::ThreadGoal) -> ThreadGoal {
@@ -1724,7 +1734,6 @@ mod tests {
     use super::budget_limit_prompt;
     use super::continuation_prompt;
     use super::escape_xml_text;
-    use super::goal_context_input_item;
     use super::goal_token_delta_for_usage;
     use super::initial_goal_prompt;
     use super::objective_updated_prompt;
@@ -1784,26 +1793,33 @@ mod tests {
             (GoalSteeringRole::Developer, "developer"),
             (GoalSteeringRole::User, "user"),
         ] {
-            let item = GoalSteeringMessage {
-                kind: GoalSteeringKind::Continuation,
-                role,
-                prompt: "Continue working.".to_string(),
+            for kind in [
+                GoalSteeringKind::Initial,
+                GoalSteeringKind::Continuation,
+                GoalSteeringKind::BudgetLimit,
+                GoalSteeringKind::ObjectiveUpdated,
+            ] {
+                let item = GoalSteeringMessage {
+                    kind,
+                    role,
+                    prompt: "Continue working.".to_string(),
+                }
+                .into_response_input_item();
+                let ResponseInputItem::Message {
+                    role,
+                    content,
+                    phase,
+                } = item
+                else {
+                    panic!("expected goal steering message item");
+                };
+                assert_eq!(expected_response_role, role);
+                let [ContentItem::InputText { text }] = content.as_slice() else {
+                    panic!("expected one input text item, got {content:#?}");
+                };
+                assert_eq!("<goal_context>\nContinue working.\n</goal_context>", text);
+                assert_eq!(None, phase);
             }
-            .into_response_input_item();
-            let ResponseInputItem::Message {
-                role,
-                content,
-                phase,
-            } = item
-            else {
-                panic!("expected goal steering message item");
-            };
-            assert_eq!(expected_response_role, role);
-            let [ContentItem::InputText { text }] = content.as_slice() else {
-                panic!("expected one input text item, got {content:#?}");
-            };
-            assert_eq!("Continue working.", text);
-            assert_eq!(None, phase);
         }
     }
 
@@ -1822,7 +1838,11 @@ mod tests {
         .replace("\r\n", "\n");
 
         assert!(prompt.contains("finish the stack"));
-        assert!(prompt.contains("<objective>\nfinish the stack\n</objective>"));
+        assert!(prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>"));
+        assert!(prompt.contains("Work from the sources that are authoritative"));
+        assert!(prompt.contains("call get_goal to re-ground on the active objective"));
+        assert!(!prompt.contains("Use the current worktree and external state as authoritative"));
+        assert!(!prompt.contains("The audit must prove completion"));
         assert!(prompt.contains("Token budget: 10000"));
         assert!(prompt.contains("call update_goal with status \"complete\""));
         assert!(!prompt.contains(
@@ -1851,6 +1871,9 @@ mod tests {
         assert!(prompt.contains("first turn of the active run"));
         assert!(prompt.contains("Do not assume prior progress has been made"));
         assert!(prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>"));
+        assert!(prompt.contains("Work from the sources that are authoritative"));
+        assert!(prompt.contains("call get_goal to re-ground on the active objective"));
+        assert!(!prompt.contains("repository state and evidence you gather"));
         assert!(prompt.contains("Token budget: 10000"));
         assert!(prompt.contains("call update_goal with status \"complete\""));
         assert!(!prompt.contains("Continue working toward the active thread goal."));
@@ -1871,7 +1894,7 @@ mod tests {
         .replace("\r\n", "\n");
 
         assert!(prompt.contains("finish the stack"));
-        assert!(prompt.contains("<objective>\nfinish the stack\n</objective>"));
+        assert!(prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>"));
         assert!(prompt.contains("Token budget: 10000"));
         assert!(prompt.contains("Tokens used: 10100"));
         assert!(prompt.to_lowercase().contains("wrap up this turn soon"));
@@ -1901,25 +1924,11 @@ mod tests {
         );
         assert!(prompt.contains("Token budget: 10000"));
         assert!(prompt.contains("Tokens remaining: 8766"));
+        assert!(prompt.contains("Work from the sources that are authoritative"));
+        assert!(prompt.contains("call get_goal to re-ground on the active objective"));
         assert!(
             prompt
                 .contains("Do not call update_goal unless the updated goal is actually complete.")
-        );
-    }
-
-    #[test]
-    fn goal_context_input_item_is_hidden_user_context() {
-        let item = goal_context_input_item("Continue working.".to_string());
-
-        assert_eq!(
-            item,
-            ResponseInputItem::Message {
-                role: "user".to_string(),
-                content: vec![ContentItem::InputText {
-                    text: "<goal_context>\nContinue working.\n</goal_context>".to_string(),
-                }],
-                phase: None,
-            }
         );
     }
 

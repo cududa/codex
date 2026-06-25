@@ -1,6 +1,7 @@
+use super::has_non_contextual_dev_message_content;
+use super::is_contextual_dev_message_content;
 use super::parse_turn_item;
-use crate::context::ContextualUserFragment;
-use crate::context::GoalContext;
+use crate::context::render_goal_context;
 use codex_protocol::items::AgentMessageContent;
 use codex_protocol::items::HookPromptFragment;
 use codex_protocol::items::TurnItem;
@@ -306,19 +307,43 @@ fn parses_hook_prompt_and_hides_other_contextual_fragments() {
 
 #[test]
 fn goal_context_does_not_parse_as_visible_turn_item() {
-    let item = ResponseItem::Message {
-        id: Some("msg-1".to_string()),
-        role: "user".to_string(),
-        content: vec![ContentItem::InputText {
-            text: GoalContext {
-                prompt: "Continue working toward the active thread goal.".to_string(),
-            }
-            .render(),
-        }],
-        phase: None,
-    };
+    for role in ["user", "developer"] {
+        let item = ResponseItem::Message {
+            id: Some("msg-1".to_string()),
+            role: role.to_string(),
+            content: vec![ContentItem::InputText {
+                text: render_goal_context("Continue working toward the active thread goal."),
+            }],
+            phase: None,
+        };
 
-    assert!(parse_turn_item(&item).is_none());
+        assert!(parse_turn_item(&item).is_none());
+    }
+}
+
+#[test]
+fn developer_goal_context_is_contextual_without_invalidating_by_itself() {
+    let content = vec![ContentItem::InputText {
+        text: render_goal_context("Continue working toward the active thread goal."),
+    }];
+
+    assert!(is_contextual_dev_message_content(&content));
+    assert!(!has_non_contextual_dev_message_content(&content));
+}
+
+#[test]
+fn mixed_developer_goal_context_remains_non_contextual() {
+    let content = vec![
+        ContentItem::InputText {
+            text: render_goal_context("Continue working toward the active thread goal."),
+        },
+        ContentItem::InputText {
+            text: "persistent developer instructions".to_string(),
+        },
+    ];
+
+    assert!(is_contextual_dev_message_content(&content));
+    assert!(has_non_contextual_dev_message_content(&content));
 }
 
 #[test]

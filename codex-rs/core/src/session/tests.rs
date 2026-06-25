@@ -8368,36 +8368,50 @@ async fn active_goal_continuation_runs_again_after_no_tool_turn() -> anyhow::Res
     .await??;
 
     let requests = responses.requests();
-    let initial_request = requests
-        .get(1)
-        .expect("second request should be the initial goal steering turn");
-    let developer_goal_contexts = initial_request.message_input_texts("developer");
+    let developer_goal_contexts = requests
+        .iter()
+        .flat_map(|request| request.message_input_texts("developer"))
+        .collect::<Vec<_>>();
     assert!(
-        developer_goal_contexts.iter().any(|text| text
-            .contains("Begin working toward the active thread goal.")
-            && text.contains("This is the first turn for this goal.")
-            && text
-                .contains("<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>")),
+        developer_goal_contexts.iter().any(|text| {
+            let normalized_text = text.replace("\r\n", "\n");
+            normalized_text.starts_with("<goal_context>")
+                && normalized_text.trim_end().ends_with("</goal_context>")
+                && normalized_text.contains("Begin working toward the active thread goal.")
+                && normalized_text.contains("This is the first turn for this goal.")
+                && normalized_text.contains(
+                    "<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>",
+                )
+        }),
         "default initial goal steering should be developer-role, got {developer_goal_contexts:?}"
     );
+    let user_goal_contexts = requests
+        .iter()
+        .flat_map(|request| request.message_input_texts("user"))
+        .collect::<Vec<_>>();
     assert!(
-        initial_request.message_input_texts("user").is_empty(),
+        user_goal_contexts
+            .iter()
+            .all(|text| !text.contains("Begin working toward the active thread goal.")),
         "default initial goal steering should not be user-role"
     );
 
-    let continuation_request = requests
-        .get(2)
-        .expect("third request should be the first goal continuation");
-    let developer_goal_contexts = continuation_request.message_input_texts("developer");
     assert!(
-        developer_goal_contexts.iter().any(|text| text
-            .contains("Continue working toward the active thread goal.")
-            && text
-                .contains("<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>")),
+        developer_goal_contexts.iter().any(|text| {
+            let normalized_text = text.replace("\r\n", "\n");
+            normalized_text.starts_with("<goal_context>")
+                && normalized_text.trim_end().ends_with("</goal_context>")
+                && normalized_text.contains("Continue working toward the active thread goal.")
+                && normalized_text.contains(
+                    "<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>",
+                )
+        }),
         "default goal continuation should be developer-role, got {developer_goal_contexts:?}"
     );
     assert!(
-        continuation_request.message_input_texts("user").is_empty(),
+        user_goal_contexts
+            .iter()
+            .all(|text| !text.contains("Continue working toward the active thread goal.")),
         "default goal continuation should not be user-role"
     );
 
@@ -8428,17 +8442,21 @@ async fn active_goal_continuation_uses_configured_user_role() -> anyhow::Result<
                 ev_completed("resp-1"),
             ]),
             sse(vec![
-                ev_response_created("resp-2"),
+                ev_assistant_message("msg-1", "Draft ready."),
+                ev_completed("resp-2"),
+            ]),
+            sse(vec![
+                ev_response_created("resp-3"),
                 ev_function_call(
                     "call-complete-goal",
                     "update_goal",
                     r#"{"status":"complete"}"#,
                 ),
-                ev_completed("resp-2"),
+                ev_completed("resp-3"),
             ]),
             sse(vec![
-                ev_assistant_message("msg-1", "Goal complete."),
-                ev_completed("resp-3"),
+                ev_assistant_message("msg-2", "Goal complete."),
+                ev_completed("resp-4"),
             ]),
         ],
     )
@@ -8456,32 +8474,44 @@ async fn active_goal_continuation_uses_configured_user_role() -> anyhow::Result<
         })
         .await?;
 
+    let mut completed_turns = 0;
     tokio::time::timeout(std::time::Duration::from_secs(8), async {
         loop {
             let event = test.codex.next_event().await?;
             if matches!(event.msg, EventMsg::TurnComplete(_)) {
-                return anyhow::Ok(());
+                completed_turns += 1;
+                if completed_turns == 2 {
+                    return anyhow::Ok(());
+                }
             }
         }
     })
     .await??;
 
     let requests = responses.requests();
-    let initial_request = requests
-        .get(1)
-        .expect("second request should be the initial goal steering turn");
-    let user_goal_contexts = initial_request.message_input_texts("user");
+    let user_goal_contexts = requests
+        .iter()
+        .flat_map(|request| request.message_input_texts("user"))
+        .collect::<Vec<_>>();
     assert!(
-        user_goal_contexts.iter().any(|text| text
-            .contains("Begin working toward the active thread goal.")
-            && text.contains("This is the first turn for this goal.")
-            && text
-                .contains("<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>")),
+        user_goal_contexts.iter().any(|text| {
+            let normalized_text = text.replace("\r\n", "\n");
+            normalized_text.starts_with("<goal_context>")
+                && normalized_text.trim_end().ends_with("</goal_context>")
+                && normalized_text.contains("Begin working toward the active thread goal.")
+                && normalized_text.contains("This is the first turn for this goal.")
+                && normalized_text.contains(
+                    "<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>",
+                )
+        }),
         "configured user role should place initial goal steering in a user message, got {user_goal_contexts:?}"
     );
+    let developer_goal_contexts = requests
+        .iter()
+        .flat_map(|request| request.message_input_texts("developer"))
+        .collect::<Vec<_>>();
     assert!(
-        initial_request
-            .message_input_texts("developer")
+        developer_goal_contexts
             .iter()
             .all(|text| !text.contains("Begin working toward the active thread goal.")),
         "configured user role should not place initial goal steering in a developer message"
@@ -8834,8 +8864,34 @@ async fn external_goal_mutation_accounts_active_turn_before_status_change() -> a
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn external_objective_change_steers_active_turn() -> anyhow::Result<()> {
-    let (sess, tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
+async fn external_objective_change_steers_active_turn_with_default_role() -> anyhow::Result<()> {
+    external_objective_change_steers_active_turn_with_role(
+        |_config| {},
+        GoalSteeringRole::Developer,
+    )
+    .await
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn external_objective_change_uses_configured_user_role() -> anyhow::Result<()> {
+    external_objective_change_steers_active_turn_with_role(
+        |config| {
+            config.goals.steering_role = GoalSteeringRole::User;
+        },
+        GoalSteeringRole::User,
+    )
+    .await
+}
+
+async fn external_objective_change_steers_active_turn_with_role<F>(
+    configure_config: F,
+    expected_role: GoalSteeringRole,
+) -> anyhow::Result<()>
+where
+    F: FnOnce(&mut Config),
+{
+    let (sess, tc, _rx, _codex_home) =
+        make_goal_session_and_context_with_config_and_rx(configure_config).await;
     sess.spawn_task(
         Arc::clone(&tc),
         Vec::new(),
@@ -8878,14 +8934,19 @@ async fn external_objective_change_steers_active_turn() -> anyhow::Result<()> {
             matches!(
                 item,
                 ResponseInputItem::Message { role, content, .. }
-                    if role == "user"
+                    if role == expected_role.as_response_role()
                         && content.iter().any(|content| matches!(
                             content,
                             ContentItem::InputText { text }
-                                if text.starts_with("<goal_context>")
-                                    && text.trim_end().ends_with("</goal_context>")
-                                    && text.contains("The active thread goal objective was edited")
-                                    && text.contains("Write a concise benchmark summary")
+                                if {
+                                    let normalized_text = text.replace("\r\n", "\n");
+                                    normalized_text.starts_with("<goal_context>")
+                                        && normalized_text.trim_end().ends_with("</goal_context>")
+                                        && normalized_text.contains("The active thread goal objective was edited")
+                                        && normalized_text.contains("<untrusted_objective>\nWrite a concise benchmark summary\n</untrusted_objective>")
+                                        && normalized_text.contains("Work from the sources that are authoritative")
+                                        && normalized_text.contains("Write a concise benchmark summary")
+                                }
                         ))
             )
         }),
