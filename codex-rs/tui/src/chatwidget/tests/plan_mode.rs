@@ -160,6 +160,9 @@ async fn plan_implementation_popup_no_selected_snapshot() {
 #[tokio::test]
 async fn plan_implementation_popup_yes_emits_submit_message_event() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(Some("gpt-5")).await;
+    let plan_markdown = "- Step 1\n- Step 2\n";
+    chat.on_plan_item_completed(plan_markdown.to_string());
+    let _ = drain_insert_history(&mut rx);
     chat.open_plan_implementation_prompt();
 
     chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
@@ -174,7 +177,8 @@ async fn plan_implementation_popup_yes_emits_submit_message_event() {
     };
     assert_eq!(
         text,
-        plan_implementation::PLAN_IMPLEMENTATION_CODING_MESSAGE
+        plan_implementation::plan_implementation_prompt(plan_markdown)
+            .expect("expected plan-bearing implementation prompt")
     );
     assert_eq!(collaboration_mode.mode, Some(ModeKind::Default));
 }
@@ -196,15 +200,13 @@ async fn plan_implementation_popup_clear_context_emits_clear_submit_event() {
     };
     assert_eq!(
         text,
-        "A previous agent produced the plan below to accomplish the user's task. \
-        Implement the plan in a fresh context. Treat the plan as the source of \
-        user intent, re-read files as needed, and carry the work through \
-        implementation and verification.\n\n- Step 1\n- Step 2\n"
+        plan_implementation::plan_implementation_prompt(plan_markdown)
+            .expect("expected plan-bearing implementation prompt")
     );
 }
 
 #[tokio::test]
-async fn plan_implementation_clear_context_requires_default_mode_and_plan() {
+async fn plan_implementation_requires_default_mode_and_plan() {
     let (chat, _rx, _op_rx) = make_chatwidget_manual(Some("gpt-5")).await;
     let default_mask = collaboration_modes::default_mode_mask(chat.model_catalog.as_ref())
         .expect("expected default collaboration mode");
@@ -213,6 +215,10 @@ async fn plan_implementation_clear_context_requires_default_mode_and_plan() {
         /*default_mask*/ None,
         Some("- Step\n"),
         /*clear_context_usage_label*/ None,
+    );
+    assert_eq!(
+        params.items[0].disabled_reason.as_deref(),
+        Some(plan_implementation::PLAN_IMPLEMENTATION_DEFAULT_UNAVAILABLE)
     );
     assert_eq!(
         params.items[1].disabled_reason.as_deref(),
@@ -225,6 +231,10 @@ async fn plan_implementation_clear_context_requires_default_mode_and_plan() {
         /*clear_context_usage_label*/ None,
     );
     assert_eq!(
+        params.items[0].disabled_reason.as_deref(),
+        Some(plan_implementation::PLAN_IMPLEMENTATION_NO_APPROVED_PLAN)
+    );
+    assert_eq!(
         params.items[1].disabled_reason.as_deref(),
         Some(plan_implementation::PLAN_IMPLEMENTATION_NO_APPROVED_PLAN)
     );
@@ -233,6 +243,10 @@ async fn plan_implementation_clear_context_requires_default_mode_and_plan() {
         Some(default_mask.clone()),
         Some("  \n"),
         /*clear_context_usage_label*/ None,
+    );
+    assert_eq!(
+        params.items[0].disabled_reason.as_deref(),
+        Some(plan_implementation::PLAN_IMPLEMENTATION_NO_APPROVED_PLAN)
     );
     assert_eq!(
         params.items[1].disabled_reason.as_deref(),
@@ -244,6 +258,8 @@ async fn plan_implementation_clear_context_requires_default_mode_and_plan() {
         Some("- Step\n"),
         /*clear_context_usage_label*/ None,
     );
+    assert_eq!(params.items[0].disabled_reason, None);
+    assert!(!params.items[0].actions.is_empty());
     assert_eq!(params.items[1].disabled_reason, None);
     assert!(!params.items[1].actions.is_empty());
 
@@ -948,6 +964,27 @@ async fn plan_implementation_popup_skips_without_proposed_plan() {
     assert!(
         !popup.contains(PLAN_IMPLEMENTATION_TITLE),
         "expected no plan popup without proposed plan output, got {popup:?}"
+    );
+}
+
+#[tokio::test]
+async fn plan_implementation_popup_skips_empty_proposed_plan() {
+    let (mut chat, _rx, _op_rx) = make_chatwidget_manual(Some("gpt-5")).await;
+    chat.set_feature_enabled(Feature::CollaborationModes, /*enabled*/ true);
+    let plan_mask = collaboration_modes::mask_for_kind(chat.model_catalog.as_ref(), ModeKind::Plan)
+        .expect("expected plan collaboration mask");
+    chat.set_collaboration_mask(plan_mask);
+
+    chat.on_task_started();
+    chat.on_plan_item_completed("  \n".to_string());
+    chat.on_task_complete(
+        /*last_agent_message*/ None, /*duration_ms*/ None, /*from_replay*/ false,
+    );
+
+    let popup = render_bottom_popup(&chat, /*width*/ 80);
+    assert!(
+        !popup.contains(PLAN_IMPLEMENTATION_TITLE),
+        "expected no plan popup with empty proposed plan output, got {popup:?}"
     );
 }
 

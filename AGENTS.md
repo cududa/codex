@@ -54,10 +54,11 @@ In the codex-rs folder where the rust code lives:
     trivial; prefer new modules/files and keep `chatwidget.rs` focused on orchestration.
 - When running Rust commands (e.g. `just fix` or `cargo test`) be patient with the command and never try to kill them using the PID. Rust lock can make the execution slow, this is expected.
 
-Run `just fmt` (in `codex-rs` directory) automatically after you have finished making Rust code changes; do not ask for approval to run it. Additionally, run the tests:
+Run `just fmt` (in `codex-rs` directory) automatically after you have finished making Rust code changes; do not ask for approval to run it. Additionally, run targeted tests:
 
-1. Run the test for the specific project that was changed. For example, if changes were made in `codex-rs/tui`, run `cargo test -p codex-tui`.
-2. Once those pass, if any changes were made in common, core, or protocol, run the complete test suite with `cargo test` (or `just test` if `cargo-nextest` is installed). Avoid `--all-features` for routine local runs because it expands the build matrix and can significantly increase `target/` disk usage; use it only when you specifically need full feature coverage. project-specific or individual tests can be run without asking the user, but do ask the user before running the complete test suite.
+1. Prefer the narrowest test filter that exercises the changed behavior. For example, if changes were made in `codex-rs/tui`, run the specific `cargo test -p codex-tui <test_filter>` target rather than the whole crate when possible.
+2. Do not run full crate or workspace suites by default on this workstation. In particular, do not run `cargo test -p codex-tui`, `cargo test`, `just test`, or `--all-features` unless the user explicitly asks for that broader validation. These commands can take too long and consume too much local capacity.
+3. If broader validation seems useful, say what you would run and leave it for the user to opt in. Prefer any available `local-profile`, local profiling, or remote test workflow over a full local cargo suite when the user asks for broader coverage.
 
 Before finalizing a large change to `codex-rs`, run `just fix -p <project>` (in `codex-rs` directory) to fix any linter issues in the code. Prefer scoping with `-p` to avoid slow workspace‑wide Clippy builds; only run `just fix` without `-p` if you changed shared crates. Do not re-run tests after running `fix` or `fmt`.
 
