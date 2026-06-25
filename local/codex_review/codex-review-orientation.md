@@ -32,8 +32,8 @@ in line count while changing the model-visible prompt, the tool schema the model
 chooses from, or the continuation path that resumes work without a fresh user
 turn.
 
-The useful review result is a calm explanation of what changed, what behavior
-path it touches, and whether any uncertainty remains.
+The useful review result is a calm explanation of what the commit is, what it
+changes, what behavior path it touches, and whether any uncertainty remains.
 
 ## Working From Broad To Focused
 
@@ -59,6 +59,14 @@ Use focused packets to inspect:
 - Diff artifacts and source anchors for the assigned files
 - Existing agent reviews, notes, discussions, and plan metadata
 - The canonical concern-area catalog entries available for evaluation
+
+Review Dedeluger MCP access is an API-backed workflow surface. The MCP server
+should be treated as a thin client for curated review actions and resources,
+with the Review Dedeluger API server as the only application process that owns
+review state. If MCP access fails because the API server is not running, stop
+and ask for the Review Dedeluger workspace to be started, normally with
+`pnpm dev`. Do not compensate by reading or writing SQLite directly, trying a
+different database path, or re-ingesting a version from the Codex workspace.
 
 When a commit is large, follow the behavior path far enough to understand the
 review lens. Large generated files or mechanical moves may be supporting
@@ -131,14 +139,24 @@ commit is good or bad.
 Use `PASS` when the commit has been reviewed under this lens and no follow-up is
 needed.
 
-Use `PASS` with one or more concern areas when the commit is relevant to those
-areas, the behavior is understood, and no follow-up is needed.
+Use `PASS` with one or more concern areas only when the commit is relevant to
+those areas, the behavior is understood, and the change is narrow enough that no
+human or downstream maintainer follow-up is needed.
 
-Use `FLAG` when human attention, more context, another agent pass, or a clearer
-explanation is still needed.
+Use `FLAG` when human attention, downstream maintainer attention, more context,
+another agent pass, or a clearer explanation is still needed.
 
 Concern-area relevance is not failure. A commit can touch an important surface,
 be fully understood, and pass.
+
+Understanding a change is not by itself enough to pass it. Keep a commit flagged
+when it materially changes the architecture, ownership, persistence model,
+metadata flow, API boundary, or execution path for a concern area. These changes
+may affect local patches or mechanisms maintained by other agents even when the
+upstream implementation appears intentional and correct.
+
+For the initial upstream review, `FLAG` means "maintenance-relevant behavior
+changed and should stay visible." It does not mean the commit is bad.
 
 For this initial pass, do not use human approval. Do not make a stronger review
 state assertion unless the active workflow explicitly asks for it.
@@ -146,10 +164,18 @@ state assertion unless the active workflow explicitly asks for it.
 ## Note Style
 
 Prefer evidence-first, measured language. The note should help the human see
-what changed, why it matters to the review lens, and what uncertainty remains.
+what the commit is, what it changes, why it matters to the review lens, and what
+uncertainty remains.
+
+Every reviewed commit should have a commit-scoped review note. The note is not
+only a concern-area justification. Start with the reviewer agent's plain-language
+read of the focused packet: what this commit appears to be doing and what changed.
+Then state whether that change touches a canonical concern area or why
+`none-apply` is appropriate.
 
 Useful note shapes:
 
+- `This commit is...`
 - `This changes...`
 - `This may affect...`
 - `I did not find...`

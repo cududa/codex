@@ -208,6 +208,15 @@ target: review/openai-v0.131.0-on-cududa-v0.130.0
 That keeps Review Dedeluger focused on the real review question: the ordered
 incoming commits and their changed files.
 
+Review agents should use Review Dedeluger through its configured MCP workflow,
+but that MCP server is only a client of the Review Dedeluger API. The API server
+is the application owner of review state. If MCP reads or writes fail because
+the Review Dedeluger server is not running, start the Review Dedeluger workspace
+with `pnpm dev` or point the MCP server at the correct
+`REVIEW_DEDELUGER_API_URL`. Do not recover by opening a local SQLite database
+from the Codex workspace, switching to another database path, or re-ingesting
+the version without explicit human direction.
+
 ## Adapt And Land The Maintained Version
 
 After reviewing the incoming version, create an adaptation branch from the same

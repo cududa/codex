@@ -1,5 +1,3 @@
-model = "gpt-5.1"
-
 [mcp_servers.review-dedeluger]
 command = "node"
 args = ["apps/api/bin/review-dedeluger-mcp.mjs"]
