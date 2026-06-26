@@ -1,3 +1,6 @@
 model = "gpt-5.1"
 
-# Consider setting [mcp_servers] here!
+[mcp_servers.review-dedeluger]
+command = "node"
+args = ["apps/api/bin/review-dedeluger-mcp.mjs"]
+cwd = "../review-dedeluger"
