@@ -21,6 +21,7 @@ use tracing::warn;
 use uuid::Uuid;
 
 use crate::context::is_contextual_user_fragment;
+use crate::context::is_goal_context_text;
 use crate::context::parse_visible_hook_prompt_message;
 use crate::web_search::web_search_action_detail;
 
@@ -57,6 +58,9 @@ fn is_contextual_dev_fragment(content_item: &ContentItem) -> bool {
     let ContentItem::InputText { text } = content_item else {
         return false;
     };
+    if is_goal_context_text(text) {
+        return true;
+    }
 
     let trimmed = text.trim_start();
     CONTEXTUAL_DEVELOPER_PREFIXES.iter().any(|prefix| {

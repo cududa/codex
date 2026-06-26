@@ -10,15 +10,28 @@ pub(super) const PLAN_IMPLEMENTATION_TITLE: &str = "Implement this plan?";
 const PLAN_IMPLEMENTATION_YES: &str = "Yes, implement this plan";
 const PLAN_IMPLEMENTATION_CLEAR_CONTEXT: &str = "Yes, clear context and implement";
 const PLAN_IMPLEMENTATION_NO: &str = "No, stay in Plan mode";
-pub(super) const PLAN_IMPLEMENTATION_CODING_MESSAGE: &str = "Implement the plan.";
-pub(super) const PLAN_IMPLEMENTATION_CLEAR_CONTEXT_PREFIX: &str = concat!(
-    "A previous agent produced the plan below to accomplish the user's task. ",
-    "Implement the plan in a fresh context. Treat the plan as the source of ",
-    "user intent, re-read files as needed, and carry the work through ",
-    "implementation and verification."
+pub(super) const PLAN_IMPLEMENTATION_PROMPT_PREFIX: &str = concat!(
+    "Implement the approved plan below. Treat it as the active user request and source of truth ",
+    "for scope.\n\n",
+    "Plan Mode behavior instructions are no longer active, but the approved plan remains active ",
+    "user intent. Re-read files to understand the terrain, validate assumptions, and execute the ",
+    "plan faithfully. Preserve explicit contracts and user-stated compatibility requirements. Do ",
+    "not infer broad hidden compatibility obligations from polished, abstract, or platform-shaped ",
+    "code.\n\n",
+    "Let repo evidence guide implementation details. If the plan is documentary, document. If it ",
+    "is investigative, follow the evidence. If it is a rewrite or refactor, existing code is ",
+    "terrain rather than the mission: understand it deeply, but do not let the current shape ",
+    "silently narrow the approved scope. If concrete correctness, feasibility, security, ",
+    "data-loss, or explicit-compatibility issues conflict with the plan, adapt deliberately and ",
+    "explain why."
 );
 pub(super) const PLAN_IMPLEMENTATION_DEFAULT_UNAVAILABLE: &str = "Default mode unavailable";
 pub(super) const PLAN_IMPLEMENTATION_NO_APPROVED_PLAN: &str = "No approved plan available";
+
+pub(super) fn plan_implementation_prompt(plan_markdown: &str) -> Option<String> {
+    (!plan_markdown.trim().is_empty())
+        .then(|| format!("{PLAN_IMPLEMENTATION_PROMPT_PREFIX}\n\n{plan_markdown}"))
+}
 
 /// Builds the confirmation prompt shown after a plan is approved in Plan mode.
 ///
@@ -30,44 +43,48 @@ pub(super) fn selection_view_params(
     plan_markdown: Option<&str>,
     clear_context_usage_label: Option<&str>,
 ) -> SelectionViewParams {
-    let (implement_actions, implement_disabled_reason) = match default_mask.clone() {
-        Some(mask) => {
-            let user_text = PLAN_IMPLEMENTATION_CODING_MESSAGE.to_string();
-            let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
-                tx.send(AppEvent::SubmitUserMessageWithMode {
-                    text: user_text.clone(),
-                    collaboration_mode: mask.clone(),
-                });
-            })];
-            (actions, None)
-        }
-        None => (
-            Vec::new(),
-            Some(PLAN_IMPLEMENTATION_DEFAULT_UNAVAILABLE.to_string()),
-        ),
-    };
+    let approved_plan_message = plan_markdown.and_then(plan_implementation_prompt);
 
-    let (clear_context_actions, clear_context_disabled_reason) = match (default_mask, plan_markdown)
-    {
-        (None, _) => (
-            Vec::new(),
-            Some(PLAN_IMPLEMENTATION_DEFAULT_UNAVAILABLE.to_string()),
-        ),
-        (Some(_), Some(plan_markdown)) if !plan_markdown.trim().is_empty() => {
-            let user_text =
-                format!("{PLAN_IMPLEMENTATION_CLEAR_CONTEXT_PREFIX}\n\n{plan_markdown}");
-            let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
-                tx.send(AppEvent::ClearUiAndSubmitUserMessage {
-                    text: user_text.clone(),
-                });
-            })];
-            (actions, None)
-        }
-        (Some(_), _) => (
-            Vec::new(),
-            Some(PLAN_IMPLEMENTATION_NO_APPROVED_PLAN.to_string()),
-        ),
-    };
+    let (implement_actions, implement_disabled_reason) =
+        match (default_mask.clone(), approved_plan_message.clone()) {
+            (None, _) => (
+                Vec::new(),
+                Some(PLAN_IMPLEMENTATION_DEFAULT_UNAVAILABLE.to_string()),
+            ),
+            (Some(_), None) => (
+                Vec::new(),
+                Some(PLAN_IMPLEMENTATION_NO_APPROVED_PLAN.to_string()),
+            ),
+            (Some(mask), Some(user_text)) => {
+                let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
+                    tx.send(AppEvent::SubmitUserMessageWithMode {
+                        text: user_text.clone(),
+                        collaboration_mode: mask.clone(),
+                    });
+                })];
+                (actions, None)
+            }
+        };
+
+    let (clear_context_actions, clear_context_disabled_reason) =
+        match (default_mask, approved_plan_message) {
+            (None, _) => (
+                Vec::new(),
+                Some(PLAN_IMPLEMENTATION_DEFAULT_UNAVAILABLE.to_string()),
+            ),
+            (Some(_), None) => (
+                Vec::new(),
+                Some(PLAN_IMPLEMENTATION_NO_APPROVED_PLAN.to_string()),
+            ),
+            (Some(_), Some(user_text)) => {
+                let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
+                    tx.send(AppEvent::ClearUiAndSubmitUserMessage {
+                        text: user_text.clone(),
+                    });
+                })];
+                (actions, None)
+            }
+        };
 
     let clear_context_description = clear_context_usage_label.map_or_else(
         || "Fresh thread with this plan.".to_string(),

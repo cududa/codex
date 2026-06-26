@@ -934,6 +934,36 @@ fn drop_last_n_user_turns_trims_context_updates_above_rolled_back_turn() {
 }
 
 #[test]
+fn drop_last_n_user_turns_trims_developer_goal_context_above_rolled_back_turn() {
+    let items = vec![
+        user_input_text_msg("turn 1 user"),
+        assistant_msg("turn 1 assistant"),
+        developer_msg("<goal_context>\nContinue working.\n</goal_context>"),
+        user_input_text_msg("turn 2 user"),
+        assistant_msg("turn 2 assistant"),
+    ];
+
+    let modalities = default_input_modalities();
+    let mut history = create_history_with_items(items);
+    history.drop_last_n_user_turns(/*num_turns*/ 1);
+
+    assert_eq!(
+        history.for_prompt(&modalities),
+        vec![
+            user_input_text_msg("turn 1 user"),
+            assistant_msg("turn 1 assistant"),
+        ]
+    );
+}
+
+#[test]
+fn user_goal_context_is_not_a_user_turn_boundary() {
+    let item = user_input_text_msg("<goal_context>\nContinue working.\n</goal_context>");
+
+    assert!(!is_user_turn_boundary(&item));
+}
+
+#[test]
 fn drop_last_n_user_turns_clears_reference_context_for_mixed_developer_context_bundles() {
     let items = vec![
         user_input_text_msg("turn 1 user"),
