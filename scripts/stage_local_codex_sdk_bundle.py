@@ -22,8 +22,10 @@ CODEX_RS_ROOT = REPO_ROOT / "codex-rs"
 CODEX_SDK_ROOT = REPO_ROOT / "sdk" / "typescript"
 TARGET_TRIPLE = "aarch64-pc-windows-msvc"
 LOCAL_VERSION_SUFFIX = "cududa"
-CODEX_NPM_NAME = "@openai/codex"
-CODEX_SDK_NPM_NAME = "@openai/codex-sdk"
+CODEX_NPM_NAME = "@cududa/codex"
+CODEX_SDK_NPM_NAME = "@cududa/codex-sdk"
+PUBLIC_CODEX_NPM_NAME = "@openai/codex"
+PUBLIC_CODEX_SDK_NPM_NAME = "@openai/codex-sdk"
 LEGACY_INSTALL_ROOT = Path(r"C:\Program Files\CodexPinned")
 LEGACY_BIN_DIR = LEGACY_INSTALL_ROOT / "bin"
 JsonObject = dict[str, Any]
@@ -70,7 +72,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-global-install",
         action="store_true",
-        help="Skip installing @openai/codex and @openai/codex-sdk into global npm.",
+        help="Skip installing @cududa/codex and @cududa/codex-sdk into global npm.",
     )
     parser.add_argument(
         "--skip-path-normalization",
@@ -90,6 +92,9 @@ def main() -> int:
     version = args.version or derive_local_version()
     output_dir = args.output_dir.resolve()
     tarballs_dir = output_dir / "tarballs"
+    packages_dir = output_dir / "packages"
+    codex_package_dir = packages_dir / "codex"
+    sdk_package_dir = packages_dir / "codex-sdk"
     codex_tarball = tarballs_dir / f"codex-npm-{version}.tgz"
     sdk_tarball = tarballs_dir / f"codex-sdk-npm-{version}.tgz"
 
@@ -100,30 +105,33 @@ def main() -> int:
 
     codex_bin = args.codex_bin.resolve()
     require_file(codex_bin, "Codex binary")
-    rg_source = resolve_rg_source(args.rg_source)
+    rg_source = resolve_rg_source(args.rg_source, output_dir)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     tarballs_dir.mkdir(parents=True, exist_ok=True)
+    reset_dir(packages_dir)
 
-    with tempfile.TemporaryDirectory(prefix="codex-local-npm-") as tmp_dir_str:
-        tmp_dir = Path(tmp_dir_str)
-        stage_codex_package(tmp_dir / "codex", version, codex_bin, rg_source)
-        run_npm_pack(tmp_dir / "codex", codex_tarball)
-        stage_sdk_package(
-            tmp_dir / "sdk",
-            version,
-            sdk_tarball,
-            skip_sdk_build=args.skip_sdk_build,
-        )
+    stage_codex_package(codex_package_dir, version, codex_bin, rg_source)
+    run_npm_pack(codex_package_dir, codex_tarball)
+    stage_sdk_package(
+        sdk_package_dir,
+        version,
+        sdk_tarball,
+        skip_sdk_build=args.skip_sdk_build,
+    )
 
     write_consumer_manifest(output_dir, version, codex_tarball.name, sdk_tarball.name)
     write_pnpm_workspace(output_dir, codex_tarball.name)
     if not args.skip_local_install:
-        run_command([resolve_command("pnpm"), "install"], cwd=output_dir, env={"CI": "true"})
+        run_command(
+            [resolve_command("pnpm"), "install", "--no-frozen-lockfile"],
+            cwd=output_dir,
+            env={"CI": "true"},
+        )
 
     npm_prefix = npm_global_prefix()
     if not args.skip_global_install:
-        install_global_packages(codex_tarball, sdk_tarball)
+        install_global_packages(npm_prefix, codex_package_dir, sdk_package_dir)
         verify_global_npm_route(npm_prefix)
 
     if not args.skip_path_normalization:
@@ -167,16 +175,28 @@ def derive_local_version() -> str:
     return f"{version}-{LOCAL_VERSION_SUFFIX}"
 
 
-def resolve_rg_source(override: Path | None) -> Path:
+def resolve_rg_source(override: Path | None, output_dir: Path) -> Path:
     if override is not None:
         rg_source = override.resolve()
     else:
-        found = shutil.which("rg")
+        found = find_command_outside("rg", output_dir)
         if found is None:
             raise FileNotFoundError("Unable to find rg on PATH. Pass --rg-source.")
-        rg_source = Path(found).resolve()
+        rg_source = found
     require_file(rg_source, "rg binary")
     return rg_source
+
+
+def find_command_outside(name: str, excluded_root: Path) -> Path | None:
+    executable_names = [name]
+    if os.name == "nt" and not name.lower().endswith((".exe", ".cmd", ".bat", ".ps1")):
+        executable_names = [f"{name}.exe", f"{name}.cmd", f"{name}.bat", name]
+    for entry in split_path(os.environ.get("PATH", "")):
+        for executable_name in executable_names:
+            candidate = (Path(entry) / executable_name).resolve()
+            if candidate.is_file() and not candidate.is_relative_to(excluded_root):
+                return candidate
+    return None
 
 
 def stage_codex_package(
@@ -202,7 +222,9 @@ def stage_codex_package(
 
     with open(CODEX_CLI_ROOT / "package.json", "r", encoding="utf-8") as fh:
         package_json = cast(JsonObject, json.load(fh))
+    package_json["name"] = CODEX_NPM_NAME
     package_json["version"] = version
+    package_json["private"] = True
     package_json["files"] = ["bin", "vendor"]
     package_json.pop("optionalDependencies", None)
     write_json(staging_dir / "package.json", package_json)
@@ -241,15 +263,13 @@ def stage_sdk_package(
 
     with open(CODEX_SDK_ROOT / "package.json", "r", encoding="utf-8") as fh:
         package_json = cast(JsonObject, json.load(fh))
+    package_json["name"] = CODEX_SDK_NPM_NAME
     package_json["version"] = version
+    package_json["private"] = True
     scripts_value = package_json.get("scripts")
     if isinstance(scripts_value, dict):
         scripts = cast(JsonObject, scripts_value)
         scripts.pop("prepare", None)
-    dependencies_value = package_json.get("dependencies")
-    dependencies = cast(JsonObject, dependencies_value) if isinstance(dependencies_value, dict) else {}
-    dependencies[CODEX_NPM_NAME] = version
-    package_json["dependencies"] = dependencies
     write_json(staging_dir / "package.json", package_json)
     run_npm_pack(staging_dir, pack_output)
 
@@ -316,11 +336,23 @@ def run_npm_pack(staging_dir: Path, output_path: Path) -> None:
         shutil.move(str(packed), output_path)
 
 
-def install_global_packages(codex_tarball: Path, sdk_tarball: Path) -> None:
+def install_global_packages(npm_prefix: Path, codex_package_dir: Path, sdk_package_dir: Path) -> None:
     run_command(
-        [resolve_command("npm"), "install", "-g", str(codex_tarball), str(sdk_tarball)],
+        [
+            resolve_command("npm"),
+            "uninstall",
+            "-g",
+            PUBLIC_CODEX_NPM_NAME,
+            PUBLIC_CODEX_SDK_NPM_NAME,
+        ],
         cwd=REPO_ROOT,
     )
+    delete_global_public_scope(npm_prefix)
+    run_command(
+        [resolve_command("npm"), "install", "-g", str(codex_package_dir), str(sdk_package_dir)],
+        cwd=REPO_ROOT,
+    )
+    delete_hidden_scope_cleanup_dirs(npm_prefix, "@cududa")
 
 
 def npm_global_prefix() -> Path:
@@ -339,7 +371,7 @@ def verify_global_npm_route(npm_prefix: Path) -> None:
             resolve_command("node"),
             "--input-type=module",
             "-e",
-            "import('@openai/codex-sdk').then(({ Codex }) => { new Codex(); console.log('sdk ok'); })",
+            "import('@cududa/codex-sdk').then(({ Codex }) => { new Codex(); console.log('sdk ok'); })",
         ],
         cwd=npm_prefix / "node_modules",
     )
@@ -407,33 +439,52 @@ def windows_path_key(scope: str) -> tuple[int, str]:
 
 
 def delete_legacy_install() -> None:
-    if not LEGACY_INSTALL_ROOT.exists():
+    delete_path_or_schedule(LEGACY_INSTALL_ROOT)
+
+
+def delete_global_public_scope(npm_prefix: Path) -> None:
+    delete_path_or_schedule(npm_prefix / "node_modules" / "@openai")
+
+
+def delete_hidden_scope_cleanup_dirs(npm_prefix: Path, scope: str) -> None:
+    scope_dir = npm_prefix / "node_modules" / scope
+    if not scope_dir.is_dir():
         return
-    running = running_processes_under(LEGACY_INSTALL_ROOT)
+    for child in scope_dir.iterdir():
+        if child.name.startswith("."):
+            delete_path_or_schedule(child)
+
+
+def delete_path_or_schedule(root: Path) -> None:
+    if not root.exists():
+        return
+    running = running_processes_under(root)
     if running:
         details = ", ".join(f"{name}({pid})" for pid, name in running)
-        schedule_legacy_delete_after_exit(running)
+        schedule_delete_after_exit(root, running)
         print(
-            f"Scheduled {LEGACY_INSTALL_ROOT} for deletion after running legacy Codex exits: {details}",
+            f"Scheduled {root} for deletion after running Codex exits: {details}",
             flush=True,
         )
         return
     try:
-        shutil.rmtree(LEGACY_INSTALL_ROOT)
-    except PermissionError:
-        running_after_failure = running_processes_under(LEGACY_INSTALL_ROOT)
+        shutil.rmtree(root)
+    except OSError:
+        running_after_failure = running_processes_under(root)
+        if not running_after_failure and root.name.startswith("."):
+            running_after_failure = running_processes_under(root.parent)
         if running_after_failure:
-            schedule_legacy_delete_after_exit(running_after_failure)
+            schedule_delete_after_exit(root, running_after_failure)
             details = ", ".join(f"{name}({pid})" for pid, name in running_after_failure)
             print(
-                f"Scheduled {LEGACY_INSTALL_ROOT} for deletion after running legacy Codex exits: {details}",
+                f"Scheduled {root} for deletion after running Codex exits: {details}",
                 flush=True,
             )
             return
         raise
 
 
-def schedule_legacy_delete_after_exit(running: list[tuple[int, str]]) -> None:
+def schedule_delete_after_exit(root: Path, running: list[tuple[int, str]]) -> None:
     pids = ",".join(str(pid) for pid, _name in running)
     log_path = Path(os.environ.get("TEMP", str(REPO_ROOT))) / "codex-local-npm-route-cleanup.log"
     script = (
@@ -443,9 +494,9 @@ def schedule_legacy_delete_after_exit(running: list[tuple[int, str]]) -> None:
         "  $p = Get-Process -Id $pidToWait -ErrorAction SilentlyContinue; "
         "  if ($p) { Wait-Process -Id $pidToWait; } "
         "} "
-        f"Remove-Item -LiteralPath {powershell_quote(str(LEGACY_INSTALL_ROOT))} -Recurse -Force; "
+        f"Remove-Item -LiteralPath {powershell_quote(str(root))} -Recurse -Force; "
         f"Add-Content -LiteralPath {powershell_quote(str(log_path))} -Value "
-        f"{powershell_quote('deleted ' + str(LEGACY_INSTALL_ROOT))};"
+        f"{powershell_quote('deleted ' + str(root))};"
     )
     subprocess.run(
         [
@@ -514,6 +565,12 @@ def write_json(path: Path, value: object) -> None:
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(value, fh, indent=2)
         fh.write("\n")
+
+
+def reset_dir(path: Path) -> None:
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True)
 
 
 def run_command(cmd: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> None:
