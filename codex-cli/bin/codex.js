@@ -92,25 +92,15 @@ try {
   if (existsSync(localBinaryPath)) {
     vendorRoot = localVendorRoot;
   } else {
-    const packageManager = detectPackageManager();
-    const updateCommand =
-      packageManager === "bun"
-        ? "bun install -g @openai/codex@latest"
-        : "npm install -g @openai/codex@latest";
     throw new Error(
-      `Missing optional dependency ${platformPackage}. Reinstall Codex: ${updateCommand}`,
+      `Missing Codex binary for ${platformPackage}. Rebuild the local npm route with scripts/stage_local_codex_sdk_bundle.py.`,
     );
   }
 }
 
 if (!vendorRoot) {
-  const packageManager = detectPackageManager();
-  const updateCommand =
-    packageManager === "bun"
-      ? "bun install -g @openai/codex@latest"
-      : "npm install -g @openai/codex@latest";
   throw new Error(
-    `Missing optional dependency ${platformPackage}. Reinstall Codex: ${updateCommand}`,
+    `Missing Codex binary for ${platformPackage}. Rebuild the local npm route with scripts/stage_local_codex_sdk_bundle.py.`,
   );
 }
 

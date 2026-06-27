@@ -44,7 +44,7 @@ function createEarlyExitChild(exitCode = 2): FakeChildProcess {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("CodexExec", () => {
-  it("resolves a self-contained @openai/codex vendor tree", async () => {
+  it("resolves a self-contained @cududa/codex vendor tree", async () => {
     const { __testing } = await import("../src/exec");
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-sdk-self-contained-"));
     try {
@@ -66,7 +66,7 @@ describe("CodexExec", () => {
       expect(
         __testing.resolveVendorRoot(
           path.join(packageRoot, "package.json"),
-          "@openai/codex-missing-platform-package",
+          "@cududa/codex-missing-platform-package",
           targetTriple,
         ),
       ).toBe(vendorRoot);

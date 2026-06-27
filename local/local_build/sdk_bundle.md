@@ -1,4 +1,4 @@
-# Local Codex Npm Route
+# Local Codex npm Route
 
 This document is the authority for the local Windows ARM64 Codex install route.
 Existing scripts, PATH entries, and install folders are terrain. They do not
@@ -11,8 +11,11 @@ There is one local Codex route:
 - Global npm is the canonical route for the Codex CLI, TypeScript SDK, and local
   Node applets that launch Codex.
 - The local bundle script owns producing and installing the full usable package.
-- The package includes `codex.exe`, `rg.exe`, `@openai/codex`, and
-  `@openai/codex-sdk`.
+- The package includes `codex.exe`, `rg.exe`, `@cududa/codex`, and
+  `@cududa/codex-sdk`.
+- The installed npm package names intentionally do not use the public
+  `@openai/*` names. Broad `npm update -g` must not replace the local route
+  with registry packages.
 - The route preserves the current no-sandbox usage pattern:
   `sandbox_mode = "danger-full-access"`, `approval_policy = "never"`, and
   `default_permissions = ":danger-no-sandbox"`.
@@ -39,14 +42,56 @@ That command is expected to:
 - build `codex-rs\target\aarch64-pc-windows-msvc\local-release\codex.exe`;
 - package `rg.exe` from PATH into the Codex npm package;
 - build and package the TypeScript SDK against that bundled Codex package;
-- install the generated `@openai/codex` and `@openai/codex-sdk` tarballs into
-  global npm; and
+- uninstall any global `@openai/codex` or `@openai/codex-sdk` packages;
+- stage `@cududa/codex` and `@cududa/codex-sdk` as local package folders and
+  tarballs under `dist\npm-local`;
+- install the staged package folders into global npm; and
 - leave `codex` resolving through global npm.
+
+The folder install is intentional. Tarball-installed private packages still
+make npm query the registry during broad global updates. Folder-installed
+packages are treated as local links, so `npm update -g` leaves them alone.
+The tarballs remain useful artifacts, but they are not the canonical global
+install source.
 
 The generated npm package version is
 `<codex-rs workspace.package.version>-cududa` unless `--version` is provided.
 The current `0.131.x` line stays on `0.131.0-cududa`; upstream `0.132.x` is
 accepted later through the normal fast-forward flow.
+
+Local Node applets should import the SDK from the private package name:
+
+```ts
+import { Codex } from "@cududa/codex-sdk";
+```
+
+## Expected State
+
+After a successful run:
+
+```powershell
+npm list -g @cududa/codex @cududa/codex-sdk @openai/codex @openai/codex-sdk --depth=0
+```
+
+should show only `@cududa/codex` and `@cududa/codex-sdk`.
+
+```powershell
+Get-Command codex -All
+codex --version
+codex doctor --json
+```
+
+should show `codex` resolving through global npm, with the active executable
+under `...\npm\node_modules\@cududa\codex\vendor\aarch64-pc-windows-msvc\codex\codex.exe`.
+
+```powershell
+npm update -g --dry-run
+```
+
+should not plan an upstream `@openai/codex` replacement. If the current Codex
+process has just updated itself, npm may leave a hidden cleanup directory such
+as `node_modules\@cududa\.codex-*` until Codex exits. The script schedules that
+directory for deletion after the running process releases the executable.
 
 ## Narrow Iteration
 
