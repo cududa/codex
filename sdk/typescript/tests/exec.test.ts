@@ -1,5 +1,8 @@
 import * as child_process from "node:child_process";
 import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { PassThrough } from "node:stream";
 
 import { describe, expect, it } from "@jest/globals";
@@ -41,6 +44,37 @@ function createEarlyExitChild(exitCode = 2): FakeChildProcess {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("CodexExec", () => {
+  it("resolves a self-contained @openai/codex vendor tree", async () => {
+    const { __testing } = await import("../src/exec");
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-sdk-self-contained-"));
+    try {
+      const packageRoot = path.join(tmpDir, "package");
+      const targetTriple =
+        process.platform === "win32"
+          ? "aarch64-pc-windows-msvc"
+          : process.platform === "darwin"
+            ? "aarch64-apple-darwin"
+            : "aarch64-unknown-linux-musl";
+      const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
+      const vendorRoot = path.join(packageRoot, "vendor");
+      const binaryDir = path.join(vendorRoot, targetTriple, "codex");
+
+      fs.mkdirSync(binaryDir, { recursive: true });
+      fs.writeFileSync(path.join(packageRoot, "package.json"), "{}");
+      fs.writeFileSync(path.join(binaryDir, codexBinaryName), "");
+
+      expect(
+        __testing.resolveVendorRoot(
+          path.join(packageRoot, "package.json"),
+          "@openai/codex-missing-platform-package",
+          targetTriple,
+        ),
+      ).toBe(vendorRoot);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   it("rejects when exit happens before stdout closes", async () => {
     const { CodexExec } = await import("../src/exec");
     const child = createEarlyExitChild();

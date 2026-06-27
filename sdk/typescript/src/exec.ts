@@ -1,7 +1,9 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 
 import type { CodexConfigObject, CodexConfigValue } from "./codexOptions";
 import { SandboxMode, ModelReasoningEffort, ApprovalMode, WebSearchMode } from "./threadOptions";
@@ -52,7 +54,7 @@ const PLATFORM_PACKAGE_BY_TARGET: Record<string, string> = {
   "aarch64-pc-windows-msvc": "@openai/codex-win32-arm64",
 };
 
-const moduleRequire = createRequire(import.meta.url);
+const moduleRequire = createRequire(modulePathFromImportMeta());
 
 export class CodexExec {
   private executablePath: string;
@@ -314,6 +316,17 @@ function isPlainObject(value: unknown): value is CodexConfigObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function modulePathFromImportMeta(): string {
+  try {
+    return fileURLToPath(import.meta.url);
+  } catch {
+    if (process.platform === "win32" && import.meta.url.startsWith("file://")) {
+      return import.meta.url.slice("file://".length);
+    }
+    return import.meta.url;
+  }
+}
+
 function findCodexPath() {
   const { platform, arch } = process;
 
@@ -369,21 +382,50 @@ function findCodexPath() {
     throw new Error(`Unsupported target triple: ${targetTriple}`);
   }
 
-  let vendorRoot: string;
-  try {
-    const codexPackageJsonPath = moduleRequire.resolve(`${CODEX_NPM_NAME}/package.json`);
-    const codexRequire = createRequire(codexPackageJsonPath);
-    const platformPackageJsonPath = codexRequire.resolve(`${platformPackage}/package.json`);
-    vendorRoot = path.join(path.dirname(platformPackageJsonPath), "vendor");
-  } catch {
-    throw new Error(
-      `Unable to locate Codex CLI binaries. Ensure ${CODEX_NPM_NAME} is installed with optional dependencies.`,
-    );
-  }
-
+  const codexPackageJsonPath = resolveCodexPackageJsonPath();
+  const vendorRoot = resolveVendorRoot(codexPackageJsonPath, platformPackage, targetTriple);
   const archRoot = path.join(vendorRoot, targetTriple);
   const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
   const binaryPath = path.join(archRoot, "codex", codexBinaryName);
 
   return binaryPath;
 }
+
+function resolveCodexPackageJsonPath(): string {
+  try {
+    return moduleRequire.resolve(`${CODEX_NPM_NAME}/package.json`);
+  } catch {
+    throw new Error(
+      `Unable to locate Codex CLI binaries. Ensure ${CODEX_NPM_NAME} is installed.`,
+    );
+  }
+}
+
+function resolveVendorRoot(
+  codexPackageJsonPath: string,
+  platformPackage: string,
+  targetTriple: string,
+): string {
+  const codexRequire = createRequire(codexPackageJsonPath);
+  try {
+    const platformPackageJsonPath = codexRequire.resolve(`${platformPackage}/package.json`);
+    return path.join(path.dirname(platformPackageJsonPath), "vendor");
+  } catch {
+    const selfContainedVendorRoot = path.join(path.dirname(codexPackageJsonPath), "vendor");
+    const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
+    const selfContainedBinaryPath = path.join(
+      selfContainedVendorRoot,
+      targetTriple,
+      "codex",
+      codexBinaryName,
+    );
+    if (existsSync(selfContainedBinaryPath)) {
+      return selfContainedVendorRoot;
+    }
+    throw new Error(
+      `Unable to locate Codex CLI binaries. Ensure ${CODEX_NPM_NAME} is installed with optional dependencies or a bundled vendor tree.`,
+    );
+  }
+}
+
+export const __testing = { resolveVendorRoot };

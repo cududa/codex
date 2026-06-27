@@ -60,6 +60,8 @@ Run `just fmt` (in `codex-rs` directory) automatically after you have finished m
 2. Do not run full crate or workspace suites by default on this workstation. In particular, do not run `cargo test -p codex-tui`, `cargo test`, `just test`, or `--all-features` unless the user explicitly asks for that broader validation. These commands can take too long and consume too much local capacity.
 3. If broader validation seems useful, say what you would run and leave it for the user to opt in. Prefer any available `local-profile`, local profiling, or remote test workflow over a full local cargo suite when the user asks for broader coverage.
 
+For the local Codex npm route, `local/local_build/sdk_bundle.md` is the authority. It supersedes legacy `C:\Program Files\CodexPinned\bin` install assumptions: global npm is the single blessed CLI/SDK/local-applet route, the package includes Codex, rg, and SDK, preserves the current no-sandbox usage pattern, and all entrypoints share the normal `~\.codex` home.
+
 Before finalizing a large change to `codex-rs`, run `just fix -p <project>` (in `codex-rs` directory) to fix any linter issues in the code. Prefer scoping with `-p` to avoid slow workspace‑wide Clippy builds; only run `just fix` without `-p` if you changed shared crates. Do not re-run tests after running `fix` or `fmt`.
 
 ## The `codex-core` crate
