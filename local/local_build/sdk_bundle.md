@@ -65,6 +65,11 @@ Local Node applets should import the SDK from the private package name:
 import { Codex } from "@cududa/codex-sdk";
 ```
 
+Apps may depend on only `@cududa/codex-sdk`. The SDK first looks for a local
+`@cududa/codex` package next to the app, then falls back to the canonical
+global npm package. That keeps app package manifests slim while preserving the
+single shared Codex route.
+
 ## Expected State
 
 After a successful run:
@@ -97,6 +102,9 @@ directory for deletion after the running process releases the executable.
 
 `--reuse-codex-bin` is only for SDK/node iteration when the current
 `local-release` binary should be repackaged as-is. It is not the normal path.
+When the global npm route is running from the staged package folder, this flag
+also preserves the existing staged Codex package so SDK-only iteration does not
+try to overwrite a locked `codex.exe`.
 
 `--skip-sdk-build`, `--skip-local-install`, `--skip-global-install`,
 `--skip-path-normalization`, and `--skip-legacy-delete` are debugging switches,
