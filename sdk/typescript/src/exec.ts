@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
@@ -395,10 +395,51 @@ function resolveCodexPackageJsonPath(): string {
   try {
     return moduleRequire.resolve(`${CODEX_NPM_NAME}/package.json`);
   } catch {
+    const globalPackageJsonPath = resolveGlobalCodexPackageJsonPath();
+    if (globalPackageJsonPath) {
+      return globalPackageJsonPath;
+    }
     throw new Error(
-      `Unable to locate Codex CLI binaries. Ensure ${CODEX_NPM_NAME} is installed.`,
+      `Unable to locate Codex CLI binaries. Ensure ${CODEX_NPM_NAME} is installed locally or in global npm.`,
     );
   }
+}
+
+function resolveGlobalCodexPackageJsonPath(): string | null {
+  for (const globalNodeModules of globalNodeModulesCandidates()) {
+    const packageJsonPath = path.join(globalNodeModules, CODEX_NPM_NAME, "package.json");
+    if (existsSync(packageJsonPath)) {
+      return packageJsonPath;
+    }
+  }
+  return null;
+}
+
+function globalNodeModulesCandidates(): string[] {
+  const candidates: string[] = [];
+  const explicitRoot = process.env.CODEX_NPM_GLOBAL_ROOT;
+  if (explicitRoot) {
+    candidates.push(explicitRoot);
+  }
+
+  try {
+    const npmRoot = execFileSync("npm", ["root", "-g"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      windowsHide: true,
+    }).trim();
+    if (npmRoot) {
+      candidates.push(npmRoot);
+    }
+  } catch {
+    // npm may be absent from PATH in embedded Node hosts.
+  }
+
+  if (process.platform === "win32" && process.env.APPDATA) {
+    candidates.push(path.join(process.env.APPDATA, "npm", "node_modules"));
+  }
+
+  return [...new Set(candidates)];
 }
 
 function resolveVendorRoot(
@@ -428,4 +469,4 @@ function resolveVendorRoot(
   }
 }
 
-export const __testing = { resolveVendorRoot };
+export const __testing = { globalNodeModulesCandidates, resolveVendorRoot };

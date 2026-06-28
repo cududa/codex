@@ -109,10 +109,22 @@ def main() -> int:
 
     output_dir.mkdir(parents=True, exist_ok=True)
     tarballs_dir.mkdir(parents=True, exist_ok=True)
-    reset_dir(packages_dir)
+    packages_dir.mkdir(parents=True, exist_ok=True)
 
-    stage_codex_package(codex_package_dir, version, codex_bin, rg_source)
+    if args.reuse_codex_bin and (codex_package_dir / "package.json").is_file():
+        print("Reusing existing staged Codex npm package.", flush=True)
+        stage_codex_package(
+            codex_package_dir,
+            version,
+            codex_bin,
+            rg_source,
+            copy_codex_binary=False,
+        )
+    else:
+        reset_dir(codex_package_dir)
+        stage_codex_package(codex_package_dir, version, codex_bin, rg_source)
     run_npm_pack(codex_package_dir, codex_tarball)
+    reset_dir(sdk_package_dir)
     stage_sdk_package(
         sdk_package_dir,
         version,
@@ -204,16 +216,21 @@ def stage_codex_package(
     version: str,
     codex_bin: Path,
     rg_source: Path,
+    *,
+    copy_codex_binary: bool = True,
 ) -> None:
     codex_dest_dir = staging_dir / "vendor" / TARGET_TRIPLE / "codex"
     path_dest_dir = staging_dir / "vendor" / TARGET_TRIPLE / "path"
     bin_dir = staging_dir / "bin"
-    codex_dest_dir.mkdir(parents=True)
-    path_dest_dir.mkdir(parents=True)
-    bin_dir.mkdir(parents=True)
+    codex_dest_dir.mkdir(parents=True, exist_ok=True)
+    path_dest_dir.mkdir(parents=True, exist_ok=True)
+    bin_dir.mkdir(parents=True, exist_ok=True)
 
     shutil.copy2(CODEX_CLI_ROOT / "bin" / "codex.js", bin_dir / "codex.js")
-    shutil.copy2(codex_bin, codex_dest_dir / "codex.exe")
+    if copy_codex_binary:
+        shutil.copy2(codex_bin, codex_dest_dir / "codex.exe")
+    else:
+        require_file(codex_dest_dir / "codex.exe", "staged Codex binary")
     shutil.copy2(rg_source, path_dest_dir / "rg.exe")
 
     readme_src = REPO_ROOT / "README.md"
