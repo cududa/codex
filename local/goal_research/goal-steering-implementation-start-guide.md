@@ -257,9 +257,9 @@ The current `.130` local baseline also includes a second conceptual patch: first
 newly active/resumed goal uses the same typed, role-aware steering frame as continuation, but with
 start-from-scratch wording.
 
-This was motivated by observed `.130` behavior where interrupt/halt-then-`/goal resume` often
-produced better adherence than the first raw goal start. The working hypothesis is that the useful
-effect came from runtime-owned hidden steering, not from treating the raw objective as trusted
+This was motivated by observed `.130` behavior where an early halted run followed by `/goal resume`
+often produced better adherence than the first raw goal start. The working hypothesis is that the
+useful effect came from runtime-owned hidden steering, not from treating the raw objective as trusted
 instructions.
 
 Keep these invariants:
@@ -511,7 +511,7 @@ Those systems are orthogonal. Preserve:
 
 - `blocked`
 - `usageLimited`
-- explicit pause/resume semantics
+- explicit pause/resume semantics, with Ctrl+C as turn control and `/goal pause` as lifecycle control
 - dedicated goal DB, if present
 - extension-backed accounting, if present
 - app-server goal API stabilization, if present

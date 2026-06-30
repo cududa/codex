@@ -41,6 +41,13 @@ fn submit_composer_text(chat: &mut ChatWidget, text: &str) {
     submit_current_composer(chat);
 }
 
+fn submit_composer_text_without_escape(chat: &mut ChatWidget, text: &str) {
+    chat.bottom_pane
+        .set_composer_text(text.to_string(), Vec::new(), Vec::new());
+    chat.handle_key_event(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    chat.handle_key_event(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+}
+
 fn submit_current_composer(chat: &mut ChatWidget) {
     chat.handle_key_event(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
     chat.handle_key_event(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -758,6 +765,59 @@ async fn goal_control_slash_commands_emit_goal_events() {
             }
         }
     }
+}
+
+#[tokio::test]
+async fn goal_pause_interrupts_active_turn_after_status_event() {
+    let (mut chat, mut rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
+    chat.set_feature_enabled(Feature::Goals, /*enabled*/ true);
+    let thread_id = ThreadId::new();
+    chat.thread_id = Some(thread_id);
+    chat.on_task_started();
+
+    submit_composer_text_without_escape(&mut chat, "/goal pause");
+
+    assert_matches!(
+        rx.try_recv(),
+        Ok(AppEvent::SetThreadGoalStatus {
+            thread_id: actual_thread_id,
+            status: AppThreadGoalStatus::Paused,
+        }) if actual_thread_id == thread_id
+    );
+    match op_rx.try_recv() {
+        Ok(Op::Interrupt) => {}
+        other => panic!("expected Op::Interrupt, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn goal_pause_with_queued_message_does_not_submit_queued_message_under_active_goal() {
+    let (mut chat, mut rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
+    chat.set_feature_enabled(Feature::Goals, /*enabled*/ true);
+    let thread_id = ThreadId::new();
+    chat.thread_id = Some(thread_id);
+    chat.on_task_started();
+    queue_composer_text_with_tab(&mut chat, "queued follow-up");
+
+    submit_composer_text_without_escape(&mut chat, "/goal pause");
+
+    assert_eq!(chat.input_queue.queued_user_messages.len(), 1);
+    assert_eq!(
+        chat.input_queue.queued_user_messages.front().unwrap().text,
+        "queued follow-up"
+    );
+    assert_matches!(
+        rx.try_recv(),
+        Ok(AppEvent::SetThreadGoalStatus {
+            thread_id: actual_thread_id,
+            status: AppThreadGoalStatus::Paused,
+        }) if actual_thread_id == thread_id
+    );
+    match op_rx.try_recv() {
+        Ok(Op::Interrupt) => {}
+        other => panic!("expected Op::Interrupt, got {other:?}"),
+    }
+    assert_matches!(op_rx.try_recv(), Err(TryRecvError::Empty));
 }
 
 #[tokio::test]

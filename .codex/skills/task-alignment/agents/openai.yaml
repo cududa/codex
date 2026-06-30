@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Alignment"
+  short_description: "Keep repo work aligned to user intent"
+  default_prompt: "Use $task-alignment to keep repo inspection aligned with my requested implementation shape."

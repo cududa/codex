@@ -217,11 +217,10 @@ impl ChatWidget {
         if !self.transcript.saw_plan_item_this_turn {
             return;
         }
-        if !self
+        if self
             .transcript
             .latest_proposed_plan_markdown
-            .as_deref()
-            .is_some_and(|plan| !plan.trim().is_empty())
+            .as_deref().is_none_or(|plan| plan.trim().is_empty())
         {
             return;
         }
@@ -347,6 +346,7 @@ impl ChatWidget {
 
     pub(super) fn on_error(&mut self, message: String) {
         self.input_queue.submit_pending_steers_after_interrupt = false;
+        self.flush_answer_stream_with_separator();
         self.finalize_turn();
         self.add_to_history(history_cell::new_error_event(message));
         self.set_ambient_pet_notification(
