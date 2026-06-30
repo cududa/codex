@@ -499,6 +499,14 @@ strip = "symbols"
 # See https://github.com/openai/codex/issues/1411 for details.
 codegen-units = 1
 
+[profile.local-release]
+inherits = "release"
+# Local pinned builds install npm-style artifacts but skip upstream fat LTO
+# so Windows ARM VMs do not need the full official release build footprint.
+lto = false
+codegen-units = 16
+debug = "none"
+
 [profile.profiling]
 inherits = "release"
 debug = "full"
