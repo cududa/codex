@@ -34,7 +34,7 @@ steering paths.
 | 0.131 | Objective edit steering | `1e65b3e0af` | Adds `/goal edit` and an objective-updated hidden steering frame. | Good feature, but another prompt path that must carry the same role and source-authority policy. | Accept, route through same steering boundary. |
 | 0.131 | Goal-first history/preview | `2229c8daf2`, `f10ddc3f13` | Persists `/goal` commands and improves goal-first thread preview metadata. | Mostly helpful, but changes how old goal text appears in history and thread surfaces. | Accept; verify no duplicate steering confusion. |
 | 0.132 | Blocked and usage-limited states | `0d344aca9b` | Adds `blocked` and `usageLimited`; `update_goal` can mark blocked after repeated impasse. | Missing local artifact proof could become a repeated-blocker loop if prompt wording is too proof-heavy. | Keep feature, align blocked wording with source-authority policy. |
-| 0.132 | Explicit pause transitions | `55f6bbc667` | Interruption no longer implicitly pauses active goals. | More active goals remain eligible for automatic continuation after interruption. | Decide whether to preserve newer behavior or restore local pause-on-interrupt cadence. |
+| 0.132 | Explicit pause transitions | `55f6bbc667` | Interruption no longer implicitly pauses active goals. | More active goals remain eligible for automatic continuation after interruption. | Preserve Ctrl+C as turn control; keep goal pausing on explicit `/goal pause`. |
 | 0.132 | Tool search exposure | `daa11820b0`, `b3ae3de405` | Removes `tool_search` feature toggle and defers some tools behind search. | More discovery-mediated behavior; not bad, but can amplify artifact seeking. | Watch; do not treat tools as the problem. |
 | 0.133 | Goals default-on | `0e9d222178` | Goals become stable and enabled by default. | More sessions experience the goal prompt contract. | Accept only with local prompt/role policy carried. |
 | 0.133 | Dedicated goal DB | `ba57aab13a` | Moves goal data to `goals_1.sqlite`. | Goal state becomes more isolated/durable; existing rows are not backfilled. | Accept; document migration expectation. |
@@ -85,8 +85,9 @@ Accept with wording alignment:
 Patch or review:
 
 - Blocked audit should not convert "I cannot prove this from nearby artifacts" into "blocked."
-- Decide whether local workflow still wants interruption to pause active goals. If not, document the
-  new resume/continuation expectation clearly.
+- Ctrl+C remains turn control: interrupt cancellable work, keep the goal active, and allow queued
+  input to advance. `/goal pause` is the lifecycle control that pauses the goal and interrupts
+  active work.
 
 ### 0.133
 
@@ -123,8 +124,6 @@ Patch or review:
 
 - Should the local build default `goal.steering_role` to `developer`, or should the install/config
   repair path set it while upstream-compatible defaults remain `user`?
-- Should interruption pause active goals locally, or should the newer explicit pause/resume model be
-  accepted?
 - Should initial goal steering continue to exist as a local durability feature when upstream has only
   continuation/objective-updated/budget-limit steering?
 - How much of the broader in-repo-context weighting should be patched outside goal prompts in a later

@@ -139,8 +139,8 @@ The user's A/B testing produced a more specific observation:
   even when they were starting from scratch.
 - The user would interrupt immediately, add a note that the work was starting from scratch, and then
   run `/goal resume`.
-- In `0.130`, interruption paused the goal. In later versions, interruption and pause/resume
-  behavior changed.
+- In `0.130`, interruption paused the goal. In later versions, Ctrl+C is turn control and `/goal
+  pause` owns the goal lifecycle pause.
 - Control runs that did not interrupt often produced a low-churn interpretation of the goal on the
   first turn.
 - Runs that spent the first context window mostly investigating, then compacted/continued, often
@@ -196,7 +196,7 @@ This should be tested directly before any code change is considered complete.
 Suggested test matrix:
 
 - fresh `/goal` with no interruption
-- fresh `/goal`, immediate interrupt, note, `/goal resume`
+- fresh `/goal`, immediate Ctrl+C turn interrupt, note, explicit pause/resume where applicable
 - fresh `/goal`, investigation-only first turn, auto-compact/continue
 - fresh slash `/goal <objective>` while no active turn exists
 - slash `/goal resume` from paused, blocked, and usage-limited states
@@ -459,8 +459,8 @@ where a goal steering prompt becomes a model input item.
 
 The best current explanation is that `0.130` worked well not because raw goal text was magically
 trusted, but because the continuation/resume steering frame was a hidden developer message. The
-user's interruption-and-resume workflow likely increased the chance that the run entered through
-that stronger idle-continuation path before settling into an overly conservative interpretation.
+user's early-stop-and-resume workflow likely increased the chance that the run entered through that
+stronger idle-continuation path before settling into an overly conservative interpretation.
 Fresh slash-goal creation may also enter the same path, so the implementation investigation should
 focus on request shape and suppression conditions rather than treating `/goal resume` as uniquely
 causal.
