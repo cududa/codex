@@ -2,7 +2,10 @@
 //!
 //! This crate is intentionally not wired into the host yet. It contains the
 //! goal tool specs, extension registration shape, and the parts of runtime
-//! accounting that can be represented with today's extension API.
+//! accounting that can be represented with today's extension API. Durable
+//! status/accounting still belongs to host goal storage until the extension has
+//! a parity runtime API for persisted `GoalStore` mutation and typed steering
+//! requests.
 
 mod accounting;
 mod events;

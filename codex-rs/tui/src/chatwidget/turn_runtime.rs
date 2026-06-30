@@ -217,11 +217,10 @@ impl ChatWidget {
         if !self.transcript.saw_plan_item_this_turn {
             return;
         }
-        if !self
+        if self
             .transcript
             .latest_proposed_plan_markdown
-            .as_deref()
-            .is_some_and(|plan| !plan.trim().is_empty())
+            .as_deref().is_none_or(|plan| plan.trim().is_empty())
         {
             return;
         }

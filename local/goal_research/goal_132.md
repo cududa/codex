@@ -115,7 +115,7 @@ Required adaptation:
 - remove or rewrite the interrupt-pauses-goal TODO so the skeleton does not encode a pre-`55f6` policy
 - make extension tool schemas and core tool schemas equivalent while both paths exist
 - extend or replace `GoalToolBackend` so the backend can express every accepted `update_goal` status, not only `complete`
-- carry `blocked` into extension `update_goal` if extension tools can be exposed in v132/v133
+- carry the accepted `complete`/`blocked` `update_goal` contract into extension tooling if extension tools can be exposed in v132/v133
 - make the extension backend/lifecycle delegate into the existing maintained runtime path until the real refactor lands
 - when v133 moves ownership into `ext/goal`, move the maintained steering boundary into extension code instead of leaving core as a shadow authority
 
@@ -247,7 +247,7 @@ Concrete behavior changed:
 - `GoalStore::usage_limit_active_thread_goal` updates active goals and can supersede `budget_limited`
 - continuation selection skips `Paused`, `Blocked`, `UsageLimited`, `BudgetLimited`, and `Complete`
 - core `update_goal` accepts `complete` and `blocked`
-- core tool spec adds strict blocked guidance: same blocking condition repeated for at least three consecutive goal turns, fresh audit after resume, never merely hard/slow/uncertain
+- core tool spec adds strict blocked guidance: same blocking condition repeated for at least three consecutive goal turns, fresh audit after resume, never merely hard/slow/uncertain, and not merely missing authoritative evidence that still needs to be gathered
 - continuation prompt adds a "Blocked audit" section with the same model-facing constraints
 - incoming `0d344aca9b` prompt text also carries shapes rejected by the v131 finding: `<objective>`, "Work from evidence", "current worktree and external state as authoritative", and "audit must prove completion"
 - TUI displays `blocked`, `usage limited`, and `limited by budget`
@@ -264,9 +264,12 @@ Accepted:
 - usage-limit and budget-limit states should terminate automatic goal continuation
 - `Paused`, `Blocked`, and `UsageLimited` are resumable through `/goal resume`
 
-Still needs user decision:
+Blocked policy decision:
 
-- whether `blocked` remains model-settable through prompt/tool discipline or requires runtime/client evidence
+- accept `blocked` as model-settable through strict prompt/tool discipline
+- do not add a runtime/client evidence path for v132
+- keep core and extension `update_goal` wording aligned
+- add explicit wording that `blocked` must not be used merely because authoritative evidence has not yet been gathered; gather evidence or keep working
 
 Concrete blocked facts:
 
@@ -281,10 +284,10 @@ Required adaptation:
 - keep `budgetLimited` and `usageLimited`
 - keep usage-limit handling system-owned; the model must not set `usageLimited`
 - keep `budgetLimited` accounting-owned; the model must not set `budgetLimited`
-- keep continuation suppression for `Blocked` only if `blocked` is accepted as a stopped/resumable state
+- keep continuation suppression for `Blocked`
 - graft the blocked-audit wording onto the maintained `1d5fa703` continuation template with `<untrusted_objective>` and source-authority wording; do not accept the incoming `0d344aca9b` prompt wholesale
-- if `blocked` is accepted, extension `update_goal` must expose `blocked` with the same strict wording
-- if `blocked` is not accepted as purely model-settable, replace prompt-only enforcement with a runtime/client evidence path or remove model-settable `blocked`
+- extension `update_goal` must expose `blocked` with the same strict wording before extension tools can be exposed
+- do not add runtime blocker identity, runtime turn counters, or client evidence objects for v132
 
 ### 55f6bbc6672 - Explicit Pause Transitions
 
@@ -397,7 +400,7 @@ Remediation:
 
 - one authoritative tool contract
 - while duplicated, core and extension specs must match exactly on status enum, descriptions, output shape, and budget-report behavior
-- if `blocked` is accepted, extension must accept `blocked`
+- extension must accept `blocked` under the same strict prompt/tool discipline as core before extension tools can be exposed
 - if extension delegates to core, it must invoke the same accounting/metrics/events/steering hooks, not only mutate storage
 
 ### Extension Runtime
@@ -530,7 +533,7 @@ Adapted:
 
 - `a80f07ec`: extension skeleton becomes destination terrain but must carry maintained tool/lifecycle/steering ownership
 - `4ca60ef`: extension events are needed but must match core/app-server ordering and turn attribution
-- `0d344ac`: status expansion accepted for budget/usage; `blocked` remains policy decision; continuation suppression must match final policy
+- `0d344ac`: status expansion accepted for budget/usage; `blocked` accepted as prompt/tool-disciplined model-settable status; continuation suppression applies to `Blocked`
 - TUI pause ownership moves to `/goal pause`: Ctrl+C remains a turn interrupt/queued-message advance path, while `/goal pause` must set `Paused` and interrupt active work
 
 Rejected:
@@ -541,13 +544,14 @@ Rejected:
 - any move of steering authority into `ThreadGoal`, `GoalStore`, protocol schemas, metrics, or UI labels
 - prompt-only high-level claim that `ext/goal` will later be fixed without wiring the maintained semantics into the skeleton/refactor plan
 
-Needs discussion:
+Resolved decision:
 
-- `blocked`: prompt/tool discipline versus runtime/client evidence
+- `blocked`: prompt/tool discipline is accepted for v132; no runtime/client evidence path is required.
+- `blocked` wording must explicitly say missing authoritative evidence is not itself a blocker; gather evidence or keep working.
 
 ## Implementation Plan
 
-This is the implementation plan for the v132 Goal remediation. It is not a discussion guide. The next implementation session should follow the patch sequence in order and stop only at the explicit `blocked` gate.
+This is the implementation plan for the v132 Goal remediation. It is not a discussion guide. The next implementation session should follow the patch sequence in order.
 
 ### 1. Objective
 
@@ -574,23 +578,25 @@ End state for v132:
 - Do not add `steeringRole` to `ThreadGoal`, SQL rows, app-server payloads, metrics, or UI labels as an accidental way to carry steering authority.
 - Do not let extension tools go live with a different model-visible contract from core tools.
 - Do not use metrics to drive goal status, continuation, or steering.
-- Do not implement new runtime/client evidence for `blocked` until the user decides the blocked policy.
-- Do not expand model authority beyond the imported v132 core candidate terrain. `complete` is accepted; current core `blocked` remains gated; extension `blocked` must not be added until the user decides.
+- Do not implement runtime/client evidence for `blocked` in v132; strict prompt/tool discipline is the accepted policy.
+- Do not expand model authority beyond the accepted v132 core contract. `update_goal` may set only `complete` or `blocked`; `paused`, `active`, `budgetLimited`, and `usageLimited` remain user/client/system-owned.
 
-### 3. Blocked Decision Gate
+### 3. Blocked Decision
 
-Do not implement `blocked` beyond this line until the user decides:
+Decision:
 
-- Keep the imported v132 representation of `blocked` in protocol/state/TUI and the current core prompt/tool text visible as candidate terrain.
-- Keep continuation suppression for persisted `Blocked` goals because v132 can already encounter that state.
-- Do not add extension `blocked` support, extension blocked events, runtime blocker identity, runtime turn counters, or client evidence objects yet.
-- Do not make extension `update_goal` accept `blocked` until the user decides prompt/tool self-certification is acceptable.
-- Do not remove `blocked` from core/state/protocol/TUI until the user decides to reject prompt-only blocked.
+- Keep the imported v132 representation of `blocked` in protocol/state/TUI.
+- Keep continuation suppression for persisted `Blocked` goals.
+- Keep core `update_goal` accepting `complete` and `blocked` only.
+- Make extension `update_goal` accept `complete` and `blocked` with the same strict wording before extension tools can be exposed.
+- Do not add runtime blocker identity, runtime turn counters, or client evidence objects for v132.
+- Do not use `blocked` merely because authoritative evidence has not yet been gathered; gather evidence or keep working.
 
-When the user decides:
+Implementation consequence:
 
-- If accepted as prompt/tool discipline: propagate `blocked` into `codex-rs/ext/goal/src/spec.rs`, `tool.rs`, `extension.rs`, and `events.rs`; keep the strict three-turn wording; add parity tests.
-- If rejected as prompt-only discipline: remove model-settable `blocked` from core and extension tool specs/handlers, or add a runtime/client evidence path before mutation; update protocol/TUI semantics and tests in the same patch.
+- Propagate `blocked` into `codex-rs/ext/goal/src/spec.rs`, `tool.rs`, `extension.rs`, and `events.rs` as needed for parity.
+- Keep the strict three-turn wording.
+- Add parity tests.
 
 ### 4. Patch Sequence
 
@@ -615,7 +621,7 @@ Expected changes:
 - Keep all templates on `<untrusted_objective>` and source-authority wording.
 - Reject reintroduced `<objective>`, "Work from evidence", "current worktree and external state as authoritative", and "audit must prove completion".
 - Keep core `update_goal` rejection for `paused`, `active`, `budgetLimited`, and `usageLimited`.
-- Leave core `blocked` exactly as current candidate terrain under the decision gate; do not extend it.
+- Keep core `blocked` model-settable under strict prompt/tool discipline, and add the missing-evidence wording to the maintained continuation prompt/tool spec.
 
 Acceptance criteria:
 
@@ -698,15 +704,15 @@ Files:
 Expected changes:
 
 - Add explicit tests comparing core and extension tool names, create guidance, update descriptions, accepted statuses, and output behavior where the types permit comparison.
-- Keep extension `update_goal` complete-only while `blocked` remains undecided, or gate extension tool installation so complete-only extension tools cannot be exposed alongside core complete-or-blocked tools.
+- Make extension `update_goal` match the accepted core `complete`/`blocked` status set, or gate extension tool installation until parity is implemented.
 - If implementing the gate, change `GoalExtension::tools` or install path so `update_goal` is not contributed unless backend/tool status coverage matches the core accepted status set.
-- Rename/reshape `GoalToolBackend` only after deciding whether extension needs `set_goal_status(status)` or separate `complete_goal` / `block_goal`. Do not add `block_goal` under the unresolved blocked gate.
+- Rename/reshape `GoalToolBackend` to express the accepted status set, either with `set_goal_status(status)` or separate `complete_goal` / `block_goal`, following the existing extension shape.
 - Keep model tools unable to set `paused`, `active`, `budgetLimited`, or `usageLimited`.
 
 Acceptance criteria:
 
 - There is no production path where the model sees two different `update_goal` contracts.
-- The plan does not quietly implement `blocked` in extension.
+- Extension `blocked` support matches core prompt/tool discipline instead of introducing a second contract.
 - If extension tools remain unavailable because `NoGoalToolBackend` is the only installer, tests should assert that containment condition.
 - If tests live in `src/*.rs`, enable library tests in `codex-rs/ext/goal/Cargo.toml`; otherwise place them in `codex-rs/ext/goal/tests/goal_tools.rs`.
 
@@ -724,7 +730,7 @@ Expected changes:
 - Keep create/update events after successful backend mutation.
 - Add a host-backend hook before `complete_goal` for final active-turn accounting with budget steering suppressed, or explicitly gate completion events until the host backend can perform that sequence.
 - Keep the `turn_id: None` TODO as a tracked capability gap only if `ToolCall` still lacks current turn id.
-- Do not add blocked event handling until the blocked decision is resolved.
+- Add blocked event handling only as part of accepted extension parity with the core contract.
 
 Acceptance criteria:
 
@@ -868,7 +874,7 @@ Behavioral acceptance criteria:
 - Create/update events are emitted only after successful backend mutation.
 - Completion event path cannot skip final accounting once extension backend is live.
 - `turn_id: None` remains a tracked host API gap, not accepted final parity.
-- No blocked event path until blocked policy is decided.
+- Blocked event handling is added only when extension mutation parity is implemented.
 
 #### `0d344aca9b` - blocked and usage-limited statuses
 
@@ -899,7 +905,7 @@ Behavioral acceptance criteria:
 - `usageLimited` can supersede `budgetLimited`.
 - `Paused`, `Blocked`, and `UsageLimited` remain resumable through user/client action.
 - Incoming prompt wording is adapted to v131 source-authority and `<untrusted_objective>`.
-- `blocked` remains gated as above.
+- `blocked` remains model-settable only through strict prompt/tool discipline, with no runtime/client evidence path in v132.
 
 #### `55f6bbc6672` - explicit pause transitions
 
@@ -927,7 +933,7 @@ Core tests:
 
 - File: `codex-rs/core/src/goals.rs`
   - Keep or add `goal_steering_message_uses_configured_role_for_all_kinds`.
-  - Keep or add `continuation_prompt_allows_complete_and_strict_blocked_updates` only while blocked remains prompt-tool candidate terrain.
+  - Keep or add `continuation_prompt_allows_complete_and_strict_blocked_updates`.
   - Keep or add prompt tests asserting `<untrusted_objective>` and absence of `<objective>`, "Work from evidence", "current worktree and external state as authoritative", and "audit must prove completion".
 
 - File: `codex-rs/core/src/session/tests.rs`
@@ -936,7 +942,7 @@ Core tests:
   - Existing: `usage_limit_runtime_stops_active_goal_and_prevents_idle_continuation`.
   - Existing: `budget_limited_accounting_steers_active_turn_without_aborting`.
   - Existing: `update_goal_tool_rejects_pausing_goal`.
-  - Existing/gated: `update_goal_tool_marks_goal_blocked` remains candidate terrain until blocked decision.
+  - Existing: `update_goal_tool_marks_goal_blocked`.
   - Add if missing: `resumed_active_goal_emits_initial_steering_independent_of_resumed_metric`.
 
 State tests:
@@ -944,7 +950,7 @@ State tests:
 - File: `codex-rs/state/src/runtime/goals.rs`
   - Existing: `usage_limit_active_thread_goal_updates_active_or_budget_limited_goals`.
   - Existing: `pausing_budget_limited_goal_preserves_terminal_status`.
-  - Existing/gated: `blocking_budget_limited_goal_preserves_terminal_status`.
+  - Existing: `blocking_budget_limited_goal_preserves_terminal_status`.
   - Existing: `activating_goal_already_over_budget_keeps_it_budget_limited`.
   - Add if missing: `goal_store_contains_no_steering_policy_fields` is not a useful runtime test; use an `rg` verification command instead.
 
@@ -961,13 +967,13 @@ App-server tests:
 Extension tests:
 
 - File: `codex-rs/ext/goal/src/spec.rs`
-  - Add `extension_update_goal_statuses_are_contained_while_blocked_is_gated`.
+  - Add `extension_update_goal_accepts_complete_and_blocked_with_core_parity`.
   - Add `extension_create_goal_description_matches_core_contract`.
 
 - File: `codex-rs/ext/goal/src/tool.rs`
   - Add `extension_update_goal_rejects_paused_active_budget_and_usage_limited`.
   - Add `extension_update_goal_completion_emits_after_backend_mutation`.
-  - Do not add blocked success test until blocked decision.
+  - Add blocked success coverage once extension mutation parity is implemented.
 
 - File: `codex-rs/ext/goal/src/extension.rs`
   - Add `turn_abort_stops_accounting_without_status_mutation`.
@@ -1030,7 +1036,7 @@ cargo test -p codex-app-server thread_goal_clear_deletes_goal_and_notifies
 Extension focused tests:
 
 ```powershell
-cargo test -p codex-goal-extension extension_update_goal_statuses_are_contained_while_blocked_is_gated
+cargo test -p codex-goal-extension extension_update_goal_accepts_complete_and_blocked_with_core_parity
 cargo test -p codex-goal-extension turn_abort_stops_accounting_without_status_mutation
 cargo test -p codex-goal-extension extension_update_goal_completion_emits_after_backend_mutation
 ```

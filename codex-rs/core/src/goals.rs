@@ -32,14 +32,6 @@ use codex_protocol::protocol::ThreadGoal;
 use codex_protocol::protocol::ThreadGoalStatus;
 use codex_protocol::protocol::ThreadGoalUpdatedEvent;
 use codex_protocol::protocol::TokenUsage;
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=2 basis=maintained-to-incoming
-// @@ -1,1 +1,1 @@
-// -use codex_protocol::protocol::TurnAbortReason;
-// +use codex_protocol::protocol::validate_thread_goal_objective;
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-use codex_protocol::protocol::TurnAbortReason;
 use codex_rollout::state_db::reconcile_rollout;
 use codex_thread_store::LocalThreadStore;
 use codex_utils_template::Template;
@@ -1345,12 +1337,15 @@ impl Session {
         };
         match goal.status {
             codex_state::ThreadGoalStatus::Active => {
+                let goal_id = goal.goal_id.clone();
+                self.mark_initial_goal_steering_pending(goal_id.clone())
+                    .await;
                 self.goal_runtime
                     .accounting
                     .lock()
                     .await
                     .wall_clock
-                    .mark_active_goal(goal.goal_id);
+                    .mark_active_goal(goal_id);
                 self.emit_goal_resumed_metric();
             }
             codex_state::ThreadGoalStatus::Paused
@@ -1866,50 +1861,7 @@ mod tests {
     }
 
     #[test]
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=4 basis=maintained-to-incoming
-// @@ -1,37 +1,1 @@
-// -    fn goal_steering_message_uses_configured_role() {
-// -        for (role, expected_response_role) in [
-// -            (GoalSteeringRole::Developer, "developer"),
-// -            (GoalSteeringRole::User, "user"),
-// -        ] {
-// -            for kind in [
-// -                GoalSteeringKind::Initial,
-// -                GoalSteeringKind::Continuation,
-// -                GoalSteeringKind::BudgetLimit,
-// -                GoalSteeringKind::ObjectiveUpdated,
-// -            ] {
-// -                let item = GoalSteeringMessage {
-// -                    kind,
-// -                    role,
-// -                    prompt: "Continue working.".to_string(),
-// -                }
-// -                .into_response_input_item();
-// -                let ResponseInputItem::Message {
-// -                    role,
-// -                    content,
-// -                    phase,
-// -                } = item
-// -                else {
-// -                    panic!("expected goal steering message item");
-// -                };
-// -                assert_eq!(expected_response_role, role);
-// -                let [ContentItem::InputText { text }] = content.as_slice() else {
-// -                    panic!("expected one input text item, got {content:#?}");
-// -                };
-// -                assert_eq!("<goal_context>\nContinue working.\n</goal_context>", text);
-// -                assert_eq!(None, phase);
-// -            }
-// -        }
-// -    }
-// -
-// -    #[test]
-// -    fn continuation_prompt_only_tells_model_to_update_goal_when_complete() {
-// +    fn continuation_prompt_allows_complete_and_strict_blocked_updates() {
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-    fn goal_steering_message_uses_configured_role() {
+    fn goal_steering_message_uses_configured_role_for_all_kinds() {
         for (role, expected_response_role) in [
             (GoalSteeringRole::Developer, "developer"),
             (GoalSteeringRole::User, "user"),
@@ -1945,7 +1897,7 @@ mod tests {
     }
 
     #[test]
-    fn continuation_prompt_only_tells_model_to_update_goal_when_complete() {
+    fn continuation_prompt_allows_complete_and_strict_blocked_updates() {
         let prompt = continuation_prompt(&ThreadGoal {
             thread_id: ThreadId::new(),
             objective: "finish the stack".to_string(),
@@ -1963,7 +1915,9 @@ mod tests {
         assert!(prompt.contains("Work from the sources that are authoritative"));
         assert!(prompt.contains("call get_goal to re-ground on the active objective"));
         assert!(!prompt.contains("Use the current worktree and external state as authoritative"));
+        assert!(!prompt.contains("Work from evidence"));
         assert!(!prompt.contains("The audit must prove completion"));
+        assert!(!prompt.contains("<objective>"));
         assert!(prompt.contains("Token budget: 10000"));
         assert!(prompt.contains("call update_goal with status \"complete\""));
         assert!(prompt.contains("status \"blocked\""));
@@ -1971,6 +1925,8 @@ mod tests {
         assert!(prompt.contains("same blocking condition"));
         assert!(prompt.contains("original/user-triggered turn"));
         assert!(prompt.contains("truly at an impasse"));
+        assert!(prompt.contains("authoritative evidence has not yet been gathered"));
+        assert!(prompt.contains("gather evidence or keep working"));
         assert!(!prompt.contains("budgetLimited"));
         assert!(!prompt.contains("status \"paused\""));
     }

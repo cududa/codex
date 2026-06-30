@@ -60,9 +60,9 @@ pub fn create_update_goal_tool() -> ToolSpec {
     let properties = BTreeMap::from([(
         "status".to_string(),
         JsonSchema::string_enum(
-            vec![json!("complete")],
+            vec![json!("complete"), json!("blocked")],
             Some(
-                "Required. Set to complete only when the objective is achieved and no required work remains."
+                "Required. Set to `complete` only when the objective is achieved and no required work remains. Set to `blocked` only after the same blocking condition has recurred for at least three consecutive goal turns and the agent is at an impasse. After a previously blocked goal is resumed, the resumed run starts a fresh blocked audit. Missing authoritative evidence is not itself a blocker; gather evidence or keep working."
                     .to_string(),
             ),
         ),
@@ -71,10 +71,15 @@ pub fn create_update_goal_tool() -> ToolSpec {
     ToolSpec::Function(ResponsesApiTool {
         name: UPDATE_GOAL_TOOL_NAME.to_string(),
         description: r#"Update the existing goal.
-Use this tool only to mark the goal achieved.
+Use this tool only to mark the goal achieved or genuinely blocked.
 Set status to `complete` only when the objective has actually been achieved and no required work remains.
+Set status to `blocked` only when the same blocking condition has repeated for at least three consecutive goal turns, counting the original/user-triggered turn and any automatic continuations, and the agent cannot make meaningful progress without user input or an external-state change.
+If the user resumes a goal that was previously marked `blocked`, treat the resumed run as a fresh blocked audit. If the same blocking condition then repeats for at least three consecutive resumed goal turns, set status to `blocked` again.
+Once the blocked threshold is satisfied, do not keep reporting that you are still blocked while leaving the goal active; set status to `blocked`.
+Do not use `blocked` merely because the work is hard, slow, uncertain, incomplete, or would benefit from clarification.
+Do not use `blocked` merely because authoritative evidence has not yet been gathered; gather evidence or keep working.
 Do not mark a goal complete merely because its budget is nearly exhausted or because you are stopping work.
-You cannot use this tool to pause, resume, or budget-limit a goal; those status changes are controlled by the user or system.
+You cannot use this tool to pause, resume, budget-limit, or usage-limit a goal; those status changes are controlled by the user or system.
 When marking a budgeted goal achieved with status `complete`, report the final token usage from the tool result to the user."#
             .to_string(),
         strict: false,
@@ -86,4 +91,74 @@ When marking a budgeted goal achieved with status `complete`, report the final t
         ),
         output_schema: None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extension_update_goal_accepts_complete_and_blocked_with_core_parity() {
+        let ToolSpec::Function(tool) = create_update_goal_tool() else {
+            panic!("update_goal should be a function tool");
+        };
+        let status = tool
+            .parameters
+            .properties
+            .as_ref()
+            .and_then(|properties| properties.get("status"))
+            .expect("status property should exist");
+
+        assert_eq!(
+            status.enum_values,
+            Some(vec![json!("complete"), json!("blocked")])
+        );
+        assert!(tool.description.contains("genuinely blocked"));
+        assert!(
+            tool.description
+                .contains("authoritative evidence has not yet been gathered")
+        );
+        assert!(tool.description.contains("budget-limit, or usage-limit"));
+    }
+
+    #[test]
+    fn extension_create_goal_description_matches_core_contract() {
+        let ToolSpec::Function(tool) = create_create_goal_tool() else {
+            panic!("create_goal should be a function tool");
+        };
+
+        assert!(
+            tool.description
+                .contains("only when explicitly requested by the user")
+        );
+        assert!(
+            tool.description
+                .contains("do not infer goals from ordinary tasks")
+        );
+        assert!(
+            tool.description
+                .contains("Fails if a goal exists; use update_goal only for status")
+        );
+    }
+
+    #[test]
+    fn extension_update_goal_rejects_paused_active_budget_and_usage_limited() {
+        let ToolSpec::Function(tool) = create_update_goal_tool() else {
+            panic!("update_goal should be a function tool");
+        };
+        let status = tool
+            .parameters
+            .properties
+            .as_ref()
+            .and_then(|properties| properties.get("status"))
+            .expect("status property should exist");
+        let enum_values = status
+            .enum_values
+            .as_ref()
+            .expect("status enum values should exist");
+
+        for rejected in ["paused", "active", "budgetLimited", "usageLimited"] {
+            assert!(!enum_values.contains(&json!(rejected)));
+        }
+    }
 }

@@ -687,6 +687,11 @@ impl ChatWidget {
                         GoalControlCommand::SetStatus(status) => {
                             self.app_event_tx
                                 .send(AppEvent::SetThreadGoalStatus { thread_id, status });
+                            if status == AppThreadGoalStatus::Paused
+                                && self.turn_lifecycle.agent_turn_running
+                            {
+                                self.submit_op(AppCommand::interrupt());
+                            }
                         }
                     }
                     self.append_message_history_entry(format!("/goal {trimmed}"));

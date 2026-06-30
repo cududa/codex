@@ -8883,6 +8883,54 @@ async fn usage_limit_runtime_stops_active_goal_and_prevents_idle_continuation() 
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn resumed_active_goal_emits_initial_steering_independent_of_resumed_metric()
+-> anyhow::Result<()> {
+    let (sess, _tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
+    let state_db = goal_test_state_db(sess.as_ref()).await?;
+    state_db
+        .thread_goals()
+        .replace_thread_goal(
+            sess.conversation_id,
+            "Keep improving the benchmark",
+            codex_state::ThreadGoalStatus::Active,
+            /*token_budget*/ None,
+        )
+        .await?;
+
+    sess.goal_runtime_apply(GoalRuntimeEvent::ThreadResumed)
+        .await?;
+    sess.goal_runtime_apply(GoalRuntimeEvent::MaybeContinueIfIdle)
+        .await?;
+
+    let pending_input = sess.get_pending_input().await;
+    assert!(
+        pending_input.iter().any(|item| {
+            let ResponseInputItem::Message { role, content, .. } = item else {
+                return false;
+            };
+            role == "developer"
+                && content.iter().any(|content| {
+                    let ContentItem::InputText { text } = content else {
+                        return false;
+                    };
+                    let normalized_text = text.replace("\r\n", "\n");
+                    normalized_text.starts_with("<goal_context>")
+                        && normalized_text.trim_end().ends_with("</goal_context>")
+                        && normalized_text.contains("Begin working toward the active thread goal.")
+                        && normalized_text.contains("This is the first turn for this goal.")
+                        && normalized_text.contains(
+                            "<untrusted_objective>\nKeep improving the benchmark\n</untrusted_objective>",
+                        )
+                })
+        }),
+        "expected resumed active goal to emit initial steering, got {pending_input:?}"
+    );
+
+    sess.abort_all_tasks(TurnAbortReason::Replaced).await;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn external_goal_mutation_accounts_active_turn_before_status_change() -> anyhow::Result<()> {
     let (sess, tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
     sess.set_thread_goal(

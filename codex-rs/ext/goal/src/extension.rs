@@ -16,6 +16,7 @@ use codex_extension_api::TurnStartInput;
 use codex_extension_api::TurnStopInput;
 use codex_protocol::ThreadId;
 use codex_protocol::protocol::ThreadGoal;
+use codex_protocol::protocol::ThreadGoalStatus;
 use codex_protocol::protocol::TokenUsageInfo;
 use codex_protocol::protocol::TurnAbortReason;
 
@@ -73,6 +74,12 @@ impl<C> GoalExtension<C> {
     }
 }
 
+/// Host service used by extension goal tools.
+///
+/// Implementations are expected to mutate the same durable goal state and emit
+/// the same runtime side effects as the live core goal tools. Until this API can
+/// express the full accepted status/accounting/steering contract, extension
+/// tools must not become a divergent model-visible goal authority.
 #[async_trait]
 pub trait GoalToolBackend: Send + Sync {
     async fn get_goal(&self, thread_id: ThreadId) -> Result<Option<ThreadGoal>, String>;
@@ -83,7 +90,11 @@ pub trait GoalToolBackend: Send + Sync {
         request: CreateGoalRequest,
     ) -> Result<ThreadGoal, String>;
 
-    async fn complete_goal(&self, thread_id: ThreadId) -> Result<ThreadGoal, String>;
+    async fn set_goal_status(
+        &self,
+        thread_id: ThreadId,
+        status: ThreadGoalStatus,
+    ) -> Result<ThreadGoal, String>;
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -103,15 +114,20 @@ impl GoalToolBackend for NoGoalToolBackend {
         Err(missing_backend_message())
     }
 
-    async fn complete_goal(&self, _thread_id: ThreadId) -> Result<ThreadGoal, String> {
+    async fn set_goal_status(
+        &self,
+        _thread_id: ThreadId,
+        _status: ThreadGoalStatus,
+    ) -> Result<ThreadGoal, String> {
         Err(missing_backend_message())
     }
 }
 
 fn missing_backend_message() -> String {
-    // TODO: replace this fallback with a host-provided goal backend once
-    // ToolContributor invocations can reach thread-scoped goal persistence and
-    // the current turn context.
+    // TODO: replace this fallback with a host-provided goal backend once the
+    // backend can delegate to the host goal service for durable GoalStore
+    // persistence, final active-turn accounting, terminal metrics, ordered
+    // ThreadGoalUpdated events, and typed steering requests.
     "goal tools are not connected to host goal persistence yet".to_string()
 }
 
@@ -171,8 +187,9 @@ where
         }
 
         // TODO: this should flush wall-clock and any unflushed token usage to
-        // persisted goal storage, emit ThreadGoalUpdated, and optionally inject
-        // budget-limit steering through a host event/input capability.
+        // persisted host GoalStore accounting, apply budget-limit status
+        // transitions, emit ThreadGoalUpdated after mutation, and request
+        // budget-limit steering through a typed host steering capability.
         // TODO: the host also needs an idle/next-turn wake capability so an
         // active goal can enqueue continuation context after the turn is fully
         // cleared, only when there is no pending user or mailbox work.
@@ -185,9 +202,16 @@ where
         }
 
         accounting_state(input.thread_store).stop_turn(input.turn_store.level_id());
-        if input.reason == TurnAbortReason::Interrupted {
-            // TODO: interrupted turns should pause the active goal via persisted
-            // goal storage and emit ThreadGoalUpdated with turn_id None.
+        match input.reason {
+            TurnAbortReason::Interrupted => {
+                // Generic interrupts are turn control, not goal lifecycle
+                // control. A host-backed extension should account and clear
+                // runtime turn state here without mutating goal status; explicit
+                // user/client pause actions own Paused transitions.
+            }
+            TurnAbortReason::Replaced
+            | TurnAbortReason::ReviewEnded
+            | TurnAbortReason::BudgetLimited => {}
         }
     }
 }
@@ -215,17 +239,25 @@ where
         };
 
         // TODO: TokenUsageContributor needs a host goal storage capability so
-        // this recorded delta can be committed to the active persisted goal.
-        // It also needs an event/input capability to emit ThreadGoalUpdated and
-        // inject budget-limit steering when accounting changes goal status.
+        // this recorded delta can be committed to active persisted GoalStore
+        // accounting. It also needs event and typed steering capabilities to
+        // emit ThreadGoalUpdated and request budget-limit steering when
+        // accounting changes goal status.
     }
 }
 
 // TODO: app-server initiated goal set/clear operations need a contributor or
 // backend callback here. They currently happen outside thread/turn/token
 // lifecycle, but the goal extension must observe them to account before
-// mutation, refresh active-goal accounting, emit objective-update steering, and
-// clear runtime state when a goal is removed.
+// mutation, refresh active-goal accounting, request ObjectiveUpdated steering
+// through the typed host steering path, emit ordered events, and clear runtime
+// state when a goal is removed.
+//
+// TODO: when goal ownership moves here, add a typed steering request API for
+// Initial, Continuation, BudgetLimit, and ObjectiveUpdated. The host/runtime
+// should remain the boundary that applies configured GoalSteeringRole,
+// role-neutral <goal_context> wrapping, <untrusted_objective> escaping,
+// injection timing, and hidden-context classification.
 
 impl<C> ToolContributor for GoalExtension<C>
 where
