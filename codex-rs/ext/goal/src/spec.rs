@@ -62,7 +62,7 @@ pub fn create_update_goal_tool() -> ToolSpec {
         JsonSchema::string_enum(
             vec![json!("complete"), json!("blocked")],
             Some(
-                "Required. Set to `complete` only when the objective is achieved and no required work remains. Set to `blocked` only after the same blocking condition has recurred for at least three consecutive goal turns and the agent is at an impasse. After a previously blocked goal is resumed, the resumed run starts a fresh blocked audit. Missing authoritative evidence is not itself a blocker; gather evidence or keep working."
+                "Required. Set to complete only when the objective is achieved and no required work remains. Set to blocked only when the goal cannot currently proceed without a user decision, missing dependency, or external unblock."
                     .to_string(),
             ),
         ),
@@ -78,6 +78,7 @@ If the user resumes a goal that was previously marked `blocked`, treat the resum
 Once the blocked threshold is satisfied, do not keep reporting that you are still blocked while leaving the goal active; set status to `blocked`.
 Do not use `blocked` merely because the work is hard, slow, uncertain, incomplete, or would benefit from clarification.
 Do not use `blocked` merely because authoritative evidence has not yet been gathered; gather evidence or keep working.
+Set status to `blocked` only when the goal cannot currently proceed until something external changes.
 Do not mark a goal complete merely because its budget is nearly exhausted or because you are stopping work.
 You cannot use this tool to pause, resume, budget-limit, or usage-limit a goal; those status changes are controlled by the user or system.
 When marking a budgeted goal achieved with status `complete`, report the final token usage from the tool result to the user."#
