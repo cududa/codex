@@ -82,41 +82,14 @@ const packageBinaryPath = (vendorRoot) =>
 const legacyBinaryPath = (vendorRoot) =>
   path.join(vendorRoot, targetTriple, "codex", codexBinaryName);
 
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-cli/bin/codex.js block=2 basis=maintained-to-incoming
-// @@ -1,11 +1,8 @@
-// -let vendorRoot;
-// -try {
-// -  const packageJsonPath = require.resolve(`${platformPackage}/package.json`);
-// -  vendorRoot = path.join(path.dirname(packageJsonPath), "vendor");
-// -} catch {
-// -  if (existsSync(localBinaryPath)) {
-// -    vendorRoot = localVendorRoot;
-// -  } else {
-// -    throw new Error(
-// -      `Missing Codex binary for ${platformPackage}. Rebuild the local npm route with scripts/stage_local_codex_sdk_bundle.py.`,
-// -    );
-// +function resolveNativePackage(vendorRoot) {
-// +  const packageRoot = path.join(vendorRoot, targetTriple);
-// +  const binaryPath = packageBinaryPath(vendorRoot);
-// +  if (existsSync(binaryPath)) {
-// +    return {
-// +      binaryPath,
-// +      pathDir: path.join(packageRoot, "codex-path"),
-// +    };
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-let vendorRoot;
-try {
-  const packageJsonPath = require.resolve(`${platformPackage}/package.json`);
-  vendorRoot = path.join(path.dirname(packageJsonPath), "vendor");
-} catch {
-  if (existsSync(localBinaryPath)) {
-    vendorRoot = localVendorRoot;
-  } else {
-    throw new Error(
-      `Missing Codex binary for ${platformPackage}. Rebuild the local npm route with scripts/stage_local_codex_sdk_bundle.py.`,
-    );
+function resolveNativePackage(vendorRoot) {
+  const packageRoot = path.join(vendorRoot, targetTriple);
+  const binaryPath = packageBinaryPath(vendorRoot);
+  if (existsSync(binaryPath)) {
+    return {
+      binaryPath,
+      pathDir: path.join(packageRoot, "codex-path"),
+    };
   }
 
   const legacyPath = legacyBinaryPath(vendorRoot);
@@ -130,24 +103,17 @@ try {
   return null;
 }
 
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-cli/bin/codex.js block=4 basis=maintained-to-incoming
-// @@ -1,1 +1,11 @@
-// -if (!vendorRoot) {
-// +let nativePackage;
-// +try {
-// +  const packageJsonPath = require.resolve(`${platformPackage}/package.json`);
-// +  nativePackage = resolveNativePackage(
-// +    path.join(path.dirname(packageJsonPath), "vendor"),
-// +  );
-// +} catch {
-// +  nativePackage = resolveNativePackage(localVendorRoot);
-// +}
-// +
-// +if (!nativePackage) {
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
+let nativePackage = null;
+try {
+  const packageJsonPath = require.resolve(`${platformPackage}/package.json`);
+  nativePackage = resolveNativePackage(
+    path.join(path.dirname(packageJsonPath), "vendor"),
+  );
+} catch {
+  nativePackage = resolveNativePackage(localVendorRoot);
+}
 
-if (!vendorRoot) {
+if (!nativePackage) {
   throw new Error(
     `Missing Codex binary for ${platformPackage}. Rebuild the local npm route with scripts/stage_local_codex_sdk_bundle.py.`,
   );
