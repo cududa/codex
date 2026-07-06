@@ -1,13 +1,5 @@
 import * as child_process from "node:child_process";
 import { EventEmitter } from "node:events";
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=sdk/typescript/tests/exec.test.ts block=2 basis=maintained-to-incoming
-// @@ -1,2 +1,2 @@
-// -import fs from "node:fs";
-// -import os from "node:os";
-// +import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-// +import { tmpdir } from "node:os";
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
 
 import fs from "node:fs";
 import os from "node:os";
@@ -70,6 +62,39 @@ describe("CodexExec", () => {
 
       fs.mkdirSync(binaryDir, { recursive: true });
       fs.writeFileSync(path.join(packageRoot, "package.json"), "{}");
+      fs.writeFileSync(path.join(binaryDir, codexBinaryName), "");
+
+      expect(
+        __testing.resolveVendorRoot(
+          path.join(packageRoot, "package.json"),
+          "@cududa/codex-missing-platform-package",
+          targetTriple,
+        ),
+      ).toBe(vendorRoot);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("resolves a self-contained @cududa/codex package-layout vendor tree", async () => {
+    const { __testing } = await import("../src/exec");
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-sdk-self-contained-"));
+    try {
+      const packageRoot = path.join(tmpDir, "package");
+      const targetTriple =
+        process.platform === "win32"
+          ? "aarch64-pc-windows-msvc"
+          : process.platform === "darwin"
+            ? "aarch64-apple-darwin"
+            : "aarch64-unknown-linux-musl";
+      const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
+      const vendorRoot = path.join(packageRoot, "vendor");
+      const packageLayoutRoot = path.join(vendorRoot, targetTriple);
+      const binaryDir = path.join(packageLayoutRoot, "bin");
+
+      fs.mkdirSync(binaryDir, { recursive: true });
+      fs.writeFileSync(path.join(packageRoot, "package.json"), "{}");
+      fs.writeFileSync(path.join(packageLayoutRoot, "codex-package.json"), "{}");
       fs.writeFileSync(path.join(binaryDir, codexBinaryName), "");
 
       expect(
@@ -188,14 +213,14 @@ describe("CodexExec", () => {
 
   it("resolves the package-layout binary and PATH directory", async () => {
     const { resolveNativePackage } = await import("../src/exec");
-    const vendorRoot = mkdtempSync(path.join(tmpdir(), "codex-sdk-vendor-"));
+    const vendorRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-sdk-vendor-"));
     const packageRoot = path.join(vendorRoot, "x86_64-unknown-linux-musl");
     const binDir = path.join(packageRoot, "bin");
     const pathDir = path.join(packageRoot, "codex-path");
-    mkdirSync(binDir, { recursive: true });
-    mkdirSync(pathDir, { recursive: true });
-    writeFileSync(path.join(packageRoot, "codex-package.json"), "{}");
-    writeFileSync(path.join(binDir, "codex"), "");
+    fs.mkdirSync(binDir, { recursive: true });
+    fs.mkdirSync(pathDir, { recursive: true });
+    fs.writeFileSync(path.join(packageRoot, "codex-package.json"), "{}");
+    fs.writeFileSync(path.join(binDir, "codex"), "");
 
     expect(resolveNativePackage(vendorRoot, "x86_64-unknown-linux-musl", "codex")).toEqual({
       executablePath: path.join(binDir, "codex"),
@@ -205,13 +230,13 @@ describe("CodexExec", () => {
 
   it("falls back to the legacy binary layout", async () => {
     const { resolveNativePackage } = await import("../src/exec");
-    const vendorRoot = mkdtempSync(path.join(tmpdir(), "codex-sdk-vendor-"));
+    const vendorRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-sdk-vendor-"));
     const packageRoot = path.join(vendorRoot, "x86_64-unknown-linux-musl");
     const binDir = path.join(packageRoot, "codex");
     const pathDir = path.join(packageRoot, "path");
-    mkdirSync(binDir, { recursive: true });
-    mkdirSync(pathDir, { recursive: true });
-    writeFileSync(path.join(binDir, "codex"), "");
+    fs.mkdirSync(binDir, { recursive: true });
+    fs.mkdirSync(pathDir, { recursive: true });
+    fs.writeFileSync(path.join(binDir, "codex"), "");
 
     expect(resolveNativePackage(vendorRoot, "x86_64-unknown-linux-musl", "codex")).toEqual({
       executablePath: path.join(binDir, "codex"),
@@ -221,7 +246,7 @@ describe("CodexExec", () => {
 
   it("prepends package PATH entries without duplicating them", async () => {
     const { prependPathDirs } = await import("../src/exec");
-    const pathDir = path.join(tmpdir(), "codex-path");
+    const pathDir = path.join(os.tmpdir(), "codex-path");
     const env = { PATH: `/usr/bin${path.delimiter}${pathDir}` };
 
     prependPathDirs(env, [pathDir]);
@@ -231,7 +256,7 @@ describe("CodexExec", () => {
 
   it("preserves the Windows Path key when prepending package PATH entries", async () => {
     const { prependPathDirs } = await import("../src/exec");
-    const pathDir = path.join(tmpdir(), "codex-path");
+    const pathDir = path.join(os.tmpdir(), "codex-path");
     const env = { PATH: "/usr/bin", Path: `C\\Windows${path.delimiter}${pathDir}` };
 
     prependPathDirs(env, [pathDir], "win32");

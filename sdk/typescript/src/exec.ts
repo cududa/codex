@@ -1,6 +1,5 @@
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 import { createRequire } from "node:module";
@@ -344,14 +343,7 @@ function modulePathFromImportMeta(): string {
   }
 }
 
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=sdk/typescript/src/exec.ts block=2 basis=maintained-to-incoming
-// @@ -1,1 +1,1 @@
-// -function findCodexPath() {
-// +function findCodexPath(): CodexPathResolution {
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-function findCodexPath() {
+function findCodexPath(): CodexPathResolution {
   const { platform, arch } = process;
 
   let targetTriple = null;
@@ -406,29 +398,8 @@ function findCodexPath() {
     throw new Error(`Unsupported target triple: ${targetTriple}`);
   }
 
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=sdk/typescript/src/exec.ts block=4 basis=maintained-to-incoming
-// @@ -1,3 +1,12 @@
-// -  const codexPackageJsonPath = resolveCodexPackageJsonPath();
-// -  const vendorRoot = resolveVendorRoot(codexPackageJsonPath, platformPackage, targetTriple);
-// -  const archRoot = path.join(vendorRoot, targetTriple);
-// +  let vendorRoot: string;
-// +  try {
-// +    const codexPackageJsonPath = moduleRequire.resolve(`${CODEX_NPM_NAME}/package.json`);
-// +    const codexRequire = createRequire(codexPackageJsonPath);
-// +    const platformPackageJsonPath = codexRequire.resolve(`${platformPackage}/package.json`);
-// +    vendorRoot = path.join(path.dirname(platformPackageJsonPath), "vendor");
-// +  } catch {
-// +    throw new Error(
-// +      `Unable to locate Codex CLI binaries. Ensure ${CODEX_NPM_NAME} is installed with optional dependencies.`,
-// +    );
-// +  }
-// +
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
   const codexPackageJsonPath = resolveCodexPackageJsonPath();
   const vendorRoot = resolveVendorRoot(codexPackageJsonPath, platformPackage, targetTriple);
-  const archRoot = path.join(vendorRoot, targetTriple);
   const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
   const nativePackage = resolveNativePackage(vendorRoot, targetTriple, codexBinaryName);
   if (!nativePackage) {
@@ -577,13 +548,7 @@ function resolveVendorRoot(
   } catch {
     const selfContainedVendorRoot = path.join(path.dirname(codexPackageJsonPath), "vendor");
     const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
-    const selfContainedBinaryPath = path.join(
-      selfContainedVendorRoot,
-      targetTriple,
-      "codex",
-      codexBinaryName,
-    );
-    if (existsSync(selfContainedBinaryPath)) {
+    if (resolveNativePackage(selfContainedVendorRoot, targetTriple, codexBinaryName)) {
       return selfContainedVendorRoot;
     }
     throw new Error(
