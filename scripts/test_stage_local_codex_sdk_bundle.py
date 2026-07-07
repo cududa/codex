@@ -153,6 +153,7 @@ class StageLocalCodexSdkBundleTest(unittest.TestCase):
                 rg_source=rg_source,
                 reuse_codex_bin=True,
                 skip_sdk_build=True,
+                skip_debug_target_clean=False,
                 skip_local_install=True,
                 skip_global_install=True,
                 skip_path_normalization=True,
@@ -172,6 +173,86 @@ class StageLocalCodexSdkBundleTest(unittest.TestCase):
             self.assertTrue((package_root / "codex-path" / "rg.exe").is_file())
             self.assertFalse((package_root / "codex" / "codex.exe").exists())
             self.assertFalse((package_root / "path" / "rg.exe").exists())
+
+    def test_main_cleans_debug_target_before_building_codex(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_dir = Path(tmp)
+            output_dir = tmp_dir / "npm-local"
+            codex_bin = tmp_dir / "codex.exe"
+            rg_source = tmp_dir / "rg.exe"
+            codex_bin.write_bytes(b"codex")
+            rg_source.write_bytes(b"rg")
+            args = SimpleNamespace(
+                version="0.133.0-cududa",
+                output_dir=output_dir,
+                codex_bin=codex_bin,
+                rg_source=rg_source,
+                reuse_codex_bin=False,
+                skip_sdk_build=True,
+                skip_debug_target_clean=False,
+                skip_local_install=True,
+                skip_global_install=True,
+                skip_path_normalization=True,
+                skip_legacy_delete=True,
+            )
+            call_order = []
+
+            def record_debug_clean() -> None:
+                call_order.append("clean")
+
+            def record_build() -> None:
+                call_order.append("build")
+
+            with (
+                mock.patch.object(stage_local, "parse_args", return_value=args),
+                mock.patch.object(stage_local, "delete_debug_target", side_effect=record_debug_clean),
+                mock.patch.object(stage_local, "build_codex", side_effect=record_build),
+                mock.patch.object(stage_local, "run_npm_pack"),
+                mock.patch.object(stage_local, "stage_codex_package"),
+                mock.patch.object(stage_local, "stage_sdk_package"),
+                mock.patch.object(stage_local, "write_consumer_manifest"),
+                mock.patch.object(stage_local, "write_pnpm_workspace"),
+            ):
+                self.assertEqual(stage_local.main(), 0)
+
+            self.assertEqual(call_order, ["clean", "build"])
+
+    def test_main_can_skip_debug_target_clean(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_dir = Path(tmp)
+            output_dir = tmp_dir / "npm-local"
+            codex_bin = tmp_dir / "codex.exe"
+            rg_source = tmp_dir / "rg.exe"
+            codex_bin.write_bytes(b"codex")
+            rg_source.write_bytes(b"rg")
+            args = SimpleNamespace(
+                version="0.133.0-cududa",
+                output_dir=output_dir,
+                codex_bin=codex_bin,
+                rg_source=rg_source,
+                reuse_codex_bin=False,
+                skip_sdk_build=True,
+                skip_debug_target_clean=True,
+                skip_local_install=True,
+                skip_global_install=True,
+                skip_path_normalization=True,
+                skip_legacy_delete=True,
+            )
+
+            with (
+                mock.patch.object(stage_local, "parse_args", return_value=args),
+                mock.patch.object(stage_local, "delete_debug_target") as delete_debug_target,
+                mock.patch.object(stage_local, "build_codex") as build_codex,
+                mock.patch.object(stage_local, "run_npm_pack"),
+                mock.patch.object(stage_local, "stage_codex_package"),
+                mock.patch.object(stage_local, "stage_sdk_package"),
+                mock.patch.object(stage_local, "write_consumer_manifest"),
+                mock.patch.object(stage_local, "write_pnpm_workspace"),
+            ):
+                self.assertEqual(stage_local.main(), 0)
+
+            delete_debug_target.assert_not_called()
+            build_codex.assert_called_once_with()
 
 
 if __name__ == "__main__":

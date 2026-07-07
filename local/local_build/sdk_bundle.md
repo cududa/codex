@@ -41,6 +41,8 @@ python .\scripts\stage_local_codex_sdk_bundle.py
 
 That command is expected to:
 
+- delete `codex-rs\target\debug` before building, so large test/dev artifacts
+  do not crowd out the Windows ARM64 local-release build;
 - build `codex-rs\target\aarch64-pc-windows-msvc\local-release\codex.exe`;
 - package `rg.exe` from PATH into the Codex npm package;
 - stage the private Codex package in the canonical v133 layout:
@@ -119,9 +121,13 @@ When the global npm route is running from the staged package folder, this flag
 also preserves the existing staged Codex package so SDK-only iteration does not
 try to overwrite a locked `codex.exe`.
 
-`--skip-sdk-build`, `--skip-local-install`, `--skip-global-install`,
-`--skip-path-normalization`, and `--skip-legacy-delete` are debugging switches,
-not the blessed release flow.
+`--skip-debug-target-clean` keeps `codex-rs\target\debug` for local test or
+debug iteration, but it is not the normal route on this disk-constrained
+workstation.
+
+`--skip-sdk-build`, `--skip-debug-target-clean`, `--skip-local-install`,
+`--skip-global-install`, `--skip-path-normalization`, and
+`--skip-legacy-delete` are debugging switches, not the blessed release flow.
 
 ## Non-Goals
 

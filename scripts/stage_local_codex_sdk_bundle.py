@@ -66,6 +66,11 @@ def parse_args() -> argparse.Namespace:
         help="Reuse sdk/typescript/dist instead of rebuilding the SDK. Only for debugging.",
     )
     parser.add_argument(
+        "--skip-debug-target-clean",
+        action="store_true",
+        help="Keep codex-rs/target/debug instead of deleting test/dev artifacts before the local-release build.",
+    )
+    parser.add_argument(
         "--skip-local-install",
         action="store_true",
         help="Skip the generated dist/npm-local pnpm install smoke environment.",
@@ -105,6 +110,8 @@ def main() -> int:
     elif args.reuse_codex_bin:
         print("Reusing existing local-release Codex binary.", flush=True)
     else:
+        if not args.skip_debug_target_clean:
+            delete_debug_target()
         build_codex()
 
     codex_bin = args.codex_bin.resolve()
@@ -179,6 +186,16 @@ def build_codex() -> None:
         ],
         cwd=CODEX_RS_ROOT,
     )
+
+
+def delete_debug_target() -> None:
+    debug_target = CODEX_RS_ROOT / "target" / "debug"
+    if not debug_target.exists():
+        return
+    if not debug_target.is_dir():
+        raise RuntimeError(f"Expected Cargo debug target to be a directory: {debug_target}")
+    print(f"Deleting Cargo debug target before local-release build: {debug_target}", flush=True)
+    shutil.rmtree(debug_target)
 
 
 def derive_local_version() -> str:
