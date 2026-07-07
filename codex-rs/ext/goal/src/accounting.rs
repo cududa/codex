@@ -33,6 +33,16 @@ struct GoalWallClockAccounting {
     active_goal_id: Option<String>,
 }
 
+impl Default for GoalAccountingInner {
+    fn default() -> Self {
+        Self {
+            current_turn_id: None,
+            turns: HashMap::new(),
+            wall_clock: GoalWallClockAccounting::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct GoalProgressSnapshot {
     pub(crate) current_token_usage: TokenUsage,
@@ -215,70 +225,62 @@ pub(crate) fn goal_token_delta_for_usage(usage: &TokenUsage) -> i64 {
         .saturating_add(usage.output_tokens.max(0))
 }
 
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/accounting.rs block=2 basis=maintained-to-incoming
-// @@ -1,26 +1,7 @@
-// -#[cfg(test)]
-// -mod tests {
-// -    use super::*;
-// -
-// -    #[test]
-// -    fn turn_abort_stops_accounting_without_status_mutation() {
-// -        let state = GoalAccountingState::default();
-// -        state.start_turn("turn-1");
-// -        state.record_token_usage(
-// -            "turn-1",
-// -            &TokenUsage {
-// -                input_tokens: 100,
-// -                cached_input_tokens: 20,
-// -                output_tokens: 10,
-// -                reasoning_output_tokens: 0,
-// -                total_tokens: 110,
-// -            },
-// -        );
-// -
-// -        state.stop_turn("turn-1");
-// -
-// -        let inner = state.inner();
-// -        let turn = inner.turns.get("turn-1").expect("turn should be recorded");
-// -        assert!(turn.stopped);
-// -        assert_eq!(turn.token_delta, 90);
-// -        assert_eq!(inner.unflushed_token_delta, 90);
-// +impl Default for GoalAccountingInner {
-// +    fn default() -> Self {
-// +        Self {
-// +            current_turn_id: None,
-// +            turns: HashMap::new(),
-// +            wall_clock: GoalWallClockAccounting::new(),
-// +        }
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn turn_abort_stops_accounting_without_status_mutation() {
+    fn finish_turn_clears_current_turn_state_without_status_mutation() {
         let state = GoalAccountingState::default();
-        state.start_turn("turn-1");
-        state.record_token_usage(
-            "turn-1",
-            &TokenUsage {
-                input_tokens: 100,
-                cached_input_tokens: 20,
-                output_tokens: 10,
-                reasoning_output_tokens: 0,
-                total_tokens: 110,
-            },
-        );
+        state.start_turn("turn-1", ModeKind::Default, &TokenUsage::default());
+        assert!(state.current_turn_id().is_some());
 
-        state.stop_turn("turn-1");
+        state.finish_turn("turn-1");
 
         let inner = state.inner();
-        let turn = inner.turns.get("turn-1").expect("turn should be recorded");
-        assert!(turn.stopped);
-        assert_eq!(turn.token_delta, 90);
-        assert_eq!(inner.unflushed_token_delta, 90);
+        assert_eq!(None, inner.current_turn_id);
+        assert!(!inner.turns.contains_key("turn-1"));
+    }
+
+    #[test]
+    fn progress_snapshot_tracks_uncached_input_and_output_delta() {
+        let state = GoalAccountingState::default();
+        state.start_turn("turn-1", ModeKind::Default, &TokenUsage::default());
+        state.mark_turn_goal_active("turn-1", "goal-1");
+        let recorded = state
+            .record_token_usage(
+                "turn-1",
+                &TokenUsage {
+                    input_tokens: 100,
+                    cached_input_tokens: 20,
+                    output_tokens: 10,
+                    reasoning_output_tokens: 0,
+                    total_tokens: 110,
+                },
+            )
+            .expect("token usage should record a positive delta");
+
+        assert_eq!(
+            RecordedTokenDelta {
+                turn_delta: 90,
+                thread_unflushed_delta: 90,
+            },
+            recorded
+        );
+        let snapshot = state
+            .progress_snapshot("turn-1")
+            .expect("active goal should have progress");
+        assert_eq!("goal-1", snapshot.expected_goal_id);
+        assert_eq!(90, snapshot.token_delta);
+
+        state.mark_progress_accounted_for_status(
+            "turn-1",
+            &snapshot,
+            ThreadGoalStatus::Active,
+            BudgetLimitedGoalDisposition::KeepActive,
+        );
+
+        assert!(state.progress_snapshot("turn-1").is_none());
     }
 }
 

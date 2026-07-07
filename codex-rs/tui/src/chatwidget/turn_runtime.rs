@@ -220,7 +220,8 @@ impl ChatWidget {
         if self
             .transcript
             .latest_proposed_plan_markdown
-            .as_deref().is_none_or(|plan| plan.trim().is_empty())
+            .as_deref()
+            .is_none_or(|plan| plan.trim().is_empty())
         {
             return;
         }

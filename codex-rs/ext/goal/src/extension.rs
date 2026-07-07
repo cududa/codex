@@ -19,8 +19,8 @@ use codex_extension_api::TurnStartInput;
 use codex_extension_api::TurnStopInput;
 use codex_protocol::ThreadId;
 use codex_protocol::protocol::ThreadGoal;
-use codex_protocol::protocol::ThreadGoalStatus;
 use codex_protocol::protocol::TokenUsageInfo;
+use codex_protocol::protocol::TurnAbortReason;
 
 use crate::accounting::BudgetLimitedGoalDisposition;
 use crate::accounting::GoalAccountingState;
@@ -65,67 +65,6 @@ impl<C> GoalExtension<C> {
             goals_enabled: Arc::new(goals_enabled),
         }
     }
-
-    pub fn without_backend(goals_enabled: impl Fn(&C) -> bool + Send + Sync + 'static) -> Self {
-        Self::new(Arc::new(NoGoalToolBackend), goals_enabled)
-    }
-}
-
-/// Host service used by extension goal tools.
-///
-/// Implementations are expected to mutate the same durable goal state and emit
-/// the same runtime side effects as the live core goal tools. Until this API can
-/// express the full accepted status/accounting/steering contract, extension
-/// tools must not become a divergent model-visible goal authority.
-#[async_trait]
-pub trait GoalToolBackend: Send + Sync {
-    async fn get_goal(&self, thread_id: ThreadId) -> Result<Option<ThreadGoal>, String>;
-
-    async fn create_goal(
-        &self,
-        thread_id: ThreadId,
-        request: CreateGoalRequest,
-    ) -> Result<ThreadGoal, String>;
-
-    async fn set_goal_status(
-        &self,
-        thread_id: ThreadId,
-        status: ThreadGoalStatus,
-    ) -> Result<ThreadGoal, String>;
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct NoGoalToolBackend;
-
-#[async_trait]
-impl GoalToolBackend for NoGoalToolBackend {
-    async fn get_goal(&self, _thread_id: ThreadId) -> Result<Option<ThreadGoal>, String> {
-        Err(missing_backend_message())
-    }
-
-    async fn create_goal(
-        &self,
-        _thread_id: ThreadId,
-        _request: CreateGoalRequest,
-    ) -> Result<ThreadGoal, String> {
-        Err(missing_backend_message())
-    }
-
-    async fn set_goal_status(
-        &self,
-        _thread_id: ThreadId,
-        _status: ThreadGoalStatus,
-    ) -> Result<ThreadGoal, String> {
-        Err(missing_backend_message())
-    }
-}
-
-fn missing_backend_message() -> String {
-    // TODO: replace this fallback with a host-provided goal backend once the
-    // backend can delegate to the host goal service for durable GoalStore
-    // persistence, final active-turn accounting, terminal metrics, ordered
-    // ThreadGoalUpdated events, and typed steering requests.
-    "goal tools are not connected to host goal persistence yet".to_string()
 }
 
 #[async_trait]
@@ -212,44 +151,23 @@ where
             return;
         }
 
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/extension.rs block=2 basis=maintained-to-incoming
-// @@ -1,8 +1,17 @@
-// -        // TODO: this should flush wall-clock and any unflushed token usage to
-// -        // persisted host GoalStore accounting, apply budget-limit status
-// -        // transitions, emit ThreadGoalUpdated after mutation, and request
-// -        // budget-limit steering through a typed host steering capability.
-// -        // TODO: the host also needs an idle/next-turn wake capability so an
-// -        // active goal can enqueue continuation context after the turn is fully
-// -        // cleared, only when there is no pending user or mailbox work.
-// -        accounting_state(input.thread_store).stop_turn(input.turn_store.level_id());
-// +        let turn_id = input.turn_store.level_id();
-// +        if let Err(err) = self
-// +            .account_active_goal_progress(
-// +                input.thread_store,
-// +                turn_id,
-// +                &format!("{turn_id}:turn-stop"),
-// +                codex_state::GoalAccountingMode::ActiveOnly,
-// +                BudgetLimitedGoalDisposition::ClearActive,
-// +            )
-// +            .await
-// +        {
-// +            tracing::warn!(
-// +                "failed to account active goal progress at turn stop for {turn_id}: {err}"
-// +            );
-// +            return;
-// +        }
-// +        accounting_state(input.thread_store).finish_turn(turn_id);
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-        // TODO: this should flush wall-clock and any unflushed token usage to
-        // persisted host GoalStore accounting, apply budget-limit status
-        // transitions, emit ThreadGoalUpdated after mutation, and request
-        // budget-limit steering through a typed host steering capability.
-        // TODO: the host also needs an idle/next-turn wake capability so an
-        // active goal can enqueue continuation context after the turn is fully
-        // cleared, only when there is no pending user or mailbox work.
-        accounting_state(input.thread_store).stop_turn(input.turn_store.level_id());
+        let turn_id = input.turn_store.level_id();
+        if let Err(err) = self
+            .account_active_goal_progress(
+                input.thread_store,
+                turn_id,
+                &format!("{turn_id}:turn-stop"),
+                codex_state::GoalAccountingMode::ActiveOnly,
+                BudgetLimitedGoalDisposition::ClearActive,
+            )
+            .await
+        {
+            tracing::warn!(
+                "failed to account active goal progress at turn stop for {turn_id}: {err}"
+            );
+            return;
+        }
+        accounting_state(input.thread_store).finish_turn(turn_id);
     }
 
     async fn on_turn_abort(&self, input: TurnAbortInput<'_>) {
@@ -257,38 +175,22 @@ where
             return;
         }
 
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/extension.rs block=4 basis=maintained-to-incoming
-// @@ -1,11 +1,15 @@
-// -        accounting_state(input.thread_store).stop_turn(input.turn_store.level_id());
-// -        match input.reason {
-// -            TurnAbortReason::Interrupted => {
-// -                // Generic interrupts are turn control, not goal lifecycle
-// -                // control. A host-backed extension should account and clear
-// -                // runtime turn state here without mutating goal status; explicit
-// -                // user/client pause actions own Paused transitions.
-// -            }
-// -            TurnAbortReason::Replaced
-// -            | TurnAbortReason::ReviewEnded
-// -            | TurnAbortReason::BudgetLimited => {}
-// +        let turn_id = input.turn_store.level_id();
-// +        if let Err(err) = self
-// +            .account_active_goal_progress(
-// +                input.thread_store,
-// +                turn_id,
-// +                &format!("{turn_id}:turn-abort"),
-// +                codex_state::GoalAccountingMode::ActiveOnly,
-// +                BudgetLimitedGoalDisposition::ClearActive,
-// +            )
-// +            .await
-// +        {
-// +            tracing::warn!(
-// +                "failed to account active goal progress after turn abort for {turn_id}: {err}"
-// +            );
-// +            return;
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-        accounting_state(input.thread_store).stop_turn(input.turn_store.level_id());
+        let turn_id = input.turn_store.level_id();
+        if let Err(err) = self
+            .account_active_goal_progress(
+                input.thread_store,
+                turn_id,
+                &format!("{turn_id}:turn-abort"),
+                codex_state::GoalAccountingMode::ActiveOnly,
+                BudgetLimitedGoalDisposition::ClearActive,
+            )
+            .await
+        {
+            tracing::warn!(
+                "failed to account active goal progress after turn abort for {turn_id}: {err}"
+            );
+            return;
+        }
         match input.reason {
             TurnAbortReason::Interrupted => {
                 // Generic interrupts are turn control, not goal lifecycle
@@ -328,50 +230,35 @@ where
     }
 }
 
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/extension.rs block=6 basis=maintained-to-incoming
-// @@ -1,5 +1,29 @@
-// -        // TODO: TokenUsageContributor needs a host goal storage capability so
-// -        // this recorded delta can be committed to active persisted GoalStore
-// -        // accounting. It also needs event and typed steering capabilities to
-// -        // emit ThreadGoalUpdated and request budget-limit steering when
-// -        // accounting changes goal status.
-// +impl<C> ToolLifecycleContributor for GoalExtension<C>
-// +where
-// +    C: Send + Sync + 'static,
-// +{
-// +    fn on_tool_finish<'a>(&'a self, input: ToolFinishInput<'a>) -> ToolLifecycleFuture<'a> {
-// +        Box::pin(async move {
-// +            let should_count_for_goal_progress = goal_enabled(input.thread_store)
-// +                && tool_attempt_counts_for_goal_progress(input.outcome)
-// +                && !(input.tool_name.namespace.is_none()
-// +                    && input.tool_name.name == UPDATE_GOAL_TOOL_NAME);
-// +            if !should_count_for_goal_progress {
-// +                return;
-// +            }
-// +            let turn_id = input.turn_id;
-// +            if let Err(err) = self
-// +                .account_active_goal_progress(
-// +                    input.thread_store,
-// +                    turn_id,
-// +                    input.call_id,
-// +                    codex_state::GoalAccountingMode::ActiveOnly,
-// +                    BudgetLimitedGoalDisposition::KeepActive,
-// +                )
-// +                .await
-// +            {
-// +                tracing::warn!(
-// +                    "failed to account active goal progress after tool finish for {turn_id}: {err}"
-// +                );
-// +            }
-// +        })
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-        // TODO: TokenUsageContributor needs a host goal storage capability so
-        // this recorded delta can be committed to active persisted GoalStore
-        // accounting. It also needs event and typed steering capabilities to
-        // emit ThreadGoalUpdated and request budget-limit steering when
-        // accounting changes goal status.
+impl<C> ToolLifecycleContributor for GoalExtension<C>
+where
+    C: Send + Sync + 'static,
+{
+    fn on_tool_finish<'a>(&'a self, input: ToolFinishInput<'a>) -> ToolLifecycleFuture<'a> {
+        Box::pin(async move {
+            let should_count_for_goal_progress = goal_enabled(input.thread_store)
+                && tool_attempt_counts_for_goal_progress(input.outcome)
+                && !(input.tool_name.namespace.is_none()
+                    && input.tool_name.name == UPDATE_GOAL_TOOL_NAME);
+            if !should_count_for_goal_progress {
+                return;
+            }
+            let turn_id = input.turn_id;
+            if let Err(err) = self
+                .account_active_goal_progress(
+                    input.thread_store,
+                    turn_id,
+                    input.call_id,
+                    codex_state::GoalAccountingMode::ActiveOnly,
+                    BudgetLimitedGoalDisposition::KeepActive,
+                )
+                .await
+            {
+                tracing::warn!(
+                    "failed to account active goal progress after tool finish for {turn_id}: {err}"
+                );
+            }
+        })
     }
 }
 

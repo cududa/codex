@@ -6,10 +6,7 @@
 
 use crate::StateDbHandle;
 use crate::context::render_goal_context;
-<<<<<<< HEAD
-=======
 use crate::session::TurnInput;
->>>>>>> rust-v0.133.0
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
 use crate::state::ActiveTurn;
@@ -1776,24 +1773,6 @@ fn escape_xml_text(input: &str) -> String {
         .replace('>', "&gt;")
 }
 
-<<<<<<< HEAD
-=======
-fn budget_limit_steering_item(goal: &ThreadGoal) -> ResponseInputItem {
-    goal_context_input_item(budget_limit_prompt(goal))
-}
-
-fn goal_context_input_item(prompt: String) -> ResponseInputItem {
-    let context = GoalContext { prompt };
-    ResponseInputItem::Message {
-        role: GoalContext::role().to_string(),
-        content: vec![ContentItem::InputText {
-            text: context.render(),
-        }],
-        phase: None,
-    }
-}
-
->>>>>>> rust-v0.133.0
 pub(crate) fn protocol_goal_from_state(goal: codex_state::ThreadGoal) -> ThreadGoal {
     ThreadGoal {
         thread_id: goal.thread_id,

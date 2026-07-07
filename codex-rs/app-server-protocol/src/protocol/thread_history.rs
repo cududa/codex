@@ -3229,4 +3229,56 @@ mod tests {
         assert_eq!(turns.len(), 1);
         assert!(turns[0].items.is_empty());
     }
+
+    #[test]
+    fn ignores_goal_context_response_items_in_rollout_replay() {
+        let items = vec![
+            RolloutItem::EventMsg(EventMsg::TurnStarted(TurnStartedEvent {
+                turn_id: "turn-a".into(),
+                started_at: None,
+                model_context_window: None,
+                collaboration_mode_kind: Default::default(),
+            })),
+            RolloutItem::ResponseItem(goal_context_response_item("developer")),
+            RolloutItem::ResponseItem(goal_context_response_item("user")),
+            RolloutItem::EventMsg(EventMsg::UserMessage(UserMessageEvent {
+                message: "visible user input".into(),
+                images: None,
+                local_images: Vec::new(),
+                text_elements: Vec::new(),
+                ..Default::default()
+            })),
+            RolloutItem::EventMsg(EventMsg::TurnComplete(TurnCompleteEvent {
+                turn_id: "turn-a".into(),
+                last_agent_message: None,
+                completed_at: None,
+                duration_ms: None,
+                time_to_first_token_ms: None,
+            })),
+        ];
+
+        let turns = build_turns_from_rollout_items(&items);
+        assert_eq!(turns.len(), 1);
+        assert_eq!(
+            turns[0].items,
+            vec![ThreadItem::UserMessage {
+                id: "item-1".into(),
+                content: vec![UserInput::Text {
+                    text: "visible user input".into(),
+                    text_elements: Vec::new(),
+                }],
+            }]
+        );
+    }
+
+    fn goal_context_response_item(role: &str) -> codex_protocol::models::ResponseItem {
+        codex_protocol::models::ResponseItem::Message {
+            id: Some(format!("goal-context-{role}")),
+            role: role.to_string(),
+            content: vec![codex_protocol::models::ContentItem::InputText {
+                text: "<goal_context>\n<untrusted_objective>Keep going</untrusted_objective>\n</goal_context>".into(),
+            }],
+            phase: None,
+        }
+    }
 }

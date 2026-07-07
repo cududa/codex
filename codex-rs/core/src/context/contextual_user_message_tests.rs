@@ -1,11 +1,8 @@
 use super::*;
 use crate::context::ContextualUserFragment;
-use crate::context::render_goal_context;
-<<<<<<< HEAD
-=======
 use crate::context::GoalContext;
 use crate::context::SubagentNotification;
->>>>>>> rust-v0.133.0
+use crate::context::render_goal_context;
 use codex_protocol::items::HookPromptFragment;
 use codex_protocol::items::build_hook_prompt_message;
 use codex_protocol::models::ResponseItem;

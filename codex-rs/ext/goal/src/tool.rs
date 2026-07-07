@@ -211,84 +211,51 @@ impl GoalToolExecutor {
             ));
         }
 
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/tool.rs block=2 basis=maintained-to-incoming
-// @@ -1,15 +1,45 @@
-// -        // TODO: update_goal needs a host callback before terminal status
-// -        // mutation to flush final active-turn accounting with budget steering
-// -        // suppressed.
-// +        self.account_active_goal_progress(
-// +            match args.status {
-// +                ThreadGoalStatus::Complete => codex_state::GoalAccountingMode::ActiveOrComplete,
-// +                ThreadGoalStatus::Blocked => codex_state::GoalAccountingMode::ActiveOrStopped,
-// +                ThreadGoalStatus::Active
-// +                | ThreadGoalStatus::Paused
-// +                | ThreadGoalStatus::UsageLimited
-// +                | ThreadGoalStatus::BudgetLimited => unreachable!("status validated above"),
-// +            },
-// +            invocation.call_id.as_str(),
-// +            BudgetLimitedGoalDisposition::ClearActive,
-// +        )
-// +        .await?;
-//          let goal = self
-// -            .backend
-// -            .set_goal_status(self.thread_id, args.status)
-// +            .state_db
-// +            .thread_goals()
-// +            .update_thread_goal(
-// +                self.thread_id,
-// +                codex_state::GoalUpdate {
-// +                    objective: None,
-// +                    status: Some(state_status_from_protocol(args.status)),
-// +                    token_budget: None,
-// +                    expected_goal_id: None,
-// +                },
-// +            )
-//              .await
-// -            .map_err(FunctionCallError::RespondToModel)?;
-// -        self.emit_goal_updated_from_tool_call(&invocation, goal.clone());
-// -        let completion_budget_report = if args.status == ThreadGoalStatus::Complete {
-// -            CompletionBudgetReport::Include
-// -        } else {
-// -            CompletionBudgetReport::Omit
-// -        };
-// -        goal_response(Some(goal), completion_budget_report)
-// +            .map_err(|err| {
-// +                FunctionCallError::RespondToModel(format!("failed to update goal: {err}"))
-// +            })?
-// +            .map(protocol_goal_from_state)
-// +            .ok_or_else(|| {
-// +                FunctionCallError::RespondToModel(
-// +                    "cannot update goal because this thread has no goal".to_string(),
-// +                )
-// +            })?;
-// +        let turn_id = self.accounting_state.clear_current_turn_goal();
-// +        self.emit_goal_updated_from_tool_call(&invocation, turn_id, goal.clone());
-// +        goal_response(
-// +            Some(goal),
-// +            if args.status == ThreadGoalStatus::Complete {
-// +                CompletionBudgetReport::Include
-// +            } else {
-// +                CompletionBudgetReport::Omit
-// +            },
-// +        )
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-        // TODO: update_goal needs a host callback before terminal status
-        // mutation to flush final active-turn accounting with budget steering
-        // suppressed.
+        self.account_active_goal_progress(
+            match args.status {
+                ThreadGoalStatus::Complete => codex_state::GoalAccountingMode::ActiveOrComplete,
+                ThreadGoalStatus::Blocked => codex_state::GoalAccountingMode::ActiveOrStopped,
+                ThreadGoalStatus::Active
+                | ThreadGoalStatus::Paused
+                | ThreadGoalStatus::UsageLimited
+                | ThreadGoalStatus::BudgetLimited => unreachable!("status validated above"),
+            },
+            invocation.call_id.as_str(),
+            BudgetLimitedGoalDisposition::ClearActive,
+        )
+        .await?;
         let goal = self
-            .backend
-            .set_goal_status(self.thread_id, args.status)
+            .state_db
+            .thread_goals()
+            .update_thread_goal(
+                self.thread_id,
+                codex_state::GoalUpdate {
+                    objective: None,
+                    status: Some(state_status_from_protocol(args.status)),
+                    token_budget: None,
+                    expected_goal_id: None,
+                },
+            )
             .await
-            .map_err(FunctionCallError::RespondToModel)?;
-        self.emit_goal_updated_from_tool_call(&invocation, goal.clone());
-        let completion_budget_report = if args.status == ThreadGoalStatus::Complete {
-            CompletionBudgetReport::Include
-        } else {
-            CompletionBudgetReport::Omit
-        };
-        goal_response(Some(goal), completion_budget_report)
+            .map_err(|err| {
+                FunctionCallError::RespondToModel(format!("failed to update goal: {err}"))
+            })?
+            .map(protocol_goal_from_state)
+            .ok_or_else(|| {
+                FunctionCallError::RespondToModel(
+                    "cannot update goal because this thread has no goal".to_string(),
+                )
+            })?;
+        let turn_id = self.accounting_state.clear_current_turn_goal();
+        self.emit_goal_updated_from_tool_call(&invocation, turn_id, goal.clone());
+        goal_response(
+            Some(goal),
+            if args.status == ThreadGoalStatus::Complete {
+                CompletionBudgetReport::Include
+            } else {
+                CompletionBudgetReport::Omit
+            },
+        )
     }
 
     fn emit_goal_updated_from_tool_call(
@@ -453,125 +420,5 @@ fn completion_budget_report(goal: &ThreadGoal) -> Option<String> {
             "Goal achieved. Report final usage from this tool result's structured goal fields. If `goal.tokenBudget` is present, include token usage from `goal.tokensUsed` and `goal.tokenBudget`. If `goal.timeUsedSeconds` is greater than 0, summarize elapsed time in a concise, human-friendly form appropriate to the response language."
                 .to_string(),
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::events::GoalEventEmitter;
-    use async_trait::async_trait;
-    use codex_extension_api::ExtensionEventSink;
-    use codex_protocol::protocol::Event;
-    use codex_tools::ToolPayload;
-    use std::future::Future;
-    use std::pin::Pin;
-    use std::sync::Mutex;
-    use std::task::Context;
-    use std::task::Poll;
-    use std::task::RawWaker;
-    use std::task::RawWakerVTable;
-    use std::task::Waker;
-
-    struct RecordingBackend {
-        calls: Arc<Mutex<Vec<&'static str>>>,
-    }
-
-    #[async_trait]
-    impl GoalToolBackend for RecordingBackend {
-        async fn get_goal(&self, thread_id: ThreadId) -> Result<Option<ThreadGoal>, String> {
-            Ok(Some(test_goal(thread_id, ThreadGoalStatus::Active)))
-        }
-
-        async fn create_goal(
-            &self,
-            thread_id: ThreadId,
-            _request: CreateGoalRequest,
-        ) -> Result<ThreadGoal, String> {
-            Ok(test_goal(thread_id, ThreadGoalStatus::Active))
-        }
-
-        async fn set_goal_status(
-            &self,
-            thread_id: ThreadId,
-            status: ThreadGoalStatus,
-        ) -> Result<ThreadGoal, String> {
-            self.calls.lock().unwrap().push("backend");
-            Ok(test_goal(thread_id, status))
-        }
-    }
-
-    struct RecordingSink {
-        calls: Arc<Mutex<Vec<&'static str>>>,
-    }
-
-    impl ExtensionEventSink for RecordingSink {
-        fn emit(&self, _event: Event) {
-            self.calls.lock().unwrap().push("event");
-        }
-    }
-
-    #[test]
-    fn extension_update_goal_completion_emits_after_backend_mutation() {
-        let calls = Arc::new(Mutex::new(Vec::new()));
-        let backend = Arc::new(RecordingBackend {
-            calls: Arc::clone(&calls),
-        });
-        let sink = Arc::new(RecordingSink {
-            calls: Arc::clone(&calls),
-        });
-        let thread_id =
-            ThreadId::from_string("00000000-0000-0000-0000-000000000123").expect("valid thread id");
-        let executor = GoalToolExecutor::update(thread_id, backend, GoalEventEmitter::new(sink));
-
-        block_on(executor.handle(ToolCall {
-            call_id: "call-1".to_string(),
-            tool_name: ToolName::plain(UPDATE_GOAL_TOOL_NAME),
-            payload: ToolPayload::Function {
-                arguments: r#"{"status":"complete"}"#.to_string(),
-            },
-        }))
-        .expect("update_goal should succeed");
-
-        assert_eq!(*calls.lock().unwrap(), vec!["backend", "event"]);
-    }
-
-    fn test_goal(thread_id: ThreadId, status: ThreadGoalStatus) -> ThreadGoal {
-        ThreadGoal {
-            thread_id,
-            objective: "finish the work".to_string(),
-            status,
-            token_budget: Some(10),
-            tokens_used: 5,
-            time_used_seconds: 0,
-            created_at: 1,
-            updated_at: 2,
-        }
-    }
-
-    fn block_on<F: Future>(future: F) -> F::Output {
-        let waker = noop_waker();
-        let mut context = Context::from_waker(&waker);
-        let mut future = Box::pin(future);
-        loop {
-            match Pin::new(&mut future).poll(&mut context) {
-                Poll::Ready(output) => return output,
-                Poll::Pending => std::thread::yield_now(),
-            }
-        }
-    }
-
-    fn noop_waker() -> Waker {
-        unsafe fn clone(_: *const ()) -> RawWaker {
-            RawWaker::new(std::ptr::null(), &VTABLE)
-        }
-        unsafe fn wake(_: *const ()) {}
-        unsafe fn wake_by_ref(_: *const ()) {}
-        unsafe fn drop(_: *const ()) {}
-        static VTABLE: RawWakerVTable = RawWakerVTable::new(clone, wake, wake_by_ref, drop);
-        // SAFETY: the vtable functions ignore the null data pointer and perform
-        // no dereferencing, so this no-op waker is valid for polling futures
-        // that complete without scheduling external wakeups.
-        unsafe { Waker::from_raw(RawWaker::new(std::ptr::null(), &VTABLE)) }
     }
 }

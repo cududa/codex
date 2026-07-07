@@ -40,6 +40,8 @@ pub(crate) use environment_context::EnvironmentContext;
 pub use fragment::ContextualUserFragment;
 pub(crate) use fragment::FragmentRegistration;
 pub(crate) use fragment::FragmentRegistrationProxy;
+#[cfg(test)]
+pub(crate) use goal_context::GoalContext;
 pub(crate) use goal_context::is_goal_context_text;
 pub(crate) use goal_context::render_goal_context;
 pub(crate) use guardian_followup_review_reminder::GuardianFollowupReviewReminder;

@@ -8588,6 +8588,7 @@ async fn active_goal_continuation_uses_configured_user_role() -> anyhow::Result<
             }],
             final_output_json_schema: None,
             responsesapi_client_metadata: None,
+            thread_settings: Default::default(),
         })
         .await?;
 
@@ -9048,10 +9049,12 @@ async fn resumed_active_goal_emits_initial_steering_independent_of_resumed_metri
     sess.goal_runtime_apply(GoalRuntimeEvent::MaybeContinueIfIdle)
         .await?;
 
-    let pending_input = sess.get_pending_input().await;
+    let pending_input = sess.input_queue.get_pending_input(&sess.active_turn).await;
     assert!(
         pending_input.iter().any(|item| {
-            let ResponseInputItem::Message { role, content, .. } = item else {
+            let TurnInput::ResponseInputItem(ResponseInputItem::Message { role, content, .. }) =
+                item
+            else {
                 return false;
             };
             role == "developer"
@@ -9219,14 +9222,7 @@ where
         pending_input.iter().any(|item| {
             matches!(
                 item,
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/session/tests.rs block=2 basis=maintained-to-incoming
-// @@ -1,1 +1,1 @@
-// -                ResponseInputItem::Message { role, content, .. }
-// +                TurnInput::ResponseInputItem(ResponseInputItem::Message { role, content, .. })
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-                ResponseInputItem::Message { role, content, .. }
+                TurnInput::ResponseInputItem(ResponseInputItem::Message { role, content, .. })
                     if role == expected_role.as_response_role()
                         && content.iter().any(|content| matches!(
                             content,

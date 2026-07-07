@@ -1281,6 +1281,133 @@ async fn thread_goal_clear_deletes_goal_and_notifies() -> Result<()> {
 }
 
 #[tokio::test]
+async fn thread_goal_set_active_schedules_developer_role_goal_steering() -> Result<()> {
+    let server = responses::start_mock_server().await;
+    let seed_body = responses::sse(vec![
+        responses::ev_response_created("resp-seed"),
+        responses::ev_assistant_message("msg-seed", "Seeded."),
+        responses::ev_completed("resp-seed"),
+    ]);
+    let goal_body = responses::sse(vec![
+        responses::ev_response_created("resp-goal"),
+        responses::ev_assistant_message("msg-goal", "Goal turn."),
+        responses::ev_completed("resp-goal"),
+    ]);
+    let response_mock = responses::mount_sse_sequence(&server, vec![seed_body, goal_body]).await;
+    let codex_home = TempDir::new()?;
+    create_config_toml(codex_home.path(), &server.uri())?;
+    let config_path = codex_home.path().join("config.toml");
+    let config = std::fs::read_to_string(&config_path)?;
+    std::fs::write(
+        &config_path,
+        config.replace("personality = true\n", "personality = true\ngoals = true\n"),
+    )?;
+
+    let mut mcp = McpProcess::new_without_managed_config(codex_home.path()).await?;
+    timeout(DEFAULT_READ_TIMEOUT, mcp.initialize()).await??;
+
+    let start_id = mcp
+        .send_thread_start_request(ThreadStartParams {
+            model: Some("gpt-5.2-codex".to_string()),
+            ..Default::default()
+        })
+        .await?;
+    let start_resp: JSONRPCResponse = timeout(
+        DEFAULT_READ_TIMEOUT,
+        mcp.read_stream_until_response_message(RequestId::Integer(start_id)),
+    )
+    .await??;
+    let ThreadStartResponse { thread, .. } = to_response::<ThreadStartResponse>(start_resp)?;
+
+    let materialize_id = mcp
+        .send_turn_start_request(TurnStartParams {
+            thread_id: thread.id.clone(),
+            input: vec![UserInput::Text {
+                text: "materialize this thread".to_string(),
+                text_elements: Vec::new(),
+            }],
+            ..Default::default()
+        })
+        .await?;
+    timeout(
+        DEFAULT_READ_TIMEOUT,
+        mcp.read_stream_until_response_message(RequestId::Integer(materialize_id)),
+    )
+    .await??;
+    timeout(
+        DEFAULT_READ_TIMEOUT,
+        mcp.read_stream_until_notification_message("turn/completed"),
+    )
+    .await??;
+    mcp.clear_message_buffer();
+
+    let goal_id = mcp
+        .send_raw_request(
+            "thread/goal/set",
+            Some(json!({
+                "threadId": thread.id,
+                "objective": "keep polishing",
+                "status": "active",
+            })),
+        )
+        .await?;
+    let goal_resp: JSONRPCResponse = timeout(
+        DEFAULT_READ_TIMEOUT,
+        mcp.read_stream_until_response_message(RequestId::Integer(goal_id)),
+    )
+    .await??;
+    let goal: ThreadGoalSetResponse = to_response(goal_resp)?;
+    assert_eq!(goal.goal.status, ThreadGoalStatus::Active);
+    timeout(
+        DEFAULT_READ_TIMEOUT,
+        mcp.read_stream_until_notification_message("thread/goal/updated"),
+    )
+    .await??;
+    timeout(
+        DEFAULT_READ_TIMEOUT,
+        mcp.read_stream_until_notification_message("turn/started"),
+    )
+    .await??;
+    timeout(
+        DEFAULT_READ_TIMEOUT,
+        mcp.read_stream_until_notification_message("turn/completed"),
+    )
+    .await??;
+
+    let requests = response_mock.requests();
+    let developer_goal_contexts = requests
+        .iter()
+        .flat_map(|request| request.message_input_texts("developer"))
+        .filter(|text| text.contains("<goal_context>"))
+        .collect::<Vec<_>>();
+    assert!(
+        developer_goal_contexts.iter().any(|text| {
+            let normalized_text = text.replace("\r\n", "\n");
+            normalized_text.starts_with("<goal_context>")
+                && normalized_text.trim_end().ends_with("</goal_context>")
+                && normalized_text.contains("Begin working toward the active thread goal.")
+                && normalized_text.contains("This is the first turn for this goal.")
+                && normalized_text
+                    .contains("<untrusted_objective>\nkeep polishing\n</untrusted_objective>")
+        }),
+        "thread/goal/set should route through developer-role goal steering, got {developer_goal_contexts:?}"
+    );
+    let user_goal_contexts = requests
+        .iter()
+        .flat_map(|request| request.message_input_texts("user"))
+        .filter(|text| text.contains("<goal_context>"))
+        .collect::<Vec<_>>();
+    assert!(
+        user_goal_contexts
+            .iter()
+            .all(|text| !text.contains("Begin working toward the active thread goal.")),
+        "thread/goal/set should not emit default initial goal steering as user-role, got {user_goal_contexts:?}"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn thread_resume_emits_restored_token_usage_before_next_turn() -> Result<()> {
     let server = create_mock_responses_server_repeating_assistant("Done").await;
     let codex_home = TempDir::new()?;
