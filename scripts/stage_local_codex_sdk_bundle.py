@@ -28,6 +28,7 @@ PUBLIC_CODEX_NPM_NAME = "@openai/codex"
 PUBLIC_CODEX_SDK_NPM_NAME = "@openai/codex-sdk"
 LEGACY_INSTALL_ROOT = Path(r"C:\Program Files\CodexPinned")
 LEGACY_BIN_DIR = LEGACY_INSTALL_ROOT / "bin"
+NO_SANDBOX_RESOURCES_MARKER = "no-sandbox-package.txt"
 JsonObject = dict[str, Any]
 
 
@@ -227,6 +228,7 @@ def stage_codex_package(
     path_dest_dir = package_layout_dir / "codex-path"
     resources_dir = package_layout_dir / "codex-resources"
     bin_dir = staging_dir / "bin"
+    remove_pre_v133_layout_dirs(package_layout_dir)
     codex_dest_dir.mkdir(parents=True, exist_ok=True)
     path_dest_dir.mkdir(parents=True, exist_ok=True)
     resources_dir.mkdir(parents=True, exist_ok=True)
@@ -238,6 +240,7 @@ def stage_codex_package(
     else:
         require_file(codex_dest_dir / "codex.exe", "staged Codex binary")
     shutil.copy2(rg_source, path_dest_dir / "rg.exe")
+    write_no_sandbox_resources_marker(resources_dir)
     write_codex_package_metadata(package_layout_dir, version)
 
     readme_src = REPO_ROOT / "README.md"
@@ -253,6 +256,21 @@ def stage_codex_package(
     package_json.pop("optionalDependencies", None)
     write_json(staging_dir / "package.json", package_json)
     validate_local_no_sandbox_codex_package_dir(package_layout_dir, version)
+
+
+def remove_pre_v133_layout_dirs(package_layout_dir: Path) -> None:
+    for relative_dir in ["codex", "path"]:
+        path = package_layout_dir / relative_dir
+        if path.exists():
+            shutil.rmtree(path)
+
+
+def write_no_sandbox_resources_marker(resources_dir: Path) -> None:
+    marker = resources_dir / NO_SANDBOX_RESOURCES_MARKER
+    marker.write_text(
+        "Private local no-sandbox package: Windows sandbox helpers are intentionally absent.\n",
+        encoding="utf-8",
+    )
 
 
 def write_codex_package_metadata(package_layout_dir: Path, version: str) -> None:
@@ -275,6 +293,10 @@ def validate_local_no_sandbox_codex_package_dir(package_layout_dir: Path, versio
     require_file(package_layout_dir / "bin" / "codex.exe", "staged Codex binary")
     require_file(package_layout_dir / "codex-path" / "rg.exe", "staged rg binary")
     require_dir(package_layout_dir / "codex-resources", "Codex resources directory")
+    require_file(
+        package_layout_dir / "codex-resources" / NO_SANDBOX_RESOURCES_MARKER,
+        "no-sandbox resources marker",
+    )
 
     with open(package_layout_dir / "codex-package.json", "r", encoding="utf-8") as fh:
         metadata = cast(JsonObject, json.load(fh))

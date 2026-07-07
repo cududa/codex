@@ -63,8 +63,7 @@ install source.
 
 The generated npm package version is
 `<codex-rs workspace.package.version>-cududa` unless `--version` is provided.
-The current `0.131.x` line stays on `0.131.0-cududa`; upstream `0.132.x` is
-accepted later through the normal fast-forward flow.
+The current v133 integration line uses the same `-cududa` suffix.
 
 Local Node applets should import the SDK from the private package name:
 
@@ -100,7 +99,8 @@ The `codex-resources` directory is part of the canonical package layout and is
 expected to exist. For this private Windows no-sandbox package it intentionally
 does not contain `codex-command-runner.exe` or
 `codex-windows-sandbox-setup.exe`; their absence is not a local validation
-failure.
+failure. The directory includes `no-sandbox-package.txt` so npm tarballs retain
+the canonical resource directory even though helper binaries are absent.
 
 ```powershell
 npm update -g --dry-run

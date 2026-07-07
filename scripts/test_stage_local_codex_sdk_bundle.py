@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import tarfile
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -52,6 +53,9 @@ class StageLocalCodexSdkBundleTest(unittest.TestCase):
             self.assertTrue((package_root / "bin" / "codex.exe").is_file())
             self.assertTrue((package_root / "codex-path" / "rg.exe").is_file())
             self.assertTrue((package_root / "codex-resources").is_dir())
+            self.assertTrue(
+                (package_root / "codex-resources" / stage_local.NO_SANDBOX_RESOURCES_MARKER).is_file()
+            )
             self.assertFalse((package_root / "codex-resources" / "codex-command-runner.exe").exists())
             self.assertFalse(
                 (package_root / "codex-resources" / "codex-windows-sandbox-setup.exe").exists()
@@ -75,7 +79,11 @@ class StageLocalCodexSdkBundleTest(unittest.TestCase):
             staged_bin = package_root / "bin" / "codex.exe"
             rg_source = tmp_dir / "rg.exe"
             staged_bin.parent.mkdir(parents=True)
+            (package_root / "codex").mkdir(parents=True)
+            (package_root / "path").mkdir(parents=True)
             staged_bin.write_bytes(b"staged")
+            (package_root / "codex" / "codex.exe").write_bytes(b"pre-v133")
+            (package_root / "path" / "rg.exe").write_bytes(b"pre-v133-rg")
             rg_source.write_bytes(b"rg")
 
             stage_local.stage_codex_package(
@@ -89,6 +97,36 @@ class StageLocalCodexSdkBundleTest(unittest.TestCase):
             self.assertEqual(staged_bin.read_bytes(), b"staged")
             self.assertTrue((package_root / "codex-path" / "rg.exe").is_file())
             self.assertFalse((package_root / "codex" / "codex.exe").exists())
+            self.assertFalse((package_root / "path" / "rg.exe").exists())
+
+    def test_npm_pack_preserves_codex_resources_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_dir = Path(tmp)
+            staging_dir = tmp_dir / "package"
+            codex_bin = tmp_dir / "codex.exe"
+            rg_source = tmp_dir / "rg.exe"
+            pack_output = tmp_dir / "codex-npm-0.133.0-cududa.tgz"
+            codex_bin.write_bytes(b"codex")
+            rg_source.write_bytes(b"rg")
+
+            stage_local.stage_codex_package(
+                staging_dir,
+                "0.133.0-cududa",
+                codex_bin,
+                rg_source,
+            )
+            stage_local.run_npm_pack(staging_dir, pack_output)
+
+            with tarfile.open(pack_output, "r:gz") as package:
+                names = set(package.getnames())
+
+            package_root = f"package/vendor/{stage_local.TARGET_TRIPLE}"
+            self.assertIn(
+                f"{package_root}/codex-resources/{stage_local.NO_SANDBOX_RESOURCES_MARKER}",
+                names,
+            )
+            self.assertNotIn(f"{package_root}/codex-resources/codex-command-runner.exe", names)
+            self.assertNotIn(f"{package_root}/codex-resources/codex-windows-sandbox-setup.exe", names)
 
     def test_main_reuse_staged_package_does_not_require_external_codex_bin(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -99,8 +137,12 @@ class StageLocalCodexSdkBundleTest(unittest.TestCase):
             staged_bin = package_root / "bin" / "codex.exe"
             rg_source = tmp_dir / "rg.exe"
             staged_bin.parent.mkdir(parents=True)
+            (package_root / "codex").mkdir(parents=True)
+            (package_root / "path").mkdir(parents=True)
             staging_dir.mkdir(parents=True, exist_ok=True)
             staged_bin.write_bytes(b"staged")
+            (package_root / "codex" / "codex.exe").write_bytes(b"pre-v133")
+            (package_root / "path" / "rg.exe").write_bytes(b"pre-v133-rg")
             rg_source.write_bytes(b"rg")
             (staging_dir / "package.json").write_text("{}", encoding="utf-8")
 
@@ -129,6 +171,7 @@ class StageLocalCodexSdkBundleTest(unittest.TestCase):
             self.assertEqual(staged_bin.read_bytes(), b"staged")
             self.assertTrue((package_root / "codex-path" / "rg.exe").is_file())
             self.assertFalse((package_root / "codex" / "codex.exe").exists())
+            self.assertFalse((package_root / "path" / "rg.exe").exists())
 
 
 if __name__ == "__main__":
