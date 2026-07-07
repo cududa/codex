@@ -19,8 +19,10 @@ There is one local Codex route:
 - The route preserves the current no-sandbox usage pattern:
   `sandbox_mode = "danger-full-access"`, `approval_policy = "never"`, and
   `default_permissions = ":danger-no-sandbox"`.
-- The route does not build, bundle, or depend on Windows sandbox helper
-  binaries.
+- The route adopts upstream v133's canonical Codex package layout while staying
+  private and no-sandbox.
+- The route does not build, bundle, validate, require, or depend on Windows
+  sandbox helper binaries.
 - `CODEX_HOME` remains the normal shared `~\.codex` home.
 - Config, auth, logs, state, sessions, memories, and `/resume` history are
   shared. The SDK route does not create an isolated Codex identity.
@@ -41,6 +43,11 @@ That command is expected to:
 
 - build `codex-rs\target\aarch64-pc-windows-msvc\local-release\codex.exe`;
 - package `rg.exe` from PATH into the Codex npm package;
+- stage the private Codex package in the canonical v133 layout:
+  `vendor\aarch64-pc-windows-msvc\codex-package.json`,
+  `vendor\aarch64-pc-windows-msvc\bin\codex.exe`,
+  `vendor\aarch64-pc-windows-msvc\codex-path\rg.exe`, and
+  `vendor\aarch64-pc-windows-msvc\codex-resources\`;
 - build and package the TypeScript SDK against that bundled Codex package;
 - uninstall any global `@openai/codex` or `@openai/codex-sdk` packages;
 - stage `@cududa/codex` and `@cududa/codex-sdk` as local package folders and
@@ -87,7 +94,13 @@ codex doctor --json
 ```
 
 should show `codex` resolving through global npm, with the active executable
-under `...\npm\node_modules\@cududa\codex\vendor\aarch64-pc-windows-msvc\codex\codex.exe`.
+under `...\npm\node_modules\@cududa\codex\vendor\aarch64-pc-windows-msvc\bin\codex.exe`.
+
+The `codex-resources` directory is part of the canonical package layout and is
+expected to exist. For this private Windows no-sandbox package it intentionally
+does not contain `codex-command-runner.exe` or
+`codex-windows-sandbox-setup.exe`; their absence is not a local validation
+failure.
 
 ```powershell
 npm update -g --dry-run
@@ -113,7 +126,8 @@ not the blessed release flow.
 ## Non-Goals
 
 The script does not stage other platforms, Python runtime wheels, the responses
-proxy, Windows sandbox helper binaries, or upstream release-only artifacts.
+proxy, Windows sandbox helper binaries, public release archives, public
+DotSlash config, or other upstream release-only artifacts.
 
 The script does not create an alternate `CODEX_HOME`, alternate config,
 alternate auth, alternate state DB, or alternate resume history.

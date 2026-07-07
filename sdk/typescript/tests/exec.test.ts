@@ -45,7 +45,7 @@ function createEarlyExitChild(exitCode = 2): FakeChildProcess {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("CodexExec", () => {
-  it("resolves a self-contained @cududa/codex vendor tree", async () => {
+  it("resolves a legacy self-contained @cududa/codex vendor tree as compatibility", async () => {
     const { __testing } = await import("../src/exec");
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-sdk-self-contained-"));
     try {
@@ -77,7 +77,7 @@ describe("CodexExec", () => {
   });
 
   it("resolves a self-contained @cududa/codex package-layout vendor tree", async () => {
-    const { __testing } = await import("../src/exec");
+    const { __testing, resolveNativePackage } = await import("../src/exec");
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-sdk-self-contained-"));
     try {
       const packageRoot = path.join(tmpDir, "package");
@@ -91,11 +91,15 @@ describe("CodexExec", () => {
       const vendorRoot = path.join(packageRoot, "vendor");
       const packageLayoutRoot = path.join(vendorRoot, targetTriple);
       const binaryDir = path.join(packageLayoutRoot, "bin");
+      const pathDir = path.join(packageLayoutRoot, "codex-path");
+      const rgBinaryName = process.platform === "win32" ? "rg.exe" : "rg";
 
       fs.mkdirSync(binaryDir, { recursive: true });
+      fs.mkdirSync(pathDir, { recursive: true });
       fs.writeFileSync(path.join(packageRoot, "package.json"), "{}");
       fs.writeFileSync(path.join(packageLayoutRoot, "codex-package.json"), "{}");
       fs.writeFileSync(path.join(binaryDir, codexBinaryName), "");
+      fs.writeFileSync(path.join(pathDir, rgBinaryName), "");
 
       expect(
         __testing.resolveVendorRoot(
@@ -104,6 +108,10 @@ describe("CodexExec", () => {
           targetTriple,
         ),
       ).toBe(vendorRoot);
+      expect(resolveNativePackage(vendorRoot, targetTriple, codexBinaryName)).toEqual({
+        executablePath: path.join(binaryDir, codexBinaryName),
+        pathDirs: [pathDir],
+      });
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
