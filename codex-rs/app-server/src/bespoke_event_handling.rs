@@ -4,6 +4,7 @@ use crate::outgoing_message::ClientRequestResult;
 use crate::outgoing_message::ThreadScopedOutgoingMessageSender;
 use crate::request_processors::populate_thread_turns_from_history;
 use crate::request_processors::thread_from_stored_thread;
+use crate::request_processors::thread_settings_from_core_snapshot;
 use crate::server_request_error::is_turn_transition_server_request_error;
 use crate::thread_state::ThreadState;
 use crate::thread_state::TurnSummary;
@@ -60,6 +61,7 @@ use codex_app_server_protocol::ThreadRealtimeStartedNotification;
 use codex_app_server_protocol::ThreadRealtimeTranscriptDeltaNotification;
 use codex_app_server_protocol::ThreadRealtimeTranscriptDoneNotification;
 use codex_app_server_protocol::ThreadRollbackResponse;
+use codex_app_server_protocol::ThreadSettingsUpdatedNotification;
 use codex_app_server_protocol::ThreadStatus;
 use codex_app_server_protocol::ThreadTokenUsage;
 use codex_app_server_protocol::ThreadTokenUsageUpdatedNotification;
@@ -1200,6 +1202,24 @@ pub(crate) async fn apply_bespoke_event_handling(
                 ))
                 .await;
         }
+        EventMsg::ThreadSettingsApplied(thread_settings_event) => {
+            let thread_settings =
+                thread_settings_from_core_snapshot(thread_settings_event.thread_settings);
+            let changed = {
+                let mut state = thread_state.lock().await;
+                state.note_thread_settings(thread_settings.clone())
+            };
+            if changed {
+                outgoing
+                    .send_server_notification(ServerNotification::ThreadSettingsUpdated(
+                        ThreadSettingsUpdatedNotification {
+                            thread_id: conversation_id.to_string(),
+                            thread_settings,
+                        },
+                    ))
+                    .await;
+            }
+        }
         EventMsg::TurnDiff(turn_diff_event) => {
             handle_turn_diff(conversation_id, &event_turn_id, turn_diff_event, &outgoing).await;
         }
@@ -1389,6 +1409,10 @@ async fn maybe_emit_raw_response_item_completed(
     item: codex_protocol::models::ResponseItem,
     outgoing: &ThreadScopedOutgoingMessageSender,
 ) {
+    if is_goal_context_response_item(&item) {
+        return;
+    }
+
     let notification = RawResponseItemCompletedNotification {
         thread_id: conversation_id.to_string(),
         turn_id: turn_id.to_string(),
@@ -1397,6 +1421,27 @@ async fn maybe_emit_raw_response_item_completed(
     outgoing
         .send_server_notification(ServerNotification::RawResponseItemCompleted(notification))
         .await;
+}
+
+fn is_goal_context_response_item(item: &codex_protocol::models::ResponseItem) -> bool {
+    let codex_protocol::models::ResponseItem::Message { role, content, .. } = item else {
+        return false;
+    };
+
+    if role != "developer" && role != "user" {
+        return false;
+    }
+
+    matches!(
+        content.as_slice(),
+        [codex_protocol::models::ContentItem::InputText { text }]
+            if is_goal_context_text(text)
+    )
+}
+
+fn is_goal_context_text(text: &str) -> bool {
+    let trimmed = text.trim();
+    trimmed.starts_with("<goal_context>") && trimmed.ends_with("</goal_context>")
 }
 
 pub(crate) async fn maybe_emit_hook_prompt_item_completed(
@@ -3810,5 +3855,114 @@ mod tests {
         }
         assert!(rx.try_recv().is_err(), "no extra messages expected");
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn suppresses_goal_context_raw_response_item_notifications() -> Result<()> {
+        let (tx, mut rx) = mpsc::channel(CHANNEL_CAPACITY);
+        let outgoing = Arc::new(OutgoingMessageSender::new(
+            tx,
+            codex_analytics::AnalyticsEventsClient::disabled(),
+        ));
+        let conversation_id = ThreadId::new();
+        let outgoing = ThreadScopedOutgoingMessageSender::new(
+            outgoing,
+            vec![ConnectionId(1)],
+            conversation_id,
+        );
+
+        maybe_emit_raw_response_item_completed(
+            conversation_id,
+            "turn-1",
+            goal_context_response_item("developer"),
+            &outgoing,
+        )
+        .await;
+        maybe_emit_raw_response_item_completed(
+            conversation_id,
+            "turn-1",
+            goal_context_response_item("user"),
+            &outgoing,
+        )
+        .await;
+        assert!(rx.try_recv().is_err(), "goal context should stay hidden");
+
+        maybe_emit_raw_response_item_completed(
+            conversation_id,
+            "turn-1",
+            raw_text_response_item("assistant", "visible raw item"),
+            &outgoing,
+        )
+        .await;
+        maybe_emit_raw_response_item_completed(
+            conversation_id,
+            "turn-1",
+            mixed_goal_context_response_item("developer"),
+            &outgoing,
+        )
+        .await;
+
+        let msg = recv_broadcast_message(&mut rx).await?;
+        match msg {
+            OutgoingMessage::AppServerNotification(
+                ServerNotification::RawResponseItemCompleted(notification),
+            ) => {
+                assert_eq!(notification.thread_id, conversation_id.to_string());
+                assert_eq!(notification.turn_id, "turn-1");
+                assert_eq!(
+                    notification.item,
+                    raw_text_response_item("assistant", "visible raw item")
+                );
+            }
+            other => bail!("unexpected message: {other:?}"),
+        }
+        let msg = recv_broadcast_message(&mut rx).await?;
+        match msg {
+            OutgoingMessage::AppServerNotification(
+                ServerNotification::RawResponseItemCompleted(notification),
+            ) => {
+                assert_eq!(
+                    notification.item,
+                    mixed_goal_context_response_item("developer")
+                );
+            }
+            other => bail!("unexpected message: {other:?}"),
+        }
+        assert!(rx.try_recv().is_err(), "no extra messages expected");
+        Ok(())
+    }
+
+    fn goal_context_response_item(role: &str) -> codex_protocol::models::ResponseItem {
+        raw_text_response_item(
+            role,
+            "<goal_context>\n<untrusted_objective>Keep going</untrusted_objective>\n</goal_context>",
+        )
+    }
+
+    fn mixed_goal_context_response_item(role: &str) -> codex_protocol::models::ResponseItem {
+        codex_protocol::models::ResponseItem::Message {
+            id: Some(format!("mixed-{role}")),
+            role: role.to_string(),
+            content: vec![
+                codex_protocol::models::ContentItem::InputText {
+                    text: "<goal_context>\n<untrusted_objective>Keep going</untrusted_objective>\n</goal_context>".to_string(),
+                },
+                codex_protocol::models::ContentItem::InputText {
+                    text: "visible diagnostic text".to_string(),
+                },
+            ],
+            phase: None,
+        }
+    }
+
+    fn raw_text_response_item(role: &str, text: &str) -> codex_protocol::models::ResponseItem {
+        codex_protocol::models::ResponseItem::Message {
+            id: Some(format!("msg-{role}")),
+            role: role.to_string(),
+            content: vec![codex_protocol::models::ContentItem::InputText {
+                text: text.to_string(),
+            }],
+            phase: None,
+        }
     }
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::context::render_goal_context;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_model_provider_info::WireApi;
 use codex_protocol::models::DEFAULT_IMAGE_DETAIL;
@@ -24,9 +25,13 @@ async fn process_compacted_history_with_test_session(
 }
 
 fn user_message(text: &str) -> ResponseItem {
+    message("user", text)
+}
+
+fn message(role: &str, text: &str) -> ResponseItem {
     ResponseItem::Message {
         id: None,
-        role: "user".to_string(),
+        role: role.to_string(),
         content: vec![ContentItem::InputText {
             text: text.to_string(),
         }],
@@ -280,6 +285,28 @@ async fn process_compacted_history_replaces_developer_messages() {
         }],
         phase: None,
     });
+    assert_eq!(refreshed, expected);
+}
+
+#[tokio::test]
+async fn process_compacted_history_drops_role_neutral_goal_context() {
+    let compacted_history = vec![
+        message(
+            "developer",
+            &render_goal_context("Continue working toward the active thread goal."),
+        ),
+        user_message("summary"),
+        message(
+            "user",
+            &render_goal_context("Continue working toward the active thread goal."),
+        ),
+    ];
+    let (refreshed, mut expected) = process_compacted_history_with_test_session(
+        compacted_history,
+        /*previous_turn_settings*/ None,
+    )
+    .await;
+    expected.push(user_message("summary"));
     assert_eq!(refreshed, expected);
 }
 

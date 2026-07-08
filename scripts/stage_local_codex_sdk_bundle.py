@@ -28,6 +28,7 @@ PUBLIC_CODEX_NPM_NAME = "@openai/codex"
 PUBLIC_CODEX_SDK_NPM_NAME = "@openai/codex-sdk"
 LEGACY_INSTALL_ROOT = Path(r"C:\Program Files\CodexPinned")
 LEGACY_BIN_DIR = LEGACY_INSTALL_ROOT / "bin"
+NO_SANDBOX_RESOURCES_MARKER = "no-sandbox-package.txt"
 JsonObject = dict[str, Any]
 
 
@@ -65,6 +66,11 @@ def parse_args() -> argparse.Namespace:
         help="Reuse sdk/typescript/dist instead of rebuilding the SDK. Only for debugging.",
     )
     parser.add_argument(
+        "--skip-debug-target-clean",
+        action="store_true",
+        help="Keep codex-rs/target/debug instead of deleting test/dev artifacts before the local-release build.",
+    )
+    parser.add_argument(
         "--skip-local-install",
         action="store_true",
         help="Skip the generated dist/npm-local pnpm install smoke environment.",
@@ -97,22 +103,27 @@ def main() -> int:
     sdk_package_dir = packages_dir / "codex-sdk"
     codex_tarball = tarballs_dir / f"codex-npm-{version}.tgz"
     sdk_tarball = tarballs_dir / f"codex-sdk-npm-{version}.tgz"
+    reuse_staged_codex_package = args.reuse_codex_bin and (codex_package_dir / "package.json").is_file()
 
-    if args.reuse_codex_bin:
+    if reuse_staged_codex_package:
+        print("Reusing existing staged Codex npm package.", flush=True)
+    elif args.reuse_codex_bin:
         print("Reusing existing local-release Codex binary.", flush=True)
     else:
+        if not args.skip_debug_target_clean:
+            delete_debug_target()
         build_codex()
 
     codex_bin = args.codex_bin.resolve()
-    require_file(codex_bin, "Codex binary")
+    if not reuse_staged_codex_package:
+        require_file(codex_bin, "Codex binary")
     rg_source = resolve_rg_source(args.rg_source, output_dir)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     tarballs_dir.mkdir(parents=True, exist_ok=True)
     packages_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.reuse_codex_bin and (codex_package_dir / "package.json").is_file():
-        print("Reusing existing staged Codex npm package.", flush=True)
+    if reuse_staged_codex_package:
         stage_codex_package(
             codex_package_dir,
             version,
@@ -177,6 +188,16 @@ def build_codex() -> None:
     )
 
 
+def delete_debug_target() -> None:
+    debug_target = CODEX_RS_ROOT / "target" / "debug"
+    if not debug_target.exists():
+        return
+    if not debug_target.is_dir():
+        raise RuntimeError(f"Expected Cargo debug target to be a directory: {debug_target}")
+    print(f"Deleting Cargo debug target before local-release build: {debug_target}", flush=True)
+    shutil.rmtree(debug_target)
+
+
 def derive_local_version() -> str:
     cargo_toml = CODEX_RS_ROOT / "Cargo.toml"
     with open(cargo_toml, "rb") as fh:
@@ -219,11 +240,15 @@ def stage_codex_package(
     *,
     copy_codex_binary: bool = True,
 ) -> None:
-    codex_dest_dir = staging_dir / "vendor" / TARGET_TRIPLE / "codex"
-    path_dest_dir = staging_dir / "vendor" / TARGET_TRIPLE / "path"
+    package_layout_dir = staging_dir / "vendor" / TARGET_TRIPLE
+    codex_dest_dir = package_layout_dir / "bin"
+    path_dest_dir = package_layout_dir / "codex-path"
+    resources_dir = package_layout_dir / "codex-resources"
     bin_dir = staging_dir / "bin"
+    remove_pre_v133_layout_dirs(package_layout_dir)
     codex_dest_dir.mkdir(parents=True, exist_ok=True)
     path_dest_dir.mkdir(parents=True, exist_ok=True)
+    resources_dir.mkdir(parents=True, exist_ok=True)
     bin_dir.mkdir(parents=True, exist_ok=True)
 
     shutil.copy2(CODEX_CLI_ROOT / "bin" / "codex.js", bin_dir / "codex.js")
@@ -232,6 +257,8 @@ def stage_codex_package(
     else:
         require_file(codex_dest_dir / "codex.exe", "staged Codex binary")
     shutil.copy2(rg_source, path_dest_dir / "rg.exe")
+    write_no_sandbox_resources_marker(resources_dir)
+    write_codex_package_metadata(package_layout_dir, version)
 
     readme_src = REPO_ROOT / "README.md"
     if readme_src.exists():
@@ -245,6 +272,76 @@ def stage_codex_package(
     package_json["files"] = ["bin", "vendor"]
     package_json.pop("optionalDependencies", None)
     write_json(staging_dir / "package.json", package_json)
+    validate_local_no_sandbox_codex_package_dir(package_layout_dir, version)
+
+
+def remove_pre_v133_layout_dirs(package_layout_dir: Path) -> None:
+    for relative_dir in ["codex", "path"]:
+        path = package_layout_dir / relative_dir
+        if path.exists():
+            shutil.rmtree(path)
+
+
+def write_no_sandbox_resources_marker(resources_dir: Path) -> None:
+    marker = resources_dir / NO_SANDBOX_RESOURCES_MARKER
+    marker.write_text(
+        "Private local no-sandbox package: Windows sandbox helpers are intentionally absent.\n",
+        encoding="utf-8",
+    )
+
+
+def write_codex_package_metadata(package_layout_dir: Path, version: str) -> None:
+    write_json(
+        package_layout_dir / "codex-package.json",
+        {
+            "layoutVersion": 1,
+            "version": version,
+            "target": TARGET_TRIPLE,
+            "variant": "codex",
+            "entrypoint": "bin/codex.exe",
+            "resourcesDir": "codex-resources",
+            "pathDir": "codex-path",
+        },
+    )
+
+
+def validate_local_no_sandbox_codex_package_dir(package_layout_dir: Path, version: str) -> None:
+    require_file(package_layout_dir / "codex-package.json", "Codex package metadata")
+    require_file(package_layout_dir / "bin" / "codex.exe", "staged Codex binary")
+    require_file(package_layout_dir / "codex-path" / "rg.exe", "staged rg binary")
+    require_dir(package_layout_dir / "codex-resources", "Codex resources directory")
+    require_file(
+        package_layout_dir / "codex-resources" / NO_SANDBOX_RESOURCES_MARKER,
+        "no-sandbox resources marker",
+    )
+
+    with open(package_layout_dir / "codex-package.json", "r", encoding="utf-8") as fh:
+        metadata = cast(JsonObject, json.load(fh))
+    expected_metadata: JsonObject = {
+        "layoutVersion": 1,
+        "version": version,
+        "target": TARGET_TRIPLE,
+        "variant": "codex",
+        "entrypoint": "bin/codex.exe",
+        "resourcesDir": "codex-resources",
+        "pathDir": "codex-path",
+    }
+    if metadata != expected_metadata:
+        raise RuntimeError(
+            f"Unexpected Codex package metadata in {package_layout_dir / 'codex-package.json'}: "
+            f"{metadata!r}"
+        )
+
+    for helper_name in [
+        "codex-command-runner.exe",
+        "codex-windows-sandbox-setup.exe",
+    ]:
+        helper_path = package_layout_dir / "codex-resources" / helper_name
+        if helper_path.exists():
+            raise RuntimeError(
+                f"Private local no-sandbox package must not include Windows sandbox helper: "
+                f"{helper_path}"
+            )
 
 
 def stage_sdk_package(

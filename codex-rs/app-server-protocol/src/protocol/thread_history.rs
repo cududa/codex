@@ -525,6 +525,7 @@ impl ThreadHistoryBuilder {
                 .clone()
                 .unwrap_or(serde_json::Value::Null),
             mcp_app_resource_uri: payload.mcp_app_resource_uri.clone(),
+            plugin_id: payload.plugin_id.clone(),
             result: None,
             error: None,
             duration_ms: None,
@@ -566,6 +567,7 @@ impl ThreadHistoryBuilder {
                 .clone()
                 .unwrap_or(serde_json::Value::Null),
             mcp_app_resource_uri: payload.mcp_app_resource_uri.clone(),
+            plugin_id: payload.plugin_id.clone(),
             result,
             error,
             duration_ms,
@@ -1911,6 +1913,7 @@ mod tests {
                     arguments: Some(serde_json::json!({"id":"123"})),
                 },
                 mcp_app_resource_uri: None,
+                plugin_id: None,
                 duration: Duration::from_millis(8),
                 result: Err("boom".into()),
             }),
@@ -1960,6 +1963,7 @@ mod tests {
                 status: McpToolCallStatus::Failed,
                 arguments: serde_json::json!({"id":"123"}),
                 mcp_app_resource_uri: None,
+                plugin_id: None,
                 result: None,
                 error: Some(McpToolCallError {
                     message: "boom".into(),
@@ -1986,6 +1990,7 @@ mod tests {
                     arguments: Some(serde_json::json!({"id":"123"})),
                 },
                 mcp_app_resource_uri: Some("ui://widget/lookup.html".into()),
+                plugin_id: Some("sample@test".into()),
                 duration: Duration::from_millis(8),
                 result: Ok(CallToolResult {
                     content: vec![serde_json::json!({
@@ -2016,6 +2021,7 @@ mod tests {
                 status: McpToolCallStatus::Completed,
                 arguments: serde_json::json!({"id":"123"}),
                 mcp_app_resource_uri: Some("ui://widget/lookup.html".into()),
+                plugin_id: Some("sample@test".into()),
                 result: Some(Box::new(McpToolCallResult {
                     content: vec![serde_json::json!({
                         "type": "text",
@@ -3222,5 +3228,57 @@ mod tests {
         let turns = build_turns_from_rollout_items(&items);
         assert_eq!(turns.len(), 1);
         assert!(turns[0].items.is_empty());
+    }
+
+    #[test]
+    fn ignores_goal_context_response_items_in_rollout_replay() {
+        let items = vec![
+            RolloutItem::EventMsg(EventMsg::TurnStarted(TurnStartedEvent {
+                turn_id: "turn-a".into(),
+                started_at: None,
+                model_context_window: None,
+                collaboration_mode_kind: Default::default(),
+            })),
+            RolloutItem::ResponseItem(goal_context_response_item("developer")),
+            RolloutItem::ResponseItem(goal_context_response_item("user")),
+            RolloutItem::EventMsg(EventMsg::UserMessage(UserMessageEvent {
+                message: "visible user input".into(),
+                images: None,
+                local_images: Vec::new(),
+                text_elements: Vec::new(),
+                ..Default::default()
+            })),
+            RolloutItem::EventMsg(EventMsg::TurnComplete(TurnCompleteEvent {
+                turn_id: "turn-a".into(),
+                last_agent_message: None,
+                completed_at: None,
+                duration_ms: None,
+                time_to_first_token_ms: None,
+            })),
+        ];
+
+        let turns = build_turns_from_rollout_items(&items);
+        assert_eq!(turns.len(), 1);
+        assert_eq!(
+            turns[0].items,
+            vec![ThreadItem::UserMessage {
+                id: "item-1".into(),
+                content: vec![UserInput::Text {
+                    text: "visible user input".into(),
+                    text_elements: Vec::new(),
+                }],
+            }]
+        );
+    }
+
+    fn goal_context_response_item(role: &str) -> codex_protocol::models::ResponseItem {
+        codex_protocol::models::ResponseItem::Message {
+            id: Some(format!("goal-context-{role}")),
+            role: role.to_string(),
+            content: vec![codex_protocol::models::ContentItem::InputText {
+                text: "<goal_context>\n<untrusted_objective>Keep going</untrusted_objective>\n</goal_context>".into(),
+            }],
+            phase: None,
+        }
     }
 }
