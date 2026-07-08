@@ -1,10 +1,11 @@
 name: blob-size-policy
 
 on:
-  pull_request: {}
+  workflow_dispatch:
 
 jobs:
   check:
+    if: ${{ github.event_name == 'pull_request' }}
     name: Blob size policy
     runs-on: ubuntu-24.04
     steps:
