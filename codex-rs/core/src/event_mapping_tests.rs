@@ -319,6 +319,28 @@ fn parses_hook_prompt_and_hides_other_contextual_fragments() {
 
 #[test]
 fn goal_context_does_not_parse_as_visible_turn_item() {
+// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/event_mapping_tests.rs block=2 basis=maintained-to-incoming
+// @@ -1,9 +1,8 @@
+// -    for role in ["user", "developer"] {
+// -        let item = ResponseItem::Message {
+// -            id: Some("msg-1".to_string()),
+// -            role: role.to_string(),
+// -            content: vec![ContentItem::InputText {
+// -                text: render_goal_context("Continue working toward the active thread goal."),
+// -            }],
+// -            phase: None,
+// -        };
+// +    let item = ResponseItem::Message {
+// +        id: Some("msg-1".to_string()),
+// +        role: "user".to_string(),
+// +        content: vec![ContentItem::InputText {
+// +            text: GoalContext::new("Continue working toward the active thread goal.").render(),
+// +        }],
+// +        phase: None,
+// +    };
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
     for role in ["user", "developer"] {
         let item = ResponseItem::Message {
             id: Some("msg-1".to_string()),

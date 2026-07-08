@@ -5,6 +5,13 @@
 //! events, and owns helper hooks used by goal lifecycle behavior.
 
 use crate::StateDbHandle;
+// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=2 basis=maintained-to-incoming
+// @@ -1,1 +1,1 @@
+// -use crate::context::render_goal_context;
+// +use crate::context::GoalContext;
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 use crate::context::render_goal_context;
 use crate::session::TurnInput;
 use crate::session::session::Session;
@@ -26,7 +33,6 @@ use codex_otel::GOAL_TOKEN_COUNT_METRIC;
 use codex_otel::GOAL_USAGE_LIMITED_METRIC;
 use codex_protocol::ThreadId;
 use codex_protocol::config_types::ModeKind;
-use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseInputItem;
 use codex_protocol::protocol::EventMsg;
 use codex_protocol::protocol::MAX_THREAD_GOAL_OBJECTIVE_CHARS;
@@ -1771,6 +1777,14 @@ fn escape_xml_text(input: &str) -> String {
         .replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
+}
+
+fn budget_limit_steering_item(goal: &ThreadGoal) -> ResponseInputItem {
+    goal_context_input_item(budget_limit_prompt(goal))
+}
+
+fn goal_context_input_item(prompt: String) -> ResponseInputItem {
+    GoalContext::new(prompt).into_response_input_item()
 }
 
 pub(crate) fn protocol_goal_from_state(goal: codex_state::ThreadGoal) -> ThreadGoal {

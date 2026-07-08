@@ -32,6 +32,13 @@ fn detects_subagent_notification_fragment_case_insensitively() {
 
 #[test]
 fn detects_goal_context_fragment() {
+// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/contextual_user_message_tests.rs block=2 basis=maintained-to-incoming
+// @@ -1,1 +1,1 @@
+// -    let text = render_goal_context("Continue working toward the active thread goal.");
+// +    let text = GoalContext::new("Continue working toward the active thread goal.").render();
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
     let text = render_goal_context("Continue working toward the active thread goal.");
 
     assert!(is_contextual_user_fragment(&ContentItem::InputText {
@@ -41,9 +48,9 @@ fn detects_goal_context_fragment() {
 
 #[test]
 fn contextual_user_fragment_is_dyn_compatible() {
-    let fragment: Box<dyn ContextualUserFragment> = Box::new(GoalContext {
-        prompt: "Continue working toward the active thread goal.".to_string(),
-    });
+    let fragment: Box<dyn ContextualUserFragment> = Box::new(GoalContext::new(
+        "Continue working toward the active thread goal.",
+    ));
 
     assert_eq!(
         fragment.render(),
