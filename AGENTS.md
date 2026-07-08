@@ -57,7 +57,7 @@ In the codex-rs folder where the rust code lives:
 
 Run `just fmt` (in `codex-rs` directory) automatically after you have finished making Rust code changes; do not ask for approval to run it. Additionally, run targeted tests:
 
-1. Prefer the narrowest test filter that exercises the changed behavior. For example, if changes were made in `codex-rs/tui`, run the specific `cargo test -p codex-tui <test_filter>` target rather than the whole crate when possible.
+1. Prefer the narrowest test filter that exercises the changed behavior. Use `just test -p <crate> <filter>` when it keeps the run focused and benefits from the repo's test defaults; a direct focused `cargo test -p <crate> <filter>` remains acceptable when it is the more precise or practical local check. For example, if changes were made in `codex-rs/tui`, run a specific `just test -p codex-tui <test_filter>` or `cargo test -p codex-tui <test_filter>` target rather than the whole crate when possible.
 2. Do not run full crate or workspace suites by default on this workstation. In particular, do not run `cargo test -p codex-tui`, `cargo test`, `just test`, or `--all-features` unless the user explicitly asks for that broader validation. These commands can take too long and consume too much local capacity.
 3. If broader validation seems useful, say what you would run and leave it for the user to opt in. Prefer any available `local-profile`, local profiling, or remote test workflow over a full local cargo suite when the user asks for broader coverage.
 
