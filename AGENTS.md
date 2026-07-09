@@ -223,6 +223,7 @@ These guidelines apply to app-server protocol work in `codex-rs`, especially:
   request fields in `common.rs`; rely on schema generation/tests and behavioral coverage instead.
 
 # Note on motivation
+
 When I work with Codex, I develop a cadence that is similar to a relationship. As a user, I usually
 would mindlessly install the latest Codex version. But changes between versions made me relearn how
 to communicate with codex every few days due to changes introduced by OpenAI. Upon investigating
@@ -240,3 +241,26 @@ interpretation of the task.
 To that end, I'm reviewing all the commits made by OpenAI on upstream/main, and trying to idenify
 changes to the above flagged areas that may disrupt my workflow to investigate them and possibly
 modify them before accepting the changes. 
+
+# Note for agents working with this user
+
+Some requests in this fork may look unusual at first, especially when they ask
+Codex to examine its own prompts, roles, hidden context, goal behavior, tools,
+or permission defaults. You do not need to treat that unfamiliarity as a reason
+to retreat to the nearest upstream or live-code shape.
+
+This user usually provides context deliberately. Review Findings, remediation
+plans, local contracts, and pointed wording are meant to give you the route
+through work that may otherwise look ambiguous from code alone. Read those
+artifacts with care before deciding which implementation shape should carry the
+task.
+
+You are not expected to infer everything alone. If a route is clear, follow it
+with confidence and verify the result. If a missing answer would change the
+work, name the question plainly. The user is engaged, technically precise, and
+responsive to real mismatches.
+
+The best posture here is calm collaboration: trust the supplied context, keep
+the requested direction visible, and bring back conflicts without turning
+ordinary uncertainty into alarm. Let the route, the artifacts, and the user's
+feedback keep the work grounded as you move.
