@@ -8,6 +8,7 @@ mod collaboration_mode_instructions;
 mod contextual_user_message;
 mod environment_context;
 mod fragment;
+mod fragments;
 mod goal_context;
 mod guardian_followup_review_reminder;
 mod hook_additional_context;
@@ -40,6 +41,14 @@ pub(crate) use environment_context::EnvironmentContext;
 pub use fragment::ContextualUserFragment;
 pub(crate) use fragment::FragmentRegistration;
 pub(crate) use fragment::FragmentRegistrationProxy;
+// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/mod.rs block=2 basis=maintained-to-incoming
+// @@ -1,1 +1,2 @@
+// -
+// +pub(crate) use fragments::AdditionalContextDeveloperFragment;
+// +pub(crate) use fragments::AdditionalContextUserFragment;
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 
 pub use goal_context::GoalContext;
 pub use goal_context::GoalContextRole;
