@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit Discussion"
+  short_description: "Research and discuss a Review Dedeluger commit"
+  default_prompt: "Use $commit-discussion to research a particular review-dedeluger MCP commit and open or reply to commit discussion threads."
