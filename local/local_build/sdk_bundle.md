@@ -131,11 +131,10 @@ workstation.
 
 ## Repo-Local Build Helpers
 
-`local\build_priority_shim` contains repo-local Windows shims for `bazel`,
-`cargo`, `just`, `rustc`, and `rustdoc`. They may be prepended to the user PATH
-so ordinary build/test commands launched from this checkout inherit elevated
-Windows process priority. This is only a local build helper; it is not another
-Codex launcher route and must not change the global npm `codex` entrypoint,
+The sibling `..\codex-build-priority-shim` repo contains the experimental
+native Windows priority launcher for local Rust build/test commands. Any
+installed shims are local build helpers only; they are not another Codex
+launcher route and must not change the global npm `codex` entrypoint,
 `CODEX_HOME`, or the no-sandbox package contract.
 
 ## Non-Goals
