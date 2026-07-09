@@ -5,14 +5,7 @@
 //! events, and owns helper hooks used by goal lifecycle behavior.
 
 use crate::StateDbHandle;
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=2 basis=maintained-to-incoming
-// @@ -1,1 +1,1 @@
-// -use crate::context::render_goal_context;
-// +use crate::context::GoalContext;
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-use crate::context::render_goal_context;
+use crate::context::GoalContext;
 use crate::session::TurnInput;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
@@ -123,12 +116,7 @@ impl GoalSteeringMessage {
             | GoalSteeringKind::BudgetLimit
             | GoalSteeringKind::ObjectiveUpdated => {}
         }
-        let text = render_goal_context(&prompt);
-        ResponseInputItem::Message {
-            role: role.as_response_role().to_string(),
-            content: vec![ContentItem::InputText { text }],
-            phase: None,
-        }
+        GoalContext::new(prompt).into_response_input_item(role.into())
     }
 }
 
@@ -1777,14 +1765,6 @@ fn escape_xml_text(input: &str) -> String {
         .replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
-}
-
-fn budget_limit_steering_item(goal: &ThreadGoal) -> ResponseInputItem {
-    goal_context_input_item(budget_limit_prompt(goal))
-}
-
-fn goal_context_input_item(prompt: String) -> ResponseInputItem {
-    GoalContext::new(prompt).into_response_input_item()
 }
 
 pub(crate) fn protocol_goal_from_state(goal: codex_state::ThreadGoal) -> ThreadGoal {

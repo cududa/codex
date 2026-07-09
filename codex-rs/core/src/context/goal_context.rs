@@ -1,28 +1,42 @@
-//! Hidden role-neutral runtime goal context for goal steering prompts.
+//! Hidden runtime goal context for goal steering prompts.
 
 use super::ContextualUserFragment;
+use codex_config::config_toml::GoalSteeringRole;
 use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseInputItem;
-
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/goal_context.rs block=2 basis=maintained-to-incoming
-// @@ -1,5 +1,4 @@
-// -pub(crate) const GOAL_CONTEXT_START_MARKER: &str = "<goal_context>";
-// -pub(crate) const GOAL_CONTEXT_END_MARKER: &str = "</goal_context>";
-// -
-// -pub(crate) struct GoalContext {
-// -    pub(crate) prompt: String,
-// +/// Hidden runtime-owned goal steering context injected into model input.
-// +#[derive(Debug, Clone, PartialEq)]
-// +pub struct GoalContext {
-// +    prompt: String,
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
 
 pub(crate) const GOAL_CONTEXT_START_MARKER: &str = "<goal_context>";
 pub(crate) const GOAL_CONTEXT_END_MARKER: &str = "</goal_context>";
 
-pub(crate) struct GoalContext {
-    pub(crate) prompt: String,
+/// Hidden runtime-owned goal steering context injected into model input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GoalContext {
+    prompt: String,
+}
+
+/// Role to use when serializing active goal context into model input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GoalContextRole {
+    User,
+    Developer,
+}
+
+impl GoalContextRole {
+    fn as_response_role(self) -> &'static str {
+        match self {
+            GoalContextRole::User => "user",
+            GoalContextRole::Developer => "developer",
+        }
+    }
+}
+
+impl From<GoalSteeringRole> for GoalContextRole {
+    fn from(role: GoalSteeringRole) -> Self {
+        match role {
+            GoalSteeringRole::User => GoalContextRole::User,
+            GoalSteeringRole::Developer => GoalContextRole::Developer,
+        }
+    }
 }
 
 impl GoalContext {
@@ -34,22 +48,15 @@ impl GoalContext {
     }
 
     /// Converts the registered fragment into an active-turn injectable item.
-    pub fn into_response_input_item(self) -> ResponseInputItem {
+    pub fn into_response_input_item(self, role: GoalContextRole) -> ResponseInputItem {
         ResponseInputItem::Message {
-            role: <Self as ContextualUserFragment>::role().to_string(),
+            role: role.as_response_role().to_string(),
             content: vec![ContentItem::InputText {
                 text: self.render(),
             }],
             phase: None,
         }
     }
-}
-
-pub(crate) fn render_goal_context(prompt: &str) -> String {
-    GoalContext {
-        prompt: prompt.to_string(),
-    }
-    .render()
 }
 
 impl ContextualUserFragment for GoalContext {
