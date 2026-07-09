@@ -132,10 +132,12 @@ workstation.
 ## Repo-Local Build Helpers
 
 The sibling `..\codex-build-priority-shim` repo contains the experimental
-native Windows priority launcher for local Rust build/test commands. Any
-installed shims are local build helpers only; they are not another Codex
-launcher route and must not change the global npm `codex` entrypoint,
-`CODEX_HOME`, or the no-sandbox package contract.
+native Windows priority launcher for local Rust build/test commands. Installed
+shims live under `local\build_priority_native_shim\bin` and cover Cargo, Rust,
+Clippy, MSVC linker, and common linker side tools. These are local build
+helpers only; they are not another Codex launcher route and must not change the
+global npm `codex` entrypoint, `CODEX_HOME`, or the no-sandbox package
+contract.
 
 ## Non-Goals
 
