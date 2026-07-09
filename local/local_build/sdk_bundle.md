@@ -129,15 +129,16 @@ workstation.
 `--skip-global-install`, `--skip-path-normalization`, and
 `--skip-legacy-delete` are debugging switches, not the blessed release flow.
 
-## Repo-Local Build Helpers
+## Local Git Remote Cleanup
 
-The sibling `..\codex-build-priority-shim` repo contains the experimental
-native Windows priority launcher for local Rust build/test commands. Installed
-shims live under `local\build_priority_native_shim\bin` and cover Cargo, Rust,
-Clippy, MSVC linker, and common linker side tools. These are local build
-helpers only; they are not another Codex launcher route and must not change the
-global npm `codex` entrypoint, `CODEX_HOME`, or the no-sandbox package
-contract.
+If deleting a branch on `origin` makes Git or the GitHub app report
+`fatal: couldn't find remote ref`, check whether local config has a pinned
+single-branch fetch refspec. This fork should normally fetch all origin
+branches through the wildcard refspec only:
+
+```powershell
+git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'; git remote prune origin
+```
 
 ## Non-Goals
 
