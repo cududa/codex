@@ -2,6 +2,7 @@ set working-directory := "codex-rs"
 set positional-arguments
 
 rust_min_stack := "8388608" # 8 MiB
+bazel_cmd := if os_family() == "windows" { "bazel.cmd" } else { "bazel" }
 
 # Display help
 help:
@@ -68,32 +69,36 @@ bench-smoke:
 # to ensure that Bazel runs the command in the current working directory.
 [no-cd]
 bazel-codex *args:
-    bazel run //codex-rs/cli:codex --run_under="cd $PWD &&" -- "$@"
+    {{ bazel_cmd }} run //codex-rs/cli:codex --run_under="cd $PWD &&" -- "$@"
 
 [no-cd]
 bazel-lock-update:
-    bazel mod deps --lockfile_mode=update
+    {{ bazel_cmd }} mod deps --lockfile_mode=update
 
 [no-cd]
 bazel-lock-check:
-    {{ justfile_directory() }}/scripts/check-module-bazel-lock.sh
+    if ! {{ bazel_cmd }} mod deps --lockfile_mode=error; then \
+      echo "MODULE.bazel.lock is out of date."; \
+      echo "Run 'just bazel-lock-update' and commit the updated lockfile."; \
+      exit 1; \
+    fi
 
 bazel-test:
-    bazel test --test_tag_filters=-argument-comment-lint //... --keep_going
+    {{ bazel_cmd }} test --test_tag_filters=-argument-comment-lint //... --keep_going
 
 [no-cd]
 bazel-clippy:
-    bazel_targets="$({{ justfile_directory() }}/scripts/list-bazel-clippy-targets.sh)" && bazel build --config=clippy -- ${bazel_targets}
+    bazel_targets="$({{ justfile_directory() }}/scripts/list-bazel-clippy-targets.sh)" && {{ bazel_cmd }} build --config=clippy -- ${bazel_targets}
 
 [no-cd]
 bazel-argument-comment-lint:
-    bazel build --config=argument-comment-lint -- $({{ justfile_directory() }}/tools/argument-comment-lint/list-bazel-targets.sh)
+    {{ bazel_cmd }} build --config=argument-comment-lint -- $({{ justfile_directory() }}/tools/argument-comment-lint/list-bazel-targets.sh)
 
 bazel-remote-test:
-    bazel test --test_tag_filters=-argument-comment-lint //... --config=remote --platforms=//:rbe --keep_going
+    {{ bazel_cmd }} test --test_tag_filters=-argument-comment-lint //... --config=remote --platforms=//:rbe --keep_going
 
 build-for-release:
-    bazel build //codex-rs/cli:release_binaries --config=remote
+    {{ bazel_cmd }} build //codex-rs/cli:release_binaries --config=remote
 
 # Run the MCP server
 mcp-server-run *args:
@@ -115,7 +120,7 @@ write-hooks-schema:
 [no-cd]
 argument-comment-lint *args:
     if [ "$#" -eq 0 ]; then \
-      bazel build --config=argument-comment-lint -- $({{ justfile_directory() }}/tools/argument-comment-lint/list-bazel-targets.sh); \
+      {{ bazel_cmd }} build --config=argument-comment-lint -- $({{ justfile_directory() }}/tools/argument-comment-lint/list-bazel-targets.sh); \
     else \
       {{ justfile_directory() }}/tools/argument-comment-lint/run-prebuilt-linter.py "$@"; \
     fi

@@ -129,6 +129,15 @@ workstation.
 `--skip-global-install`, `--skip-path-normalization`, and
 `--skip-legacy-delete` are debugging switches, not the blessed release flow.
 
+## Repo-Local Build Helpers
+
+`local\build_priority_shim` contains repo-local Windows shims for `bazel`,
+`cargo`, `just`, `rustc`, and `rustdoc`. They may be prepended to the user PATH
+so ordinary build/test commands launched from this checkout inherit elevated
+Windows process priority. This is only a local build helper; it is not another
+Codex launcher route and must not change the global npm `codex` entrypoint,
+`CODEX_HOME`, or the no-sandbox package contract.
+
 ## Non-Goals
 
 The script does not stage other platforms, Python runtime wheels, the responses
