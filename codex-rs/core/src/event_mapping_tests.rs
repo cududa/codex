@@ -1,7 +1,8 @@
 use super::has_non_contextual_dev_message_content;
 use super::is_contextual_dev_message_content;
 use super::parse_turn_item;
-use crate::context::render_goal_context;
+use crate::context::ContextualUserFragment;
+use crate::context::GoalContext;
 use codex_protocol::items::AgentMessageContent;
 use codex_protocol::items::HookPromptFragment;
 use codex_protocol::items::TurnItem;
@@ -324,7 +325,7 @@ fn goal_context_does_not_parse_as_visible_turn_item() {
             id: Some("msg-1".to_string()),
             role: role.to_string(),
             content: vec![ContentItem::InputText {
-                text: render_goal_context("Continue working toward the active thread goal."),
+                text: GoalContext::new("Continue working toward the active thread goal.").render(),
             }],
             phase: None,
         };
@@ -336,7 +337,7 @@ fn goal_context_does_not_parse_as_visible_turn_item() {
 #[test]
 fn developer_goal_context_is_contextual_without_invalidating_by_itself() {
     let content = vec![ContentItem::InputText {
-        text: render_goal_context("Continue working toward the active thread goal."),
+        text: GoalContext::new("Continue working toward the active thread goal.").render(),
     }];
 
     assert!(is_contextual_dev_message_content(&content));
@@ -347,7 +348,7 @@ fn developer_goal_context_is_contextual_without_invalidating_by_itself() {
 fn mixed_developer_goal_context_remains_non_contextual() {
     let content = vec![
         ContentItem::InputText {
-            text: render_goal_context("Continue working toward the active thread goal."),
+            text: GoalContext::new("Continue working toward the active thread goal.").render(),
         },
         ContentItem::InputText {
             text: "persistent developer instructions".to_string(),

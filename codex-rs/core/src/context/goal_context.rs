@@ -1,19 +1,62 @@
-//! Hidden role-neutral runtime goal context for goal steering prompts.
+//! Hidden runtime goal context for goal steering prompts.
 
 use super::ContextualUserFragment;
+use codex_config::config_toml::GoalSteeringRole;
+use codex_protocol::models::ContentItem;
+use codex_protocol::models::ResponseInputItem;
 
 pub(crate) const GOAL_CONTEXT_START_MARKER: &str = "<goal_context>";
 pub(crate) const GOAL_CONTEXT_END_MARKER: &str = "</goal_context>";
 
-pub(crate) struct GoalContext {
-    pub(crate) prompt: String,
+/// Hidden runtime-owned goal steering context injected into model input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GoalContext {
+    prompt: String,
 }
 
-pub(crate) fn render_goal_context(prompt: &str) -> String {
-    GoalContext {
-        prompt: prompt.to_string(),
+/// Role to use when serializing active goal context into model input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GoalContextRole {
+    User,
+    Developer,
+}
+
+impl GoalContextRole {
+    fn as_response_role(self) -> &'static str {
+        match self {
+            GoalContextRole::User => "user",
+            GoalContextRole::Developer => "developer",
+        }
     }
-    .render()
+}
+
+impl From<GoalSteeringRole> for GoalContextRole {
+    fn from(role: GoalSteeringRole) -> Self {
+        match role {
+            GoalSteeringRole::User => GoalContextRole::User,
+            GoalSteeringRole::Developer => GoalContextRole::Developer,
+        }
+    }
+}
+
+impl GoalContext {
+    /// Creates goal context around an already-rendered steering prompt.
+    pub fn new(prompt: impl Into<String>) -> Self {
+        Self {
+            prompt: prompt.into(),
+        }
+    }
+
+    /// Converts the registered fragment into an active-turn injectable item.
+    pub fn into_response_input_item(self, role: GoalContextRole) -> ResponseInputItem {
+        ResponseInputItem::Message {
+            role: role.as_response_role().to_string(),
+            content: vec![ContentItem::InputText {
+                text: self.render(),
+            }],
+            phase: None,
+        }
+    }
 }
 
 impl ContextualUserFragment for GoalContext {

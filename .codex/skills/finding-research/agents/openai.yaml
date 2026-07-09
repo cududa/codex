@@ -1,0 +1,4 @@
+interface:
+  display_name: "Finding Research"
+  short_description: "Research and annotate an existing Review Finding"
+  default_prompt: "Use $finding-research to research a focused question inside an existing Review Finding using the review-dedeluger MCP."

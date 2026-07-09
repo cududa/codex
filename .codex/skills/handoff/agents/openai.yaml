@@ -1,0 +1,4 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Prepare context for another agent"
+  default_prompt: "Use $handoff to summarize this session for the next agent."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Finding Lineage Review"
+  short_description: "Review new-version findings against maintained local intent"
+  default_prompt: "Use $finding-lineage-review to review a new review-dedeluger MCP based Review Finding against its prior lineage and maintained local intent."

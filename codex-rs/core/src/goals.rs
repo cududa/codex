@@ -5,7 +5,7 @@
 //! events, and owns helper hooks used by goal lifecycle behavior.
 
 use crate::StateDbHandle;
-use crate::context::render_goal_context;
+use crate::context::GoalContext;
 use crate::session::TurnInput;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
@@ -26,7 +26,6 @@ use codex_otel::GOAL_TOKEN_COUNT_METRIC;
 use codex_otel::GOAL_USAGE_LIMITED_METRIC;
 use codex_protocol::ThreadId;
 use codex_protocol::config_types::ModeKind;
-use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseInputItem;
 use codex_protocol::protocol::EventMsg;
 use codex_protocol::protocol::MAX_THREAD_GOAL_OBJECTIVE_CHARS;
@@ -117,12 +116,7 @@ impl GoalSteeringMessage {
             | GoalSteeringKind::BudgetLimit
             | GoalSteeringKind::ObjectiveUpdated => {}
         }
-        let text = render_goal_context(&prompt);
-        ResponseInputItem::Message {
-            role: role.as_response_role().to_string(),
-            content: vec![ContentItem::InputText { text }],
-            phase: None,
-        }
+        GoalContext::new(prompt).into_response_input_item(role.into())
     }
 }
 

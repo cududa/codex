@@ -2,9 +2,10 @@ use super::*;
 use crate::context::ContextualUserFragment;
 use crate::context::GoalContext;
 use crate::context::SubagentNotification;
-use crate::context::render_goal_context;
+use codex_config::config_toml::GoalSteeringRole;
 use codex_protocol::items::HookPromptFragment;
 use codex_protocol::items::build_hook_prompt_message;
+use codex_protocol::models::ResponseInputItem;
 use codex_protocol::models::ResponseItem;
 use pretty_assertions::assert_eq;
 
@@ -32,7 +33,7 @@ fn detects_subagent_notification_fragment_case_insensitively() {
 
 #[test]
 fn detects_goal_context_fragment() {
-    let text = render_goal_context("Continue working toward the active thread goal.");
+    let text = GoalContext::new("Continue working toward the active thread goal.").render();
 
     assert!(is_contextual_user_fragment(&ContentItem::InputText {
         text
@@ -41,14 +42,35 @@ fn detects_goal_context_fragment() {
 
 #[test]
 fn contextual_user_fragment_is_dyn_compatible() {
-    let fragment: Box<dyn ContextualUserFragment> = Box::new(GoalContext {
-        prompt: "Continue working toward the active thread goal.".to_string(),
-    });
+    let fragment: Box<dyn ContextualUserFragment> = Box::new(GoalContext::new(
+        "Continue working toward the active thread goal.",
+    ));
 
     assert_eq!(
         fragment.render(),
         "<goal_context>\nContinue working toward the active thread goal.\n</goal_context>"
     );
+}
+
+#[test]
+fn goal_context_response_input_item_uses_explicit_steering_role() {
+    for (steering_role, expected_role) in [
+        (GoalSteeringRole::Developer, "developer"),
+        (GoalSteeringRole::User, "user"),
+    ] {
+        let item =
+            GoalContext::new("Continue working.").into_response_input_item(steering_role.into());
+        let ResponseInputItem::Message { role, content, .. } = item else {
+            panic!("expected goal context message item");
+        };
+        assert_eq!(expected_role, role);
+        assert_eq!(
+            vec![ContentItem::InputText {
+                text: "<goal_context>\nContinue working.\n</goal_context>".to_string(),
+            }],
+            content
+        );
+    }
 }
 
 #[test]

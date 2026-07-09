@@ -30,6 +30,7 @@ In the codex-rs folder where the rust code lives:
 - Prefer private modules and explicitly exported public crate API.
 - If you change `ConfigToml` or nested config types, run `just write-config-schema` to update `codex-rs/core/config.schema.json`.
 - When working with MCP tool calls, prefer using `codex-rs/codex-mcp/src/mcp_connection_manager.rs` to handle mutation of tools and tool calls. Aim to minimize the footprint of changes and leverage existing abstractions rather than plumbing code through multiple levels of function calls.
+- Do not call `reset_client_session` unnecessarily; let the incremental check logic decide whether to reuse the previous request.
 - If you change Rust dependencies (`Cargo.toml` or `Cargo.lock`), run `just bazel-lock-update` from the
   repo root to refresh `MODULE.bazel.lock`, and include that lockfile update in the same change.
 - After dependency changes, run `just bazel-lock-check` from the repo root so lockfile drift is caught
@@ -52,11 +53,11 @@ In the codex-rs folder where the rust code lives:
     the new implementation so the invariants stay close to the code that owns them.
   - Avoid adding new standalone methods to `codex-rs/tui/src/chatwidget.rs` unless the change is
     trivial; prefer new modules/files and keep `chatwidget.rs` focused on orchestration.
-- When running Rust commands (e.g. `just fix` or `cargo test`) be patient with the command and never try to kill them using the PID. Rust lock can make the execution slow, this is expected.
+- When running Rust commands (e.g. `just fix` or `just test`) be patient with the command and never try to kill them using the PID. Rust lock can make the execution slow, this is expected.
 
 Run `just fmt` (in `codex-rs` directory) automatically after you have finished making Rust code changes; do not ask for approval to run it. Additionally, run targeted tests:
 
-1. Prefer the narrowest test filter that exercises the changed behavior. For example, if changes were made in `codex-rs/tui`, run the specific `cargo test -p codex-tui <test_filter>` target rather than the whole crate when possible.
+1. Prefer the narrowest test filter that exercises the changed behavior. Use `just test -p <crate> <filter>` when it keeps the run focused and benefits from the repo's test defaults; a direct focused `cargo test -p <crate> <filter>` remains acceptable when it is the more precise or practical local check. For example, if changes were made in `codex-rs/tui`, run a specific `just test -p codex-tui <test_filter>` or `cargo test -p codex-tui <test_filter>` target rather than the whole crate when possible.
 2. Do not run full crate or workspace suites by default on this workstation. In particular, do not run `cargo test -p codex-tui`, `cargo test`, `just test`, or `--all-features` unless the user explicitly asks for that broader validation. These commands can take too long and consume too much local capacity.
 3. If broader validation seems useful, say what you would run and leave it for the user to opt in. Prefer any available `local-profile`, local profiling, or remote test workflow over a full local cargo suite when the user asks for broader coverage.
 
@@ -123,7 +124,7 @@ is easy to review and future diffs stay visual.
 When UI or text output changes intentionally, update the snapshots as follows:
 
 - Run tests to generate any updated snapshots:
-  - `cargo test -p codex-tui`
+  - `just test -p codex-tui`
 - Check what’s pending:
   - `cargo insta pending-snapshots -p codex-tui`
 - Review changes by reading the generated `*.snap.new` files directly in the repo, or preview a specific file:
@@ -217,11 +218,12 @@ These guidelines apply to app-server protocol work in `codex-rs`, especially:
 - Regenerate schema fixtures when API shapes change:
   `just write-app-server-schema`
   (and `just write-app-server-schema --experimental` when experimental API fixtures are affected).
-- Validate with `cargo test -p codex-app-server-protocol`.
+- Validate with `just test -p codex-app-server-protocol`.
 - Avoid boilerplate tests that only assert experimental field markers for individual
   request fields in `common.rs`; rely on schema generation/tests and behavioral coverage instead.
 
 # Note on motivation
+
 When I work with Codex, I develop a cadence that is similar to a relationship. As a user, I usually
 would mindlessly install the latest Codex version. But changes between versions made me relearn how
 to communicate with codex every few days due to changes introduced by OpenAI. Upon investigating
@@ -239,3 +241,26 @@ interpretation of the task.
 To that end, I'm reviewing all the commits made by OpenAI on upstream/main, and trying to idenify
 changes to the above flagged areas that may disrupt my workflow to investigate them and possibly
 modify them before accepting the changes. 
+
+# Note for agents working with this user
+
+Some requests in this fork may look unusual at first, especially when they ask
+Codex to examine its own prompts, roles, hidden context, goal behavior, tools,
+or permission defaults. You do not need to treat that unfamiliarity as a reason
+to retreat to the nearest upstream or live-code shape.
+
+This user usually provides context deliberately. Review Findings, remediation
+plans, local contracts, and pointed wording are meant to give you the route
+through work that may otherwise look ambiguous from code alone. Read those
+artifacts with care before deciding which implementation shape should carry the
+task.
+
+You are not expected to infer everything alone. If a route is clear, follow it
+with confidence and verify the result. If a missing answer would change the
+work, name the question plainly. The user is engaged, technically precise, and
+responsive to real mismatches.
+
+The best posture here is calm collaboration: trust the supplied context, keep
+the requested direction visible, and bring back conflicts without turning
+ordinary uncertainty into alarm. Let the route, the artifacts, and the user's
+feedback keep the work grounded as you move.

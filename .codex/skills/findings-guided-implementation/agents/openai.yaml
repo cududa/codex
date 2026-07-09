@@ -1,0 +1,4 @@
+interface:
+  display_name: "Findings Guided Implementation"
+  short_description: "Keep ..."
+  default_prompt: "Use $findings-guided-implementation to ...."
