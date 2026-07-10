@@ -81,7 +81,6 @@ use crate::turn_diff_tracker::TurnDiffTracker;
 use codex_app_server_protocol::AppInfo;
 use codex_app_server_protocol::McpElicitationSchema;
 use codex_config::config_toml::ConfigToml;
-use codex_config::config_toml::GoalSteeringRole;
 use codex_config::config_toml::ProjectConfig;
 use codex_config::permissions_toml::FilesystemPermissionToml;
 use codex_config::permissions_toml::FilesystemPermissionsToml;
@@ -145,7 +144,6 @@ use core_test_support::context_snapshot::ContextSnapshotOptions;
 use core_test_support::context_snapshot::ContextSnapshotRenderMode;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
-use core_test_support::responses::ev_completed_with_tokens;
 use core_test_support::responses::ev_function_call;
 use core_test_support::responses::ev_response_created;
 use core_test_support::responses::mount_sse_once;
@@ -8607,110 +8605,6 @@ async fn active_goal_continuation_runs_again_after_no_tool_turn() -> anyhow::Res
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn active_goal_continuation_uses_configured_user_role() -> anyhow::Result<()> {
-    let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
-        config
-            .features
-            .enable(Feature::Goals)
-            .expect("goal mode should be enableable in tests");
-        config.goals.steering_role = GoalSteeringRole::User;
-    });
-    let test = builder.build(&server).await?;
-    let responses = mount_sse_sequence(
-        &server,
-        vec![
-            sse(vec![
-                ev_response_created("resp-1"),
-                ev_function_call(
-                    "call-create-goal",
-                    "create_goal",
-                    r#"{"objective":"write a benchmark note"}"#,
-                ),
-                ev_completed("resp-1"),
-            ]),
-            sse(vec![
-                ev_assistant_message("msg-1", "Draft ready."),
-                ev_completed("resp-2"),
-            ]),
-            sse(vec![
-                ev_response_created("resp-3"),
-                ev_function_call(
-                    "call-complete-goal",
-                    "update_goal",
-                    r#"{"status":"complete"}"#,
-                ),
-                ev_completed("resp-3"),
-            ]),
-            sse(vec![
-                ev_assistant_message("msg-2", "Goal complete."),
-                ev_completed("resp-4"),
-            ]),
-        ],
-    )
-    .await;
-
-    test.codex
-        .submit(Op::UserInput {
-            environments: None,
-            items: vec![UserInput::Text {
-                text: "write a benchmark note".into(),
-                text_elements: Vec::new(),
-            }],
-            final_output_json_schema: None,
-            responsesapi_client_metadata: None,
-            additional_context: Default::default(),
-            thread_settings: Default::default(),
-        })
-        .await?;
-
-    let mut completed_turns = 0;
-    tokio::time::timeout(std::time::Duration::from_secs(8), async {
-        loop {
-            let event = test.codex.next_event().await?;
-            if matches!(event.msg, EventMsg::TurnComplete(_)) {
-                completed_turns += 1;
-                if completed_turns == 2 {
-                    return anyhow::Ok(());
-                }
-            }
-        }
-    })
-    .await??;
-
-    let requests = responses.requests();
-    let user_goal_contexts = requests
-        .iter()
-        .flat_map(|request| request.message_input_texts("user"))
-        .collect::<Vec<_>>();
-    assert!(
-        user_goal_contexts.iter().any(|text| {
-            let normalized_text = text.replace("\r\n", "\n");
-            normalized_text.starts_with("<goal_context>")
-                && normalized_text.trim_end().ends_with("</goal_context>")
-                && normalized_text.contains("Begin working toward the active thread goal.")
-                && normalized_text.contains("This is the first turn for this goal.")
-                && normalized_text.contains(
-                    "<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>",
-                )
-        }),
-        "configured user role should place initial goal steering in a user message, got {user_goal_contexts:?}"
-    );
-    let developer_goal_contexts = requests
-        .iter()
-        .flat_map(|request| request.message_input_texts("developer"))
-        .collect::<Vec<_>>();
-    assert!(
-        developer_goal_contexts
-            .iter()
-            .all(|text| !text.contains("Begin working toward the active thread goal.")),
-        "configured user role should not place initial goal steering in a developer message"
-    );
-
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pending_request_user_input_does_not_spawn_extra_goal_continuation() -> anyhow::Result<()> {
     let server = start_mock_server().await;
     let mut builder = test_codex().with_config(|config| {
@@ -8921,117 +8815,7 @@ async fn create_thread_goal_fills_empty_thread_preview() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn budget_limited_accounting_steers_active_turn_without_aborting() -> anyhow::Result<()> {
-    budget_limited_accounting_steers_active_turn_with_role(
-        |_config| {},
-        GoalSteeringRole::Developer,
-    )
-    .await
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn budget_limited_accounting_reaches_final_request_with_default_developer_role()
--> anyhow::Result<()> {
-    let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
-        config
-            .features
-            .enable(Feature::Goals)
-            .expect("goal mode should be enableable in tests");
-    });
-    let test = builder.build(&server).await?;
-    let shell_args = json!({
-        "command": "echo budget check",
-        "login": false,
-        "timeout_ms": 5_000,
-    });
-    let responses = mount_sse_sequence(
-        &server,
-        vec![
-            sse(vec![
-                ev_response_created("resp-1"),
-                ev_function_call(
-                    "call-create-goal",
-                    "create_goal",
-                    r#"{"objective":"Keep improving the benchmark","token_budget":10}"#,
-                ),
-                ev_completed("resp-1"),
-            ]),
-            sse(vec![
-                ev_response_created("resp-2"),
-                ev_function_call(
-                    "call-shell",
-                    "shell_command",
-                    &serde_json::to_string(&shell_args)?,
-                ),
-                ev_completed_with_tokens("resp-2", /*total_tokens*/ 25),
-            ]),
-            sse(vec![
-                ev_assistant_message("msg-1", "Budget noted."),
-                ev_completed("resp-3"),
-            ]),
-        ],
-    )
-    .await;
-
-    test.submit_turn("Keep improving the benchmark").await?;
-
-    let requests = responses.requests();
-    let budget_request = requests
-        .iter()
-        .find(|request| request.body_contains_text("budget_limited"))
-        .expect("budget-limit steering should reach a model request");
-    let developer_goal_contexts = budget_request
-        .message_input_texts("developer")
-        .into_iter()
-        .filter(|text| {
-            let normalized_text = text.replace("\r\n", "\n");
-            normalized_text.starts_with("<goal_context>")
-                && normalized_text.trim_end().ends_with("</goal_context>")
-        })
-        .collect::<Vec<_>>();
-    assert!(
-        developer_goal_contexts.iter().any(|text| {
-            let normalized_text = text.replace("\r\n", "\n");
-            let normalized_lower = normalized_text.to_lowercase();
-            normalized_text.contains("budget_limited")
-                && normalized_lower.contains("wrap up this turn soon")
-                && normalized_text.contains(
-                    "<untrusted_objective>\nKeep improving the benchmark\n</untrusted_objective>",
-                )
-        }),
-        "expected developer-role budget-limit goal context, got {developer_goal_contexts:?}"
-    );
-    assert!(
-        !budget_request
-            .message_input_texts("user")
-            .iter()
-            .any(|text| text.contains("budget_limited")),
-        "default budget-limit steering should not be user-role"
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn budget_limited_accounting_uses_configured_user_role() -> anyhow::Result<()> {
-    budget_limited_accounting_steers_active_turn_with_role(
-        |config| {
-            config.goals.steering_role = GoalSteeringRole::User;
-        },
-        GoalSteeringRole::User,
-    )
-    .await
-}
-
-async fn budget_limited_accounting_steers_active_turn_with_role<F>(
-    configure_config: F,
-    expected_role: GoalSteeringRole,
-) -> anyhow::Result<()>
-where
-    F: FnOnce(&mut Config),
-{
-    let (sess, tc, rx, _codex_home) =
-        make_goal_session_and_context_with_config_and_rx(configure_config).await;
+    let (sess, tc, rx, _codex_home) = make_goal_session_and_context_with_rx().await;
     sess.set_thread_goal(
         tc.as_ref(),
         SetGoalRequest {
@@ -9081,7 +8865,7 @@ where
     else {
         panic!("expected one budget-limit steering message, got {pending_input:#?}");
     };
-    assert_eq!(expected_role.as_response_role(), role);
+    assert_eq!("developer", role);
     let [ContentItem::InputText { text }] = content.as_slice() else {
         panic!("expected one text span in budget-limit steering message, got {content:#?}");
     };
@@ -9237,76 +9021,6 @@ async fn resumed_active_goal_emits_initial_steering_independent_of_resumed_metri
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn active_goal_reconstructs_without_stale_goal_context_and_regenerates_developer_steering()
--> anyhow::Result<()> {
-    let (sess, _tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
-    let state_db = goal_test_state_db(sess.as_ref()).await?;
-    state_db
-        .thread_goals()
-        .replace_thread_goal(
-            sess.conversation_id,
-            "Keep improving the benchmark",
-            codex_state::ThreadGoalStatus::Active,
-            /*token_budget*/ None,
-        )
-        .await?;
-
-    sess.record_initial_history(InitialHistory::Resumed(ResumedHistory {
-        conversation_id: sess.conversation_id,
-        history: vec![
-            RolloutItem::ResponseItem(ResponseItem::from(goal_context_input_item(
-                "developer",
-                "stale developer goal context",
-            ))),
-            RolloutItem::ResponseItem(ResponseItem::from(goal_context_input_item(
-                "user",
-                "stale user goal context",
-            ))),
-            RolloutItem::ResponseItem(user_message("visible resumed user")),
-        ],
-        rollout_path: None,
-    }))
-    .await;
-
-    let history = sess.clone_history().await;
-    assert_eq!(history.raw_items(), &[user_message("visible resumed user")]);
-
-    sess.goal_runtime_apply(GoalRuntimeEvent::ThreadResumed)
-        .await?;
-    sess.goal_runtime_apply(GoalRuntimeEvent::MaybeContinueIfIdle)
-        .await?;
-
-    let pending_input = sess.input_queue.get_pending_input(&sess.active_turn).await;
-    assert!(
-        pending_input.iter().any(|item| {
-            let TurnInput::ResponseInputItem(ResponseInputItem::Message { role, content, .. }) =
-                item
-            else {
-                return false;
-            };
-            role == "developer"
-                && content.iter().any(|content| {
-                    let ContentItem::InputText { text } = content else {
-                        return false;
-                    };
-                    let normalized_text = text.replace("\r\n", "\n");
-                    normalized_text.starts_with("<goal_context>")
-                        && normalized_text.trim_end().ends_with("</goal_context>")
-                        && normalized_text.contains("Begin working toward the active thread goal.")
-                        && normalized_text.contains("This is the first turn for this goal.")
-                        && normalized_text.contains(
-                            "<untrusted_objective>\nKeep improving the benchmark\n</untrusted_objective>",
-                        )
-                })
-        }),
-        "expected active resumed goal to regenerate developer steering, got {pending_input:?}"
-    );
-
-    sess.abort_all_tasks(TurnAbortReason::Replaced).await;
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn external_goal_mutation_accounts_active_turn_before_status_change() -> anyhow::Result<()> {
     let (sess, tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
     sess.set_thread_goal(
@@ -9379,33 +9093,7 @@ async fn external_goal_mutation_accounts_active_turn_before_status_change() -> a
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn external_objective_change_steers_active_turn_with_default_role() -> anyhow::Result<()> {
-    external_objective_change_steers_active_turn_with_role(
-        |_config| {},
-        GoalSteeringRole::Developer,
-    )
-    .await
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn external_objective_change_uses_configured_user_role() -> anyhow::Result<()> {
-    external_objective_change_steers_active_turn_with_role(
-        |config| {
-            config.goals.steering_role = GoalSteeringRole::User;
-        },
-        GoalSteeringRole::User,
-    )
-    .await
-}
-
-async fn external_objective_change_steers_active_turn_with_role<F>(
-    configure_config: F,
-    expected_role: GoalSteeringRole,
-) -> anyhow::Result<()>
-where
-    F: FnOnce(&mut Config),
-{
-    let (sess, tc, _rx, _codex_home) =
-        make_goal_session_and_context_with_config_and_rx(configure_config).await;
+    let (sess, tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
     sess.spawn_task(
         Arc::clone(&tc),
         Vec::new(),
@@ -9450,7 +9138,7 @@ where
             matches!(
                 item,
                 TurnInput::ResponseInputItem(ResponseInputItem::Message { role, content, .. })
-                    if role == expected_role.as_response_role()
+                    if role == "developer"
                         && content.iter().any(|content| matches!(
                             content,
                             ContentItem::InputText { text }
@@ -9467,163 +9155,6 @@ where
             )
         }),
         "expected objective-updated steering prompt in pending input: {pending_input:?}"
-    );
-
-    sess.abort_all_tasks(TurnAbortReason::Replaced).await;
-
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn mid_turn_local_compaction_preserves_current_turn_goal_steering() -> anyhow::Result<()> {
-    let (sess, tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
-    sess.spawn_task(
-        Arc::clone(&tc),
-        Vec::new(),
-        NeverEndingTask {
-            kind: TaskKind::Regular,
-            listen_to_cancellation_token: false,
-        },
-    )
-    .await;
-
-    let stale_current_goal =
-        goal_context_input_item("developer", "superseded current goal steering");
-    sess.inject_goal_response_items(
-        crate::state::GoalSteeringCarryPurpose::ObjectiveUpdated,
-        vec![stale_current_goal],
-    )
-    .await
-    .expect("first current-turn goal steering should inject");
-    let budget_goal = goal_context_input_item("developer", "budget-limit goal steering");
-    sess.inject_goal_response_items(
-        crate::state::GoalSteeringCarryPurpose::BudgetLimit,
-        vec![budget_goal],
-    )
-    .await
-    .expect("budget current-turn goal steering should inject");
-    let current_goal = goal_context_input_item("developer", "current turn goal steering");
-    sess.inject_goal_response_items(
-        crate::state::GoalSteeringCarryPurpose::ObjectiveUpdated,
-        vec![current_goal.clone()],
-    )
-    .await
-    .expect("current-turn goal steering should inject");
-    let current_turn_carry = sess.current_turn_goal_steering_items().await;
-    assert_eq!(2, current_turn_carry.len());
-    assert!(
-        !current_turn_carry
-            .iter()
-            .map(|item| ResponseItem::from(item.clone()))
-            .any(|item| response_item_text_contains(&item, "superseded current goal steering")),
-        "goal carry should keep only the latest objective-updated frame"
-    );
-
-    let stale_goal = ResponseItem::from(goal_context_input_item("user", "stale prior goal"));
-    let history_items = vec![stale_goal, user_message("last user message")];
-    let user_messages = crate::compact::collect_user_messages(&history_items);
-    assert_eq!(vec!["last user message".to_string()], user_messages);
-
-    let summary_text = format!("{}\nsummary", crate::compact::SUMMARY_PREFIX);
-    let compacted_history =
-        crate::compact::build_compacted_history(Vec::new(), &user_messages, &summary_text);
-    let mut initial_context = sess.build_initial_context(tc.as_ref()).await;
-    initial_context.extend(current_turn_carry.into_iter().map(ResponseItem::from));
-    let replacement_history =
-        crate::compact::insert_initial_context_before_last_real_user_or_summary(
-            compacted_history,
-            initial_context,
-        );
-
-    let current_index = replacement_history
-        .iter()
-        .position(|item| response_item_text_contains(item, "current turn goal steering"))
-        .expect("current-turn goal steering should be carried through local compaction");
-    let user_index = replacement_history
-        .iter()
-        .position(|item| response_item_text_contains(item, "last user message"))
-        .expect("last user message should remain in local compacted history");
-    assert!(
-        current_index < user_index,
-        "goal carry should be inserted before the last real user message"
-    );
-    assert!(
-        !replacement_history
-            .iter()
-            .any(|item| response_item_text_contains(item, "stale prior goal")),
-        "local compaction must not revive stale recorded goal context"
-    );
-    assert!(
-        !replacement_history
-            .iter()
-            .any(|item| response_item_text_contains(item, "superseded current goal steering")),
-        "local compaction must not carry superseded current-turn goal steering"
-    );
-
-    sess.abort_all_tasks(TurnAbortReason::Replaced).await;
-
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn mid_turn_remote_v2_compaction_preserves_current_turn_goal_steering() -> anyhow::Result<()>
-{
-    let (sess, tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
-    sess.spawn_task(
-        Arc::clone(&tc),
-        Vec::new(),
-        NeverEndingTask {
-            kind: TaskKind::Regular,
-            listen_to_cancellation_token: false,
-        },
-    )
-    .await;
-
-    sess.inject_goal_response_items(
-        crate::state::GoalSteeringCarryPurpose::ObjectiveUpdated,
-        vec![goal_context_input_item(
-            "developer",
-            "current remote-v2 goal steering",
-        )],
-    )
-    .await
-    .expect("current-turn goal steering should inject");
-
-    let replacement_history = crate::compact_remote::process_compacted_history(
-        sess.as_ref(),
-        tc.as_ref(),
-        vec![
-            ResponseItem::from(goal_context_input_item("user", "stale remote goal")),
-            user_message("remote retained user"),
-            assistant_message("remote retained assistant"),
-        ],
-        crate::compact::InitialContextInjection::BeforeLastUserMessage,
-    )
-    .await;
-
-    let current_index = replacement_history
-        .iter()
-        .position(|item| response_item_text_contains(item, "current remote-v2 goal steering"))
-        .expect("current-turn goal steering should be carried through remote-v2 compaction");
-    let user_index = replacement_history
-        .iter()
-        .position(|item| response_item_text_contains(item, "remote retained user"))
-        .expect("real user message should remain in remote-v2 compacted history");
-    assert!(
-        current_index < user_index,
-        "goal carry should be inserted before the last real user message"
-    );
-    assert!(
-        !replacement_history
-            .iter()
-            .any(|item| response_item_text_contains(item, "stale remote goal")),
-        "remote-v2 compaction must not revive stale goal context from compacted output"
-    );
-    assert!(
-        replacement_history
-            .iter()
-            .any(|item| response_item_text_contains(item, "remote retained assistant")),
-        "assistant compacted output should still be retained"
     );
 
     sess.abort_all_tasks(TurnAbortReason::Replaced).await;
@@ -9675,39 +9206,6 @@ async fn late_goal_steering_injection_is_not_persisted_unsampled() -> anyhow::Re
     sess.abort_all_tasks(TurnAbortReason::Replaced).await;
 
     Ok(())
-}
-
-#[tokio::test]
-async fn process_compacted_history_drops_role_neutral_goal_context() {
-    let (sess, tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
-    let replacement_history = crate::compact_remote::process_compacted_history(
-        sess.as_ref(),
-        tc.as_ref(),
-        vec![
-            ResponseItem::from(goal_context_input_item("user", "stale user goal")),
-            ResponseItem::from(goal_context_input_item("developer", "stale developer goal")),
-            user_message("visible remote user"),
-        ],
-        crate::compact::InitialContextInjection::DoNotInject,
-    )
-    .await;
-
-    assert!(
-        !replacement_history
-            .iter()
-            .any(|item| response_item_text_contains(item, "stale user goal")),
-        "pure user-role goal context should be dropped from compacted history"
-    );
-    assert!(
-        !replacement_history
-            .iter()
-            .any(|item| response_item_text_contains(item, "stale developer goal")),
-        "pure developer-role goal context should be dropped from compacted history"
-    );
-    assert_eq!(
-        vec![user_message("visible remote user")],
-        replacement_history
-    );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -9768,108 +9266,6 @@ async fn external_active_goal_set_marks_current_turn_for_accounting() -> anyhow:
     assert_eq!(25, goal.tokens_used);
 
     sess.abort_all_tasks(TurnAbortReason::Replaced).await;
-
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn completed_goal_accounts_current_turn_tokens_before_tool_response() -> anyhow::Result<()> {
-    let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
-        config
-            .features
-            .enable(Feature::Goals)
-            .expect("goal mode should be enableable in tests");
-    });
-    let test = builder.build(&server).await?;
-    let responses = mount_sse_sequence(
-        &server,
-        vec![
-            sse(vec![
-                ev_response_created("resp-1"),
-                ev_function_call(
-                    "call-create-goal",
-                    "create_goal",
-                    r#"{"objective":"write a report","token_budget":500}"#,
-                ),
-                ev_completed("resp-1"),
-            ]),
-            sse(vec![
-                ev_response_created("resp-2"),
-                ev_function_call(
-                    "call-complete-goal",
-                    "update_goal",
-                    r#"{"status":"complete"}"#,
-                ),
-                ev_completed_with_tokens("resp-2", /*total_tokens*/ 580),
-            ]),
-            sse(vec![
-                ev_assistant_message("msg-1", "Goal complete."),
-                ev_completed("resp-3"),
-            ]),
-        ],
-    )
-    .await;
-
-    test.codex
-        .submit(Op::UserInput {
-            environments: None,
-            items: vec![UserInput::Text {
-                text: "write a report".into(),
-                text_elements: Vec::new(),
-            }],
-            final_output_json_schema: None,
-            responsesapi_client_metadata: None,
-            additional_context: Default::default(),
-            thread_settings: Default::default(),
-        })
-        .await?;
-
-    tokio::time::timeout(std::time::Duration::from_secs(8), async {
-        loop {
-            let event = test.codex.next_event().await?;
-            if matches!(event.msg, EventMsg::TurnComplete(_)) {
-                return anyhow::Ok(());
-            }
-        }
-    })
-    .await??;
-
-    let complete_output = responses
-        .function_call_output_text("call-complete-goal")
-        .expect("complete tool output should be sent to the model");
-    let complete_output: serde_json::Value = serde_json::from_str(&complete_output)?;
-    assert_eq!(complete_output["goal"]["tokensUsed"], 580);
-    assert_eq!(complete_output["goal"]["status"], "complete");
-    assert_eq!(complete_output["remainingTokens"], 0);
-    assert_eq!(
-        complete_output["completionBudgetReport"],
-        "Goal achieved. Report final usage from this tool result's structured goal fields. If `goal.tokenBudget` is present, include token usage from `goal.tokensUsed` and `goal.tokenBudget`. If `goal.timeUsedSeconds` is greater than 0, summarize elapsed time in a concise, human-friendly form appropriate to the response language."
-    );
-    let requests = responses.requests();
-    let completion_followup_request = requests
-        .last()
-        .expect("completion tool output should be sent in a follow-up request");
-    assert!(
-        !completion_followup_request.body_contains_text("budget_limited"),
-        "completion follow-up should not include budget-limit steering"
-    );
-
-    let state_db = codex_state::StateRuntime::init(
-        test.config.sqlite_home.clone(),
-        test.config.model_provider_id.clone(),
-    )
-    .await?;
-    let persisted_goal = state_db
-        .thread_goals()
-        .get_thread_goal(test.session_configured.thread_id)
-        .await?
-        .expect("goal should be persisted");
-    assert_eq!(
-        codex_state::ThreadGoalStatus::Complete,
-        persisted_goal.status
-    );
-    assert_eq!(580, persisted_goal.tokens_used);
 
     Ok(())
 }

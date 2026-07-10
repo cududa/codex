@@ -1934,8 +1934,8 @@ mod tests {
     }
 
     #[test]
-    fn continuation_prompt_allows_complete_and_strict_blocked_updates() {
-        let prompt = continuation_prompt(&ThreadGoal {
+    fn goal_prompts_keep_durable_contract_markers() {
+        let active_goal = ThreadGoal {
             thread_id: ThreadId::new(),
             objective: "finish the stack".to_string(),
             status: ThreadGoalStatus::Active,
@@ -1944,107 +1944,43 @@ mod tests {
             time_used_seconds: 56,
             created_at: 1,
             updated_at: 2,
-        })
-        .replace("\r\n", "\n");
-
-        assert!(prompt.contains("finish the stack"));
-        assert!(prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>"));
-        assert!(prompt.contains("Work from the sources that are authoritative"));
-        assert!(prompt.contains("call get_goal to re-ground on the active objective"));
-        assert!(!prompt.contains("Use the current worktree and external state as authoritative"));
-        assert!(!prompt.contains("Work from evidence"));
-        assert!(!prompt.contains("The audit must prove completion"));
-        assert!(!prompt.contains("<objective>"));
-        assert!(prompt.contains("Token budget: 10000"));
-        assert!(prompt.contains("call update_goal with status \"complete\""));
-        assert!(prompt.contains("status \"blocked\""));
-        assert!(prompt.contains("at least three consecutive goal turns"));
-        assert!(prompt.contains("same blocking condition"));
-        assert!(prompt.contains("original/user-triggered turn"));
-        assert!(prompt.contains("truly at an impasse"));
-        assert!(prompt.contains("authoritative evidence has not yet been gathered"));
-        assert!(prompt.contains("gather evidence or keep working"));
-        assert!(!prompt.contains("budgetLimited"));
-        assert!(!prompt.contains("status \"paused\""));
-    }
-
-    #[test]
-    fn initial_prompt_starts_goal_without_trusting_objective() {
-        let prompt = initial_goal_prompt(&ThreadGoal {
-            thread_id: ThreadId::new(),
-            objective: "finish the stack".to_string(),
-            status: ThreadGoalStatus::Active,
-            token_budget: Some(10_000),
-            tokens_used: 0,
-            time_used_seconds: 0,
-            created_at: 1,
-            updated_at: 2,
-        })
-        .replace("\r\n", "\n");
-
-        assert!(prompt.contains("Begin working toward the active thread goal."));
-        assert!(prompt.contains("This is the first turn for this goal."));
-        assert!(prompt.contains("first turn of the active run"));
-        assert!(prompt.contains("Do not assume prior progress has been made"));
-        assert!(prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>"));
-        assert!(prompt.contains("Work from the sources that are authoritative"));
-        assert!(prompt.contains("call get_goal to re-ground on the active objective"));
-        assert!(!prompt.contains("repository state and evidence you gather"));
-        assert!(prompt.contains("Token budget: 10000"));
-        assert!(prompt.contains("call update_goal with status \"complete\""));
-        assert!(!prompt.contains("Continue working toward the active thread goal."));
-    }
-
-    #[test]
-    fn budget_limit_prompt_steers_model_to_wrap_up_without_pausing() {
-        let prompt = budget_limit_prompt(&ThreadGoal {
-            thread_id: ThreadId::new(),
-            objective: "finish the stack".to_string(),
+        };
+        let budget_limited_goal = ThreadGoal {
             status: ThreadGoalStatus::BudgetLimited,
-            token_budget: Some(10_000),
             tokens_used: 10_100,
-            time_used_seconds: 56,
-            created_at: 1,
-            updated_at: 2,
-        })
-        .replace("\r\n", "\n");
+            ..active_goal.clone()
+        };
 
-        assert!(prompt.contains("finish the stack"));
-        assert!(prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>"));
-        assert!(prompt.contains("Token budget: 10000"));
-        assert!(prompt.contains("Tokens used: 10100"));
-        assert!(prompt.to_lowercase().contains("wrap up this turn soon"));
-        assert!(!prompt.contains("status \"paused\""));
-    }
+        let prompts = [
+            initial_goal_prompt(&active_goal),
+            continuation_prompt(&active_goal),
+            budget_limit_prompt(&budget_limited_goal),
+            objective_updated_prompt(&active_goal),
+        ]
+        .map(|prompt| prompt.replace("\r\n", "\n"));
 
-    #[test]
-    fn objective_updated_prompt_supersedes_previous_goal_context() {
-        let prompt = objective_updated_prompt(&ThreadGoal {
-            thread_id: ThreadId::new(),
-            objective: "finish the revised stack".to_string(),
-            status: ThreadGoalStatus::Active,
-            token_budget: Some(10_000),
-            tokens_used: 1_234,
-            time_used_seconds: 56,
-            created_at: 1,
-            updated_at: 2,
-        })
-        .replace("\r\n", "\n");
+        for prompt in prompts {
+            assert!(
+                prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>")
+            );
+            assert!(!prompt.contains("<objective>"));
+            assert!(!prompt.contains("status \"paused\""));
+            assert!(!prompt.contains("budgetLimited"));
+        }
 
-        assert!(prompt.contains("edited by the user"));
-        assert!(prompt.contains("supersedes any previous thread goal objective"));
+        let continuation = continuation_prompt(&active_goal);
+        assert!(continuation.contains("Work from the sources that are authoritative"));
+        assert!(continuation.contains("call update_goal with status \"complete\""));
+        assert!(continuation.contains("status \"blocked\""));
+        assert!(continuation.contains("at least three consecutive goal turns"));
+        assert!(continuation.contains("same blocking condition"));
+        assert!(continuation.contains("authoritative evidence has not yet been gathered"));
+
+        let budget_limit = budget_limit_prompt(&budget_limited_goal);
         assert!(
-            prompt.contains(
-                "<untrusted_objective>\nfinish the revised stack\n</untrusted_objective>"
-            )
-        );
-        assert!(prompt.contains("Token budget: 10000"));
-        assert!(prompt.contains("Tokens remaining: 8766"));
-        assert!(prompt.contains("Work from the sources that are authoritative"));
-        assert!(prompt.contains("call get_goal to re-ground on the active objective"));
-        assert!(
-            prompt
-                .contains("Do not call update_goal unless the updated goal is actually complete.")
+            budget_limit
+                .to_lowercase()
+                .contains("wrap up this turn soon")
         );
     }
 

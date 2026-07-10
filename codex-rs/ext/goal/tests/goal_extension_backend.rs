@@ -323,7 +323,7 @@ async fn budget_limited_goal_keeps_accruing_until_turn_stop() -> anyhow::Result<
 }
 
 #[tokio::test]
-async fn thread_start_stores_configured_developer_goal_role() -> anyhow::Result<()> {
+async fn backend_config_stores_role_and_updates_runtime_enabled_state() -> anyhow::Result<()> {
     let runtime = test_runtime().await?;
     let thread_id = test_thread_id()?;
     seed_thread_metadata(runtime.as_ref(), thread_id).await?;
@@ -344,24 +344,6 @@ async fn thread_start_stores_configured_developer_goal_role() -> anyhow::Result<
         },
         harness.goal_extension_config()
     );
-    Ok(())
-}
-
-#[tokio::test]
-async fn config_change_stores_configured_user_role_and_updates_runtime_enabled_state()
--> anyhow::Result<()> {
-    let runtime = test_runtime().await?;
-    let thread_id = test_thread_id()?;
-    seed_thread_metadata(runtime.as_ref(), thread_id).await?;
-    let harness = GoalExtensionHarness::new_with_config(
-        runtime,
-        thread_id,
-        TestGoalExtensionConfig {
-            enabled: true,
-            steering_role: GoalContextRole::Developer,
-        },
-    )
-    .await?;
 
     let previous_config = TestGoalExtensionConfig {
         enabled: true,

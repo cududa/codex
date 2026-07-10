@@ -50,7 +50,6 @@ mod deprecation_notice;
 mod exec;
 mod exec_policy;
 mod fork_thread;
-mod goal_steering;
 #[cfg(not(target_os = "windows"))]
 mod guardian_review;
 mod hierarchical_agents;

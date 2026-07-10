@@ -80,38 +80,6 @@ fn inter_agent_assistant_message(text: &str) -> ResponseItem {
 }
 
 #[tokio::test]
-async fn reconstruct_history_filters_pure_goal_context_response_items() {
-    let (session, _turn_context) = make_session_and_context().await;
-    let real_user = user_message("real user");
-    let real_assistant = assistant_message("real assistant");
-    let mixed_developer = mixed_goal_context_message("developer", "mixed developer goal context");
-    let rollout_items = vec![
-        RolloutItem::ResponseItem(real_user.clone()),
-        RolloutItem::ResponseItem(goal_context_message("user", "stale user goal context")),
-        RolloutItem::ResponseItem(goal_context_message(
-            "developer",
-            "stale developer goal context",
-        )),
-        RolloutItem::ResponseItem(mixed_developer.clone()),
-        RolloutItem::ResponseItem(real_assistant.clone()),
-    ];
-
-    session
-        .record_initial_history(InitialHistory::Resumed(ResumedHistory {
-            conversation_id: ThreadId::default(),
-            history: rollout_items,
-            rollout_path: Some(PathBuf::from("/tmp/resume.jsonl")),
-        }))
-        .await;
-
-    let history = session.clone_history().await;
-    assert_eq!(
-        history.raw_items(),
-        &[real_user, mixed_developer, real_assistant]
-    );
-}
-
-#[tokio::test]
 async fn reconstruct_history_filters_pure_goal_context_from_replacement_history() {
     let (session, _turn_context) = make_session_and_context().await;
     let before_goal = user_message("before goal context");

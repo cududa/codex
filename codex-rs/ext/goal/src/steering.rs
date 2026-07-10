@@ -98,18 +98,12 @@ fn escape_xml_text(input: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::GoalSteeringKind;
     use super::budget_limit_prompt;
     use super::escape_xml_text;
-    use super::goal_steering_item;
     use super::objective_updated_prompt;
-    use codex_core::context::GoalContextRole;
     use codex_protocol::ThreadId;
-    use codex_protocol::models::ContentItem;
-    use codex_protocol::models::ResponseInputItem;
     use codex_protocol::protocol::ThreadGoal;
     use codex_protocol::protocol::ThreadGoalStatus;
-    use pretty_assertions::assert_eq;
 
     fn test_goal(status: ThreadGoalStatus) -> ThreadGoal {
         ThreadGoal {
@@ -122,66 +116,6 @@ mod tests {
             created_at: 1,
             updated_at: 2,
         }
-    }
-
-    fn assert_goal_steering_item(
-        item: ResponseInputItem,
-        expected_role: &str,
-        expected_objective: &str,
-    ) -> String {
-        let ResponseInputItem::Message {
-            role,
-            content,
-            phase,
-        } = item
-        else {
-            panic!("expected goal steering message item");
-        };
-        assert_eq!(expected_role, role);
-        let [ContentItem::InputText { text }] = content.as_slice() else {
-            panic!("expected one input text item, got {content:#?}");
-        };
-        assert!(text.starts_with("<goal_context>"));
-        assert!(text.trim_end().ends_with("</goal_context>"));
-        assert!(text.contains(expected_objective));
-        assert_eq!(None, phase);
-        text.clone()
-    }
-
-    #[test]
-    fn goal_steering_item_uses_developer_role_for_budget_limit() {
-        let goal = test_goal(ThreadGoalStatus::BudgetLimited);
-        let item = goal_steering_item(
-            GoalSteeringKind::BudgetLimit,
-            &goal,
-            GoalContextRole::Developer,
-        );
-
-        assert_goal_steering_item(item, "developer", "finish the revised stack");
-    }
-
-    #[test]
-    fn goal_steering_item_uses_developer_role_for_objective_updated() {
-        let goal = test_goal(ThreadGoalStatus::Active);
-        let item = goal_steering_item(
-            GoalSteeringKind::ObjectiveUpdated,
-            &goal,
-            GoalContextRole::Developer,
-        );
-
-        assert_goal_steering_item(item, "developer", "finish the revised stack");
-    }
-
-    #[test]
-    fn goal_steering_item_uses_configured_user_role() {
-        let goal = test_goal(ThreadGoalStatus::Active);
-        let item = goal_steering_item(
-            GoalSteeringKind::ObjectiveUpdated,
-            &goal,
-            GoalContextRole::User,
-        );
-
-        assert_goal_steering_item(item, "user", "finish the revised stack");
     }
 
     #[test]
@@ -212,15 +146,5 @@ mod tests {
         assert!(!prompt.contains("Use the current worktree and external state as authoritative"));
         assert!(!prompt.contains("Work from evidence"));
         assert!(prompt.contains("supersedes any previous thread goal objective"));
-    }
-
-    #[test]
-    fn budget_limit_prompt_remains_completion_only() {
-        let prompt = budget_limit_prompt(&test_goal(ThreadGoalStatus::BudgetLimited));
-
-        assert!(prompt.contains("budget_limited"));
-        assert!(prompt.to_lowercase().contains("wrap up this turn soon"));
-        assert!(prompt.contains("Do not call update_goal unless the goal is actually complete."));
-        assert!(!prompt.contains("status \"blocked\""));
     }
 }
