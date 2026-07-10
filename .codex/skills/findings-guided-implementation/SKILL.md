@@ -26,12 +26,97 @@ Use sources in this order:
 
 1. Current user instructions
 2. The named Review Finding and its remediation plan
-3. Applicable `AGENTS.md` files and user-named authority docs
-4. Artifact treatments, linked findings, notes, discussions, and concern areas
-5. Existing code, generated files, parked diffs, and historical artifacts as
+3. Artifact treatments, linked findings, notes, discussions, and concern areas
+4. Existing code, generated files, parked diffs, and historical artifacts as
    implementation terrain
 
+`AGENTS.md` and repo-local instructions may still matter as terrain,
+constraints, or source material, but they do not outrank the finding route in
+this workflow. In this repository, they may reflect upstream defaults that the
+finding is deliberately adapting or superseding.
+
 The finding and plan do not make the repo simple. They make the route visible.
+
+## Artifact Treatment Semantics
+
+Use artifact treatments as route cues, not as passive labels.
+
+- `accepted` means integrate the incoming artifact into the implementation
+  route. It does not mean no code work is required, and it does not mean the
+  artifact defines local policy.
+- `adapted` means accept the incoming terrain or intent, but modify its
+  integration so it satisfies the finding's local contract. It is not a
+  rejection of upstream and not a license to preserve the old local shape.
+- `rejected` means do not carry the artifact's behavior forward except as
+  historical context.
+- `needs_evaluation` means pause before implementation if the artifact affects
+  the route. Research or ask rather than guessing.
+
+When a finding says to accept incoming code represented as parked or commented
+blocks, implementation usually starts from integrating that incoming terrain
+unless the finding or treatment says otherwise.
+
+## Large Finding Rule
+
+Some findings are wider than one agent can comfortably hold in working memory.
+When a finding spans multiple concern areas, many commits, or cross-cutting
+surfaces such as prompt roles, compaction, app-server history, runtime
+injection, storage, tool schemas, hidden context, or model-input conversion,
+fan out focused research before broad implementation.
+
+Assign disjoint questions where useful: artifact map, live code embodiment,
+tests, hidden/replay surfaces, extension/runtime path, and future-version or
+non-goal boundaries. The parent coordinates retrieval, direction lock,
+synthesis, and implementation after the first summaries return.
+
+For a large finding, do not spend the parent context walking implementation
+files before this route is sketched. First retrieve the finding, plan, and
+artifact treatments; fan out focused research where useful; create the initial
+ledger; then inspect terrain through that route. A brief file inventory or
+exact-symbol check is fine when it helps write the ledger or subagent prompts.
+
+## Implementation Ledger
+
+For large remediation plans, create a sparse implementation ledger in the repo
+root before broad terrain inspection or code edits, for example:
+
+`finding-<short-id>-implementation-ledger.md`
+
+The ledger is a working continuity artifact, not a second plan and not a
+replacement for the Review Finding or remediation plan. It lets the work move
+in ordinary slices without asking one context window to carry the whole route.
+Keep it brief, but make it resumable:
+
+- Direction lock summary
+- Ordered task slices from the plan, preferably one item per numbered plan step
+  or plan substep
+- Files/functions for each slice
+- Concrete work to do
+- Artifact treatment posture
+- Status: `pending` / `in_progress` / `done` / `blocked`
+- One-line completion notes
+- Verification run or still needed
+- Next resume point
+
+Do not collapse distinct workstreams into one broad bucket when they require
+different files, tests, or handoff notes.
+
+Before editing, compare the ledger to the remediation plan:
+
+- every numbered implementation step is represented;
+- every adapted artifact has a task or explicit note;
+- every major verification category is represented;
+- non-goals and future markers are captured briefly;
+- no broad slice hides multiple independent workstreams without child tasks.
+
+Update the ledger after each completed slice, before any intentional stop, and
+after resuming from compaction. Use it to re-ground before reading more code or
+continuing implementation.
+
+It is normal for large findings to span compactions. Keep the route steady
+rather than shrinking the work to fit a single context window. Complete coherent
+slices, leave the ledger accurate, and continue from the ledger plus the MCP
+finding and plan after compaction.
 
 ## Workflow
 
@@ -80,9 +165,16 @@ Do not treat parked incoming code as automatically authoritative merely because
 it exists. Its status comes from the finding, plan, artifact treatments, and
 current user request.
 
-### 4. Terrain Inspection
+For large findings, create the initial implementation ledger after artifact
+status and before broad terrain inspection. It can be revised after the terrain
+is warmer.
 
-Inspect the terrain named by the finding and plan first.
+### 4. Bounded Terrain Triage
+
+Inspect the terrain named by the finding and plan first. For large findings,
+keep this first pass bounded: confirm named files, symbols, parked blocks,
+tests, and ownership boundaries needed for the Direction Lock and ledger. Save
+deeper code reading for after the locked direction is visible.
 
 Look for relevant live code, parked incoming blocks, preserved diffs, generated
 files, tests, templates, schemas, routes, tools, and ownership boundaries.
@@ -92,8 +184,8 @@ points. Keep the implementation shape tied to the finding's route.
 
 ### 5. Direction Lock
 
-After retrieval, plan grounding, artifact classification, and initial terrain
-inspection, state the locked direction visibly before broader planning or file
+After retrieval, plan grounding, artifact classification, and bounded terrain
+triage, state the locked direction visibly before broader planning or file
 edits.
 
 Use this checkpoint:
@@ -106,7 +198,11 @@ Use this checkpoint:
 - Plan:
 - Authority:
 - Terrain:
-- Artifact status:
+- Incoming terrain to accept:
+- Adapted artifacts:
+- Rejected or stale artifacts:
+- Substrate artifacts that must not define policy:
+- Future markers explicitly left alone:
 - Code-shape temptation:
 - Locked direction:
 - Exclusions:
@@ -120,6 +216,10 @@ still happen, but they stay inside the locked shape.
 
 Carry out the plan inside the locked direction.
 
+Implementation generally means integrating accepted or adapted incoming terrain
+through the finding's contract. Existing local code and incoming blocks are both
+terrain; let the finding decide how they fit together.
+
 Resolve, adapt, or explicitly supersede parked incoming blocks according to the
 finding and artifact treatments. Do not route around them merely because the
 current live implementation still works.
@@ -131,6 +231,15 @@ becoming current scope.
 When the plan says to preserve a behavior, invariant, or contract, preserve that
 substance. Do not assume it requires preserving the current file layout, helper
 shape, ownership shape, or public surface unless the plan says so.
+
+When the plan protects a responsibility rather than a file shape, implement the
+responsibility in the current upstream terrain. Do not preserve old local
+ownership, helper names, or module layout unless the finding explicitly requires
+them.
+
+When context gets tight, keep the remediation route visible. Finish the current
+coherent slice if possible, update the implementation ledger with exact
+remaining work, and let the next context resume from that state.
 
 ### 7. Pause And Report Conflict
 
