@@ -1,6 +1,6 @@
 ---
 name: findings-guided-implementation
-description: Use when implementing a Review Dedeluger finding or remediation plan in this repository, especially when the user provides a Review Finding ID. Retrieve the finding and plan first, classify artifact treatments, sketch the ledger for large plans, do bounded terrain triage, lock direction, then inspect and edit the repo terrain.
+description: Use when implementing a Review Dedeluger finding or remediation plan in this repository, especially when the user provides a Review Finding ID. Retrieve the finding and plan first, classify artifact treatments, lock the route, sketch the ledger for large plans, do bounded terrain triage, confirm direction, then inspect and edit the repo terrain.
 metadata:
   short-description: Implement Review Findings from their researched plan and artifact map
 ---
@@ -66,15 +66,16 @@ fan out focused research before broad implementation.
 
 Assign disjoint questions where useful: artifact map, live code embodiment,
 tests, hidden/replay surfaces, extension/runtime path, and future-version or
-non-goal boundaries. The parent coordinates retrieval, initial ledger,
-bounded triage, Direction Lock, synthesis, and implementation after the first
-summaries return.
+non-goal boundaries. The parent coordinates retrieval, initial Route Lock,
+initial ledger, bounded triage, confirmed Direction Lock, synthesis, and
+implementation after the first summaries return.
 
 For a large finding, do not spend the parent context walking implementation
 files before this route is sketched. First retrieve the finding, plan, and
-artifact treatments; fan out focused research where useful; create the initial
-ledger; then inspect terrain through that route. A brief file inventory or
-exact-symbol check is fine when it helps write the ledger or subagent prompts.
+artifact treatments; state the initial Route Lock from those sources; fan out
+focused research where useful; create the initial ledger; then inspect terrain
+through that route. A brief file inventory or exact-symbol check is fine when
+it helps write the ledger or subagent prompts.
 
 ## Implementation Ledger
 
@@ -158,10 +159,10 @@ slices, leave the ledger accurate, and continue from the ledger plus the MCP
 finding and plan after compaction.
 
 Large findings often benefit from two ledger passes. The initial ledger is a
-route sketch after MCP retrieval and artifact classification, before broad code
-reading. The settled ledger comes after bounded terrain triage and the Direction
-Lock; update it before implementation so it reflects the actual files,
-functions, tests, and route decisions.
+route sketch after MCP retrieval, artifact classification, and initial Route
+Lock, before broad code reading. The settled ledger comes after bounded terrain
+triage and the confirmed Direction Lock; update it before implementation so it
+reflects the actual files, functions, tests, and route decisions.
 
 ## Workflow
 
@@ -192,8 +193,9 @@ present and matches the user's request.
 Summarize the plan's intended direction, primary files, sequencing, exclusions,
 and targeted verification.
 
-If the plan already includes a Direction Lock, reuse it or restate it. Do not
-quietly replace it with a direction inferred from live code.
+If the plan already includes a Direction Lock, reuse it or restate it as the
+initial route before terrain inspection. Do not quietly replace it with a
+direction inferred from live code.
 
 ### 3. Artifact Status
 
@@ -210,16 +212,38 @@ Do not treat parked incoming code as automatically authoritative merely because
 it exists. Its status comes from the finding, plan, artifact treatments, and
 current user request.
 
-For large findings, create the initial implementation ledger after artifact
-status and before broad terrain inspection. It can be revised after the terrain
-is warmer.
+### 4. Initial Route Lock
 
-### 4. Bounded Terrain Triage
+Before terrain inspection for a large finding, state the route from the current
+user request, finding, remediation plan, and artifact treatments. This lock does
+not need final file mechanics yet; it keeps the mission visible before existing
+code starts suggesting shapes.
+
+Use a compact checkpoint:
+
+```markdown
+## Initial Route Lock
+
+- Request:
+- Finding:
+- Plan route:
+- Incoming terrain to accept:
+- Adapted artifacts:
+- Substrate artifacts that must not define policy:
+- Future markers explicitly left alone:
+- Initial ledger:
+```
+
+For large findings, create the initial implementation ledger after this route
+lock and before broad terrain inspection. It can be revised after the terrain is
+warmer.
+
+### 5. Bounded Terrain Triage
 
 Inspect the terrain named by the finding and plan first. For large findings,
 keep this first pass bounded: confirm named files, symbols, parked blocks,
-tests, and ownership boundaries needed for the Direction Lock and ledger. Save
-deeper code reading for after the locked direction is visible.
+tests, and ownership boundaries needed to confirm the Direction Lock and settle
+the ledger. Save deeper code reading for after the route is visible.
 
 Look for relevant live code, parked incoming blocks, preserved diffs, generated
 files, tests, templates, schemas, routes, tools, and ownership boundaries.
@@ -227,16 +251,17 @@ files, tests, templates, schemas, routes, tools, and ownership boundaries.
 Existing code can inform mechanics, naming, helper reuse, and integration
 points. Keep the implementation shape tied to the finding's route.
 
-### 5. Direction Lock
+### 6. Confirm Direction Lock
 
-After retrieval, plan grounding, artifact classification, and bounded terrain
-triage, state the locked direction visibly before broader planning or file
-edits.
+After retrieval, plan grounding, artifact classification, initial Route Lock,
+and bounded terrain triage, confirm the locked direction visibly before broader
+planning or file edits. If terrain contradicts the initial route, report the
+conflict rather than silently changing the route.
 
 Use this checkpoint:
 
 ```markdown
-## Direction Lock
+## Confirmed Direction Lock
 
 - Request:
 - Finding:
@@ -254,10 +279,10 @@ Use this checkpoint:
 - Verification:
 ```
 
-The locked direction is the decision point. Ordinary implementation choices can
-still happen, but they stay inside the locked shape.
+The confirmed direction is the decision point. Ordinary implementation choices
+can still happen, but they stay inside the locked shape.
 
-### 6. Execution
+### 7. Execution
 
 Carry out the plan inside the locked direction.
 
