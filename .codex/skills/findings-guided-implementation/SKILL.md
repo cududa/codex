@@ -1,6 +1,6 @@
 ---
 name: findings-guided-implementation
-description: Use when implementing a prepared Review Dedeluger finding slice or remediation plan in this repository. Work from the selected slice, finding, and plan; lock the direction; inspect repo terrain; execute, verify, and keep the prepared route artifacts current across compactions and handoffs.
+description: Use when implementing a prepared Review Dedeluger finding slice in this repository. Work from tasks.md and the selected slice as the immediate route; use the MCP finding and remediation plan for conflict checks or missing authority; lock the direction, inspect bounded terrain, execute, verify, and keep route artifacts current.
 metadata:
   short-description: Implement prepared Review Finding slices inside the locked route
 ---
@@ -10,8 +10,10 @@ metadata:
 Use this skill to implement a Review Finding route, especially when
 `finding-implementation-prep` has already created repo-local slice packets.
 
-Use the finding, remediation plan, and prepared slice material as the route.
-Use artifact treatments as the map legend. Use existing code as terrain.
+Use prepared `tasks.md` and the selected slice packet as the immediate route.
+Use `plan-coverage.md` when checking cross-slice assignment or whether a plan
+section landed somewhere. Use the MCP finding and remediation plan for conflict
+checks, stale slice details, or missing authority. Use existing code as terrain.
 Execute the selected slice inside the locked direction.
 
 This skill is for execution. It should not try to carry a large remediation
@@ -25,9 +27,11 @@ Use sources in this order:
 
 1. Current user instructions
 2. Prepared `tasks.md` and the selected slice packet, when present
-3. The named Review Finding and remediation plan
-4. Artifact treatments, linked findings, notes, discussions, and concern areas
-5. Existing code, generated files, parked diffs, and tests as implementation
+3. Prepared `plan-coverage.md`, when cross-slice assignment context is needed
+4. The named Review Finding and remediation plan, only for conflict checks,
+   missing authority, stale slice details, or when no prepared slice exists
+5. Artifact treatments, linked findings, notes, discussions, and concern areas
+6. Existing code, generated files, parked diffs, and tests as implementation
    terrain
 
 Prepared files are the immediate work surface, not a smaller authority. If a
@@ -45,18 +49,29 @@ the whole forest before taking an ordinary step. The job is to keep the user's
 mission visible, respect the route, inspect the local path, and complete the
 selected slice steadily.
 
+The useful frame is mission, authority, and terrain:
+
+- user intent names the mission;
+- the prepared slice, applicable instructions, finding contract, and MCP plan
+  constrain the mission;
+- existing code is terrain.
+
+Existing code matters deeply. It shows mechanics, names, helper APIs, tests,
+integration points, and current behavior. But terrain is not mission. A nearby
+endpoint is not permission to change the task. A convenient helper is not proof
+that the new responsibility belongs there. Notice code-shape temptation, name
+it when useful, and return to the selected slice.
+
+Most guidance in this skill is a sign: it helps you keep moving in the right
+direction. Sirens are rarer. Stop or ask only when continuing would silently
+change scope, behavior, authority, or meaning.
+
 Ordinary implementation uncertainty is expected. Helper names, exact placement,
 test body mechanics, and small API choices can usually be resolved from the
 slice packet, nearby code, tests, and repo instructions.
 
 Ask or pause only when the missing answer would change scope, behavior,
 authority, or meaning.
-
-Existing code matters deeply. It shows mechanics, names, helper APIs, tests,
-integration points, and current behavior. But terrain is not mission. A nearby
-endpoint is not permission to change the task. A convenient helper is not proof
-that the new responsibility belongs there. Notice code-shape temptation, name
-it when useful, and return to the slice route.
 
 Do not make the slice smaller by silently dropping the part that is hard to fit
 into current code. Do not preserve old file layout, ownership, helper names, or
@@ -91,8 +106,9 @@ When a repo-root prepared route directory exists, for example
 `finding-<short-id>-implementation/`, use it.
 
 Treat `tasks.md` as the progress ledger. Treat slice packets as the route for
-each coherent work unit. Keep both current as part of execution, not as
-cleanup.
+each coherent work unit. Treat `plan-coverage.md` as an assignment check when
+cross-slice context matters, not as a second plan. Keep these artifacts current
+as part of execution, not as cleanup.
 
 Start with `tasks.md`:
 
@@ -100,13 +116,16 @@ Start with `tasks.md`:
   you to continue;
 - read the selected slice packet before broad code inspection;
 - use the slice packet as the immediate route surface;
+- consult `plan-coverage.md` only when you need to confirm where a plan section
+  was assigned or how slices relate;
 - verify surprising, stale, or conflicting slice details against the MCP
   finding and remediation plan;
 - update `tasks.md` and the slice notes after completion, before stopping, and
   after resuming from compaction.
 
-The task index tracks progress. The slice packet carries the route. Keep the
-next agent on the same managed terrain, not on your memory of it.
+The task index tracks progress. The slice packet carries the route. The
+coverage map checks assignment. Keep the next agent on the same managed
+terrain, not on your memory of it.
 
 If the prepared route directory has multiple slices, complete coherent slices
 rather than shrinking the route to whatever fits in one context window.
@@ -134,8 +153,10 @@ Before stopping or when context gets tight:
 - update the selected slice packet with what changed, what remains,
   verification run, and the exact next resume point.
 
-The next agent should be able to continue from the prepared route artifacts
-plus the MCP finding and plan without rediscovering the route.
+The next agent should be able to continue from `tasks.md`, the selected slice
+packet, and `plan-coverage.md` when needed. The MCP finding and plan remain the
+authority for conflict checks, but they should not be required for ordinary
+slice execution.
 
 ## Finding Retrieval
 
@@ -143,7 +164,18 @@ When the user provides a Review Finding ID, retrieve the finding through the
 Review Dedeluger MCP unless the current task is explicitly limited to editing
 already-prepared local skill or slice files.
 
-Also retrieve the remediation plan when one exists.
+When prepared route material exists and the selected slice is sufficient, do
+not retrieve or reread the full remediation plan by default. Retrieve the MCP
+remediation plan when:
+
+- there is no prepared slice material;
+- the selected slice is stale, surprising, incomplete, or internally
+  contradictory;
+- the selected slice conflicts with `plan-coverage.md`, artifact treatments, or
+  the finding contract;
+- a missing authority answer would change scope, behavior, authority, or
+  meaning;
+- the user explicitly asks you to audit or compare against the MCP plan.
 
 Capture only the context needed for the selected slice:
 
@@ -192,7 +224,9 @@ silently changing the route.
 
 Inspect the terrain named by the selected slice first:
 
-- files and functions named by the slice packet or remediation plan;
+- files and functions named by the slice packet, or by the remediation plan
+  only when no prepared slice exists or a conflict check required retrieving
+  it;
 - relevant live code, parked incoming blocks, preserved diffs, generated files,
   tests, templates, schemas, routes, tools, and ownership boundaries;
 - adjacent code needed to understand mechanics and local conventions;
@@ -214,16 +248,18 @@ through the finding's contract. Existing local code and incoming blocks are
 both terrain; let the finding decide how they fit together.
 
 Resolve, adapt, or explicitly supersede parked incoming blocks according to the
-finding, plan, slice packet, and artifact treatments. Do not route around them
-merely because the current live implementation still works.
+selected slice packet, finding contract, artifact treatments, and MCP plan only
+when it has been retrieved for conflict or missing-authority checks. Do not
+route around them merely because the current live implementation still works.
 
 Likewise, do not import future-upstream architecture merely because the finding
 mentions it as sequencing context. Future markers can guide shape without
 becoming current scope.
 
-When the plan says to preserve a behavior, invariant, or contract, preserve
-that substance. Do not assume it requires preserving the current file layout,
-helper shape, ownership shape, or public surface unless the plan says so.
+When the selected slice's carried plan requirements say to preserve a behavior,
+invariant, or contract, preserve that substance. Do not assume it requires
+preserving the current file layout, helper shape, ownership shape, or public
+surface unless the carried requirements say so.
 
 When the plan protects a responsibility rather than a file shape, implement the
 responsibility in the current upstream terrain. Do not preserve old local
@@ -285,7 +321,8 @@ Verify the selected slice against:
 - the user's request;
 - prepared `tasks.md` and the selected slice packet, when present;
 - the finding's invariant and local contract;
-- the remediation plan checklist;
+- the selected slice's carried plan requirements and verification checklist;
+- `plan-coverage.md` when assignment or cross-slice context matters;
 - artifact treatments and explicit exclusions;
 - applicable repository instructions;
 - targeted tests or commands named by the slice or plan.
@@ -313,15 +350,17 @@ Review Finding, remediation plan, and artifact treatments, then implement the
 coherent slice.
 
 If the finding is large, prefer prepared route material. When the user asks for
-prep, use `finding-implementation-prep`. When the user asks to implement now,
-do not stop merely because prep is absent. Create the smallest route surface
-needed for the first coherent slice, lock that slice, inspect bounded terrain,
-execute, verify, and leave a clear resume point.
+prep, use `finding-implementation-prep`. When the user asks to implement a
+large finding and no prepared route exists, do not improvise from the whole MCP
+plan unless the user explicitly asks to skip prep or the current request is
+clearly limited to one coherent slice. Otherwise, pause and say the route needs
+prep first.
 
 For a large finding, fallback route material must still create a task index or
 slice note for the current coherent slice before broad terrain inspection. Do
-not implement a large finding from memory alone.
+not implement a large finding from memory alone, and do not shrink the route to
+the easiest nearby code shape.
 
 Do not let the absence of prepared slices become a reason to carry the entire
-finding in memory or to shrink the route to the easiest local code shape.
+finding in memory.
 
