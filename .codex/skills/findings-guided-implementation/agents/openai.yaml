@@ -1,4 +1,4 @@
 interface:
   display_name: "Findings Guided Implementation"
-  short_description: "Keep ..."
-  default_prompt: "Use $findings-guided-implementation to ...."
+  short_description: "Implement prepared Review Finding slices inside the locked route."
+  default_prompt: "Use $findings-guided-implementation to execute the selected Review Finding slice from prepared route material, verify it, and update the task index."

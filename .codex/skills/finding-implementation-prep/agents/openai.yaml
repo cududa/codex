@@ -1,0 +1,4 @@
+interface:
+  display_name: "Finding Implementation Prep"
+  short_description: "Prepare large Review Finding plans as slice packets."
+  default_prompt: "Use $finding-implementation-prep to decompose the Review Finding remediation plan into repo-local slice packets and a sparse task index."

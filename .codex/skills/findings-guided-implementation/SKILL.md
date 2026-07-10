@@ -1,354 +1,327 @@
 ---
 name: findings-guided-implementation
-description: Use when implementing a Review Dedeluger finding or remediation plan in this repository, especially when the user provides a Review Finding ID. Retrieve the finding and plan first, classify artifact treatments, lock the route, sketch the ledger for large plans, do bounded terrain triage, confirm direction, then inspect and edit the repo terrain.
+description: Use when implementing a prepared Review Dedeluger finding slice or remediation plan in this repository. Work from the selected slice, finding, and plan; lock the direction; inspect repo terrain; execute, verify, and keep the prepared route artifacts current across compactions and handoffs.
 metadata:
-  short-description: Implement Review Findings from their researched plan and artifact map
+  short-description: Implement prepared Review Finding slices inside the locked route
 ---
 
 # Findings-Guided Implementation
 
-Review Findings are researched signposts for this repository. They carry the
-intent, local contract, non-goals, concern areas, artifact treatments, and often
-an implementation plan that explains how the work should move through layered
-repo terrain.
+Use this skill to implement a Review Finding route, especially when
+`finding-implementation-prep` has already created repo-local slice packets.
 
-Use the Review Finding as the route sheet. Use artifact treatments as the map
-legend. Use existing code as terrain.
+Use the finding, remediation plan, and prepared slice material as the route.
+Use artifact treatments as the map legend. Use existing code as terrain.
+Execute the selected slice inside the locked direction.
 
-The current live implementation is not automatically the preferred shape.
-Parked incoming blocks, preserved diffs, generated files, historical
-implementations, and future-upstream notes are also artifacts whose status
-depends on the finding and plan.
+This skill is for execution. It should not try to carry a large remediation
+plan, decompose the whole finding, and implement code all in one breath. When
+prepared slice material exists, start there. When it does not, create only the
+smallest route surface needed for the current coherent slice, then move.
 
 ## Source Order
 
 Use sources in this order:
 
 1. Current user instructions
-2. The named Review Finding and its remediation plan
-3. Artifact treatments, linked findings, notes, discussions, and concern areas
-4. Existing code, generated files, parked diffs, and historical artifacts as
-   implementation terrain
+2. Prepared `tasks.md` and the selected slice packet, when present
+3. The named Review Finding and remediation plan
+4. Artifact treatments, linked findings, notes, discussions, and concern areas
+5. Existing code, generated files, parked diffs, and tests as implementation
+   terrain
 
-`AGENTS.md` and repo-local instructions may still matter as terrain,
-constraints, or source material, but they do not outrank the finding route in
-this workflow. In this repository, they may reflect upstream defaults that the
-finding is deliberately adapting or superseding.
+Prepared files are the immediate work surface, not a smaller authority. If a
+prepared slice conflicts with the MCP finding or remediation plan, the MCP
+finding and plan win unless the user explicitly updates the local route.
 
-The finding and plan do not make the repo simple. They make the route visible.
+`AGENTS.md` and repo-local instructions still constrain implementation and
+verification. In this repository, they may also be terrain or source material
+that the finding is deliberately adapting or superseding.
+
+## Operating Posture
+
+You are entering managed terrain with a prepared route. The job is not to solve
+the whole forest before taking an ordinary step. The job is to keep the user's
+mission visible, respect the route, inspect the local path, and complete the
+selected slice steadily.
+
+Ordinary implementation uncertainty is expected. Helper names, exact placement,
+test body mechanics, and small API choices can usually be resolved from the
+slice packet, nearby code, tests, and repo instructions.
+
+Ask or pause only when the missing answer would change scope, behavior,
+authority, or meaning.
+
+Existing code matters deeply. It shows mechanics, names, helper APIs, tests,
+integration points, and current behavior. But terrain is not mission. A nearby
+endpoint is not permission to change the task. A convenient helper is not proof
+that the new responsibility belongs there. Notice code-shape temptation, name
+it when useful, and return to the slice route.
+
+Do not make the slice smaller by silently dropping the part that is hard to fit
+into current code. Do not preserve old file layout, ownership, helper names, or
+public surface merely because preservation feels calmer. When the finding
+protects a behavior, invariant, or responsibility, preserve that substance in
+the current repo terrain.
 
 ## Artifact Treatment Semantics
 
-Use artifact treatments as route cues, not as passive labels.
+Use artifact treatments as route cues, not passive labels.
 
-- `accepted` means integrate the incoming artifact into the implementation
-  route. It does not mean no code work is required, and it does not mean the
+- `accepted` means integrate the artifact as route terrain for the selected
+  slice. It does not mean no code work is required, and it does not mean the
   artifact defines local policy.
-- `adapted` means accept the incoming terrain or intent, but modify its
-  integration so it satisfies the finding's local contract. It is not a
-  rejection of upstream and not a license to preserve the old local shape.
-- `rejected` means do not carry the artifact's behavior forward except as
-  historical context.
+- `adapted` means carry the incoming terrain or intent through the finding's
+  local contract. It is not a rejection of upstream and not a license to
+  preserve the old local shape.
+- `rejected` means historical context only unless the finding or user gives a
+  narrower use.
 - `needs_evaluation` means pause before implementation if the artifact affects
-  the route. Research or ask rather than guessing.
+  the selected slice. Research or ask rather than guessing across a
+  scope-changing gap.
 
-When a finding says to accept incoming code represented as parked or commented
-blocks, implementation usually starts from integrating that incoming terrain
-unless the finding or treatment says otherwise.
+The current live implementation is not automatically the preferred shape.
+Parked incoming blocks, preserved diffs, generated files, historical
+implementations, and future-upstream notes are also artifacts whose status
+depends on the finding and plan.
 
-## Large Finding Rule
+## Prepared Route Material
 
-Some findings are wider than one agent can comfortably hold in working memory.
-When a finding spans multiple concern areas, many commits, or cross-cutting
-surfaces such as prompt roles, compaction, app-server history, runtime
-injection, storage, tool schemas, hidden context, or model-input conversion,
-fan out focused research before broad implementation.
+When a repo-root prepared route directory exists, for example
+`finding-<short-id>-implementation/`, use it.
 
-Assign disjoint questions where useful: artifact map, live code embodiment,
-tests, hidden/replay surfaces, extension/runtime path, and future-version or
-non-goal boundaries. The parent coordinates retrieval, initial Route Lock,
-initial ledger, bounded triage, confirmed Direction Lock, synthesis, and
-implementation after the first summaries return.
+Treat `tasks.md` as the progress ledger. Treat slice packets as the route for
+each coherent work unit. Keep both current as part of execution, not as
+cleanup.
 
-For a large finding, do not spend the parent context walking implementation
-files before this route is sketched. First retrieve the finding, plan, and
-artifact treatments; state the initial Route Lock from those sources; fan out
-focused research where useful; create the initial ledger; then inspect terrain
-through that route. A brief file inventory or exact-symbol check is fine when
-it helps write the ledger or subagent prompts.
+Start with `tasks.md`:
 
-## Implementation Ledger
+- select the user-named slice, or the next `pending` slice when the user asks
+  you to continue;
+- read the selected slice packet before broad code inspection;
+- use the slice packet as the immediate route surface;
+- verify surprising, stale, or conflicting slice details against the MCP
+  finding and remediation plan;
+- update `tasks.md` and the slice notes after completion, before stopping, and
+  after resuming from compaction.
 
-For large remediation plans, create a sparse implementation ledger in the repo
-root before broad terrain inspection or code edits, for example:
+The task index tracks progress. The slice packet carries the route. Keep the
+next agent on the same managed terrain, not on your memory of it.
 
-`finding-<short-id>-implementation-ledger.md`
+If the prepared route directory has multiple slices, complete coherent slices
+rather than shrinking the route to whatever fits in one context window.
 
-The ledger is a working continuity artifact, not a second plan and not a
-replacement for the Review Finding or remediation plan. It lets the work move
-in ordinary slices without asking one context window to carry the whole route.
-Sparse means compact, not high-level: the ledger should be short enough to scan
-and specific enough that a resumed agent can continue without rediscovering the
-remediation plan.
-Keep it brief, but make it resumable:
+## Continuity Across Compactions
 
-- Direction lock summary
-- Ordered task slices from the plan, preferably one item per numbered plan step
-  or plan substep
-- Files/functions for each slice
-- Concrete work to do
-- Artifact treatment posture
-- Status: `pending` / `in_progress` / `done` / `blocked`
-- One-line completion notes
-- Verification run or still needed
-- Next resume point
+Large findings are expected to continue across compactions and agent handoffs.
+The prepared route directory is the continuity surface.
 
-For plans with numbered implementation steps, include a short coverage matrix
-before task slices:
+At the start of a turn:
 
-```markdown
-| Plan section | Ledger slice | Status |
-| --- | --- | --- |
-| Step 1 | Extension steering boundary | pending |
-| Step 2 | Extension config/runtime role propagation | pending |
-```
+- read `tasks.md` before broad code inspection;
+- read the selected slice packet;
+- use the task index and slice notes to resume, not memory.
 
-If the plan has substeps, represent substeps when they carry distinct behavior,
-files, tests, or handoff notes.
+During work:
 
-For each slice, prefer this shape:
+- keep the current slice status accurate;
+- record route-relevant discoveries in the slice notes;
+- do not rely on the final response as the only handoff.
 
-```markdown
-### <plan section> - <slice name>
-- Artifact posture:
-- Files/functions:
-- Concrete work:
-- Preserve:
-- Avoid:
-- Verification:
-- Status:
-- Notes:
-```
+Before stopping or when context gets tight:
 
-For large findings, `Preserve`, `Avoid`, and `Verification` are required for
-each slice. These fields are what keep the ledger from becoming only a file
-checklist.
+- update `tasks.md`;
+- update the selected slice packet with what changed, what remains,
+  verification run, and the exact next resume point.
 
-The ledger should capture the plan's core concepts, not only its file list. If a
-plan section exists because of a subtle invariant, replay distinction, role
-boundary, ownership boundary, or non-goal, name that in the slice.
+The next agent should be able to continue from the prepared route artifacts
+plus the MCP finding and plan without rediscovering the route.
 
-Do not collapse distinct workstreams into one broad bucket when they require
-different files, tests, or handoff notes.
-
-Before editing, compare the ledger to the remediation plan:
-
-- every numbered implementation step is represented;
-- every adapted artifact has a task or explicit note;
-- every major verification category is represented;
-- non-goals and future markers are captured briefly;
-- no broad slice hides multiple independent workstreams without child tasks.
-
-Update the ledger after each completed slice, before any intentional stop, and
-after resuming from compaction. Use it to re-ground before reading more code or
-continuing implementation.
-
-It is normal for large findings to span compactions. Keep the route steady
-rather than shrinking the work to fit a single context window. Complete coherent
-slices, leave the ledger accurate, and continue from the ledger plus the MCP
-finding and plan after compaction.
-
-Large findings often benefit from two ledger passes. The initial ledger is a
-route sketch after MCP retrieval, artifact classification, and initial Route
-Lock, before broad code reading. The settled ledger comes after bounded terrain
-triage and the confirmed Direction Lock; update it before implementation so it
-reflects the actual files, functions, tests, and route decisions.
-
-## Workflow
-
-### 1. Finding Retrieval
+## Finding Retrieval
 
 When the user provides a Review Finding ID, retrieve the finding through the
-Review Dedeluger MCP before reading implementation code.
+Review Dedeluger MCP unless the current task is explicitly limited to editing
+already-prepared local skill or slice files.
 
-Also retrieve the finding remediation plan when one exists.
+Also retrieve the remediation plan when one exists.
 
-Capture:
+Capture only the context needed for the selected slice:
 
-- the finding title
-- the guiding invariant or intent
-- the local contract
+- finding title
+- guiding invariant or intent
+- local contract
 - explicit non-goals
-- concern areas
-- unresolved discussions or open questions
+- concern areas relevant to the slice
+- artifact treatments relevant to the slice
+- unresolved discussions or open questions that affect the slice
 - whether the remediation plan has been accepted or is still draft
 
-If the finding cannot be retrieved, pause and say the finding lookup is blocked.
+If the finding cannot be retrieved, pause and say the finding lookup is
+blocked.
 
-### 2. Plan Grounding
+## Slice Direction Lock
 
-Treat the remediation plan as the implementation route for this work when it is
-present and matches the user's request.
-
-Summarize the plan's intended direction, primary files, sequencing, exclusions,
-and targeted verification.
-
-If the plan already includes a Direction Lock, reuse it or restate it as the
-initial route before terrain inspection. Do not quietly replace it with a
-direction inferred from live code.
-
-### 3. Artifact Status
-
-Before editing, classify the relevant artifacts named by the finding or plan.
-
-Name whether each important artifact is source material, current executable
-terrain, accepted incoming shape, rejected incoming shape, stale terrain,
-future-upstream marker, generated output, background context, or out of scope.
-
-Do not treat live code as the default winner. Treat it as one artifact whose
-status depends on the requested direction.
-
-Do not treat parked incoming code as automatically authoritative merely because
-it exists. Its status comes from the finding, plan, artifact treatments, and
-current user request.
-
-### 4. Initial Route Lock
-
-Before terrain inspection for a large finding, state the route from the current
-user request, finding, remediation plan, and artifact treatments. This lock does
-not need final file mechanics yet; it keeps the mission visible before existing
-code starts suggesting shapes.
-
-Use a compact checkpoint:
-
-```markdown
-## Initial Route Lock
-
-- Request:
-- Finding:
-- Plan route:
-- Incoming terrain to accept:
-- Adapted artifacts:
-- Substrate artifacts that must not define policy:
-- Future markers explicitly left alone:
-- Initial ledger:
-```
-
-For large findings, create the initial implementation ledger after this route
-lock and before broad terrain inspection. It can be revised after the terrain is
-warmer.
-
-### 5. Bounded Terrain Triage
-
-Inspect the terrain named by the finding and plan first. For large findings,
-keep this first pass bounded: confirm named files, symbols, parked blocks,
-tests, and ownership boundaries needed to confirm the Direction Lock and settle
-the ledger. Save deeper code reading for after the route is visible.
-
-Look for relevant live code, parked incoming blocks, preserved diffs, generated
-files, tests, templates, schemas, routes, tools, and ownership boundaries.
-
-Existing code can inform mechanics, naming, helper reuse, and integration
-points. Keep the implementation shape tied to the finding's route.
-
-### 6. Confirm Direction Lock
-
-After retrieval, plan grounding, artifact classification, initial Route Lock,
-and bounded terrain triage, confirm the locked direction visibly before broader
-planning or file edits. If terrain contradicts the initial route, report the
-conflict rather than silently changing the route.
+Before file edits, confirm the selected slice direction visibly. If prepared
+slice material exists, this can be brief. If no prepared slice exists, derive
+the lock from the finding, remediation plan, and artifact treatments.
 
 Use this checkpoint:
 
 ```markdown
-## Confirmed Direction Lock
+## Slice Direction Lock
 
 - Request:
 - Finding:
-- Plan:
-- Authority:
+- Slice:
+- Route:
 - Terrain:
-- Incoming terrain to accept:
-- Adapted artifacts:
-- Rejected or stale artifacts:
-- Substrate artifacts that must not define policy:
-- Future markers explicitly left alone:
+- Artifact posture:
 - Code-shape temptation:
 - Locked direction:
 - Exclusions:
 - Verification:
 ```
 
-The confirmed direction is the decision point. Ordinary implementation choices
-can still happen, but they stay inside the locked shape.
+The direction lock is the decision point. Ordinary implementation choices can
+still happen, but they stay inside the locked shape.
 
-### 7. Execution
+If terrain contradicts the locked direction, report the conflict rather than
+silently changing the route.
 
-Carry out the plan inside the locked direction.
+## Slice-Scoped Terrain Check
+
+Inspect the terrain named by the selected slice first:
+
+- files and functions named by the slice packet or remediation plan;
+- relevant live code, parked incoming blocks, preserved diffs, generated files,
+  tests, templates, schemas, routes, tools, and ownership boundaries;
+- adjacent code needed to understand mechanics and local conventions;
+- targeted test locations and verification commands.
+
+Keep the first pass bounded. Broad archaeology is useful only when the slice
+requires it. Existing code can inform mechanics, naming, helper reuse, and
+integration points. Keep the implementation shape tied to the slice route.
+
+If a nearby artifact starts pulling the work toward a different task, name the
+code-shape temptation and return to the direction lock.
+
+## Execution
+
+Carry out the selected slice inside the locked direction.
 
 Implementation generally means integrating accepted or adapted incoming terrain
-through the finding's contract. Existing local code and incoming blocks are both
-terrain; let the finding decide how they fit together.
+through the finding's contract. Existing local code and incoming blocks are
+both terrain; let the finding decide how they fit together.
 
 Resolve, adapt, or explicitly supersede parked incoming blocks according to the
-finding and artifact treatments. Do not route around them merely because the
-current live implementation still works.
+finding, plan, slice packet, and artifact treatments. Do not route around them
+merely because the current live implementation still works.
 
 Likewise, do not import future-upstream architecture merely because the finding
 mentions it as sequencing context. Future markers can guide shape without
 becoming current scope.
 
-When the plan says to preserve a behavior, invariant, or contract, preserve that
-substance. Do not assume it requires preserving the current file layout, helper
-shape, ownership shape, or public surface unless the plan says so.
+When the plan says to preserve a behavior, invariant, or contract, preserve
+that substance. Do not assume it requires preserving the current file layout,
+helper shape, ownership shape, or public surface unless the plan says so.
 
 When the plan protects a responsibility rather than a file shape, implement the
 responsibility in the current upstream terrain. Do not preserve old local
-ownership, helper names, or module layout unless the finding explicitly requires
-them.
+ownership, helper names, or module layout unless the finding explicitly
+requires them.
 
-When context gets tight, keep the remediation route visible. Finish the current
-coherent slice if possible, update the implementation ledger with exact
-remaining work, and let the next context resume from that state.
+Update prepared route artifacts as you work:
 
-### 7. Pause And Report Conflict
+- mark the current slice `in_progress` when beginning substantial work;
+- mark it `done` only after implementation and targeted verification are
+  complete, or note what verification remains;
+- record one-line completion notes and the exact next resume point;
+- if blocked, name the conflict or scope-changing ambiguity in both the final
+  response and the task index.
+
+When context gets tight, finish the current coherent slice if possible. If not,
+leave the task index and slice notes accurate enough for the next agent to
+continue without rediscovering the route.
+
+## Pause And Report Conflict
 
 Pause when proceeding would require changing the finding-guided route rather
-than executing it:
+than executing it.
 
-- current user instructions conflict with the finding or accepted plan
-- the finding, plan, or applicable authority docs directly contradict each other
-- a required artifact is missing and guessing would change behavior or scope
-- artifact treatments are absent or ambiguous for a shape the plan depends on
-- the locked direction is impossible as stated in the current repo
-- unresolved discussions or open questions materially affect the implementation
+Pause for true sirens:
+
+- current user instructions conflict with the finding, remediation plan, or
+  selected slice;
+- prepared slice material and the MCP finding or remediation plan materially
+  conflict;
+- the finding, plan, or applicable authority docs directly contradict each
+  other;
+- a required artifact is missing and guessing would change behavior or scope;
+- artifact treatments are absent or ambiguous for a shape the selected slice
+  depends on;
+- the locked direction is impossible as stated in the current repo;
+- unresolved discussions or open questions materially affect implementation.
+
+Do not pause for ordinary implementation choices:
+
+- exact helper name;
+- exact placement inside a named module;
+- small API shape choices inside a locked responsibility;
+- test body mechanics;
+- whether to reuse a local helper after inspecting the terrain.
 
 Use direct language: conflict, impossible as stated, scope-changing ambiguity,
-directly contradicted, missing artifact treatment, or would change the
-requested route.
+directly contradicted, missing artifact treatment, missing terrain, or would
+change the requested route.
 
 Avoid anxiety framing such as unsafe, dangerous, risky, protect, least
 invasive, safer approach, or preserve current behavior unless the finding or
 user explicitly scopes the work that way.
 
-### 8. Verification
+## Verification
 
-Verify against:
+Verify the selected slice against:
 
-- the user's request
-- the finding's invariant and local contract
-- the remediation plan checklist
-- artifact treatments and explicit exclusions
-- applicable repository instructions
-- targeted tests or commands named by the plan
+- the user's request;
+- prepared `tasks.md` and the selected slice packet, when present;
+- the finding's invariant and local contract;
+- the remediation plan checklist;
+- artifact treatments and explicit exclusions;
+- applicable repository instructions;
+- targeted tests or commands named by the slice or plan.
 
-Do not treat "it matches live code" or "it compiles" as sufficient verification
-when the finding requires a specific boundary, role, ownership, schema, prompt,
-or behavior.
+Do not treat "it matches live code" or "it compiles" as sufficient
+verification when the finding requires a specific boundary, role, ownership,
+schema, prompt, hiddenness rule, or behavior.
+
+Run the targeted verification named by the slice or plan unless the user
+explicitly asks not to or the command is unavailable in the current
+environment. Do not run broad crate or workspace suites by default.
 
 For docs-only updates, report files changed, tests not run, and unresolved
 assumptions.
 
-For implementation work, run the targeted verification named by the plan unless
-the user explicitly asks not to or the command is unavailable in the current
-environment.
+For implementation work, update the prepared task index with commands run,
+commands not run, and any verification still needed.
+
+## Fallback: No Prepared Slices
+
+This skill can still operate when no prepared route directory exists.
+
+If the finding is small, derive the Slice Direction Lock directly from the
+Review Finding, remediation plan, and artifact treatments, then implement the
+coherent slice.
+
+If the finding is large, prefer prepared route material. When the user asks for
+prep, use `finding-implementation-prep`. When the user asks to implement now,
+do not stop merely because prep is absent. Create the smallest route surface
+needed for the first coherent slice, lock that slice, inspect bounded terrain,
+execute, verify, and leave a clear resume point.
+
+For a large finding, fallback route material must still create a task index or
+slice note for the current coherent slice before broad terrain inspection. Do
+not implement a large finding from memory alone.
+
+Do not let the absence of prepared slices become a reason to carry the entire
+finding in memory or to shrink the route to the easiest local code shape.
+
