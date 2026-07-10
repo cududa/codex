@@ -5,12 +5,11 @@
 //! events, and owns helper hooks used by goal lifecycle behavior.
 
 use crate::StateDbHandle;
-use crate::context::ContextualUserFragment;
 use crate::context::GoalContext;
-use crate::session::TurnInput;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
 use crate::state::ActiveTurn;
+use crate::state::GoalSteeringCarryPurpose;
 use crate::state::TurnState;
 use crate::tasks::RegularTask;
 use crate::tools::handlers::goal_spec::UPDATE_GOAL_TOOL_NAME;
@@ -100,6 +99,18 @@ enum GoalSteeringKind {
     Continuation,
     BudgetLimit,
     ObjectiveUpdated,
+}
+
+impl GoalSteeringKind {
+    fn carry_purpose(self) -> GoalSteeringCarryPurpose {
+        match self {
+            GoalSteeringKind::Initial | GoalSteeringKind::Continuation => {
+                GoalSteeringCarryPurpose::InitialOrContinuation
+            }
+            GoalSteeringKind::BudgetLimit => GoalSteeringCarryPurpose::BudgetLimit,
+            GoalSteeringKind::ObjectiveUpdated => GoalSteeringCarryPurpose::ObjectiveUpdated,
+        }
+    }
 }
 
 struct GoalSteeringMessage {
@@ -739,7 +750,14 @@ impl Session {
                         prompt: objective_updated_prompt(&goal),
                     }
                     .into_response_input_item();
-                    if self.inject_response_items(vec![item]).await.is_err() {
+                    if self
+                        .inject_goal_response_items(
+                            GoalSteeringKind::ObjectiveUpdated.carry_purpose(),
+                            vec![item],
+                        )
+                        .await
+                        .is_err()
+                    {
                         tracing::debug!(
                             "skipping objective-updated goal steering because no turn is active"
                         );
@@ -1154,7 +1172,14 @@ impl Session {
                 prompt: budget_limit_prompt(&goal),
             }
             .into_response_input_item();
-            if self.inject_response_items(vec![item]).await.is_err() {
+            if self
+                .inject_goal_response_items(
+                    GoalSteeringKind::BudgetLimit.carry_purpose(),
+                    vec![item],
+                )
+                .await
+                .is_err()
+            {
                 tracing::debug!("skipping budget-limit goal steering because no turn is active");
             }
             *self.goal_runtime.budget_limit_reported_goal_id.lock().await = Some(goal_id);
@@ -1410,13 +1435,10 @@ impl Session {
             return;
         }
         self.input_queue
-            .extend_pending_input_for_turn_state(
+            .extend_goal_pending_input_for_turn_state(
                 turn_state.as_ref(),
-                candidate
-                    .items
-                    .into_iter()
-                    .map(TurnInput::ResponseInputItem)
-                    .collect(),
+                candidate.steering_kind.carry_purpose(),
+                candidate.items,
             )
             .await;
 
@@ -1439,15 +1461,6 @@ impl Session {
         if candidate.steering_kind == GoalSteeringKind::Initial {
             self.take_initial_goal_steering(&candidate.goal_id).await;
         }
-// REVIEW-DEDELUGER: incoming upstream would delete this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=2 basis=maintained-to-incoming
-// @@ -1,2 +0,0 @@
-// -        self.mark_thread_goal_continuation_turn_started(turn_context.sub_id.clone())
-// -            .await;
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-        self.mark_thread_goal_continuation_turn_started(turn_context.sub_id.clone())
-            .await;
         self.start_task(turn_context, Vec::new(), RegularTask::new())
             .await;
     }

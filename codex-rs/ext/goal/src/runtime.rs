@@ -3,7 +3,9 @@ use std::sync::Weak;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 
+use codex_core::GoalSteeringCarryPurpose;
 use codex_core::ThreadManager;
+use codex_core::context::GoalContextRole;
 use codex_protocol::ThreadId;
 use codex_protocol::models::ResponseInputItem;
 use codex_protocol::protocol::ThreadGoal;
@@ -12,7 +14,8 @@ use crate::accounting::BudgetLimitedGoalDisposition;
 use crate::accounting::GoalAccountingState;
 use crate::events::GoalEventEmitter;
 use crate::metrics::GoalMetrics;
-use crate::steering::objective_updated_steering_item;
+use crate::steering::GoalSteeringKind;
+use crate::steering::goal_steering_item;
 use crate::tool::protocol_goal_from_state;
 
 #[derive(Clone)]
@@ -126,6 +129,7 @@ impl GoalRuntimeHandle {
         &self,
         goal: codex_state::ThreadGoal,
         previous_goal: Option<PreviousGoalSnapshot>,
+        steering_role: GoalContextRole,
     ) -> Result<(), String> {
         if !self.is_enabled() {
             return Ok(());
@@ -164,8 +168,13 @@ impl GoalRuntimeHandle {
                         .mark_idle_goal_active(goal.goal_id.clone());
                 }
                 if should_steer_active_turn {
-                    let item = objective_updated_steering_item(&protocol_goal_from_state(goal));
-                    self.inject_active_turn_steering(item).await;
+                    let _ = self
+                        .inject_active_turn_goal_steering(
+                            GoalSteeringKind::ObjectiveUpdated,
+                            &protocol_goal_from_state(goal),
+                            steering_role,
+                        )
+                        .await;
                 }
             }
             codex_state::ThreadGoalStatus::BudgetLimited => {
@@ -264,22 +273,42 @@ impl GoalRuntimeHandle {
         Ok(())
     }
 
-    pub(crate) async fn inject_active_turn_steering(&self, item: ResponseInputItem) {
+    pub(crate) async fn inject_active_turn_goal_steering(
+        &self,
+        kind: GoalSteeringKind,
+        goal: &ThreadGoal,
+        role: GoalContextRole,
+    ) -> Result<(), ResponseInputItem> {
+        let item = goal_steering_item(kind, goal, role);
+        let purpose = match kind {
+            GoalSteeringKind::BudgetLimit => GoalSteeringCarryPurpose::BudgetLimit,
+            GoalSteeringKind::ObjectiveUpdated => GoalSteeringCarryPurpose::ObjectiveUpdated,
+        };
+        self.inject_active_turn_steering(purpose, item).await
+    }
+
+    async fn inject_active_turn_steering(
+        &self,
+        purpose: GoalSteeringCarryPurpose,
+        item: ResponseInputItem,
+    ) -> Result<(), ResponseInputItem> {
         let Some(thread_manager) = self.inner.thread_manager.upgrade() else {
             tracing::debug!("skipping goal steering because thread manager is unavailable");
-            return;
+            return Err(item);
         };
         let Ok(thread) = thread_manager.get_thread(self.inner.thread_id).await else {
             tracing::debug!("skipping goal steering because live thread is unavailable");
-            return;
+            return Err(item);
         };
         if thread
-            .inject_response_items_into_active_turn(vec![item])
+            .inject_goal_steering_items_into_active_turn(purpose, vec![item.clone()])
             .await
             .is_err()
         {
             tracing::debug!("skipping goal steering because no turn is active");
+            return Err(item);
         }
+        Ok(())
     }
 
     pub(crate) async fn account_active_goal_progress(
@@ -401,5 +430,107 @@ impl GoalRuntimeHandle {
                 .is_none_or(|expected_goal_id| goal.goal_id == expected_goal_id)
                 .then_some(goal.status)
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GoalRuntimeHandle;
+    use crate::accounting::GoalAccountingState;
+    use crate::events::GoalEventEmitter;
+    use crate::metrics::GoalMetrics;
+    use crate::steering::GoalSteeringKind;
+    use codex_core::context::GoalContextRole;
+    use codex_extension_api::NoopExtensionEventSink;
+    use codex_protocol::ThreadId;
+    use codex_protocol::models::ContentItem;
+    use codex_protocol::models::ResponseInputItem;
+    use codex_protocol::protocol::ThreadGoal;
+    use codex_protocol::protocol::ThreadGoalStatus;
+    use pretty_assertions::assert_eq;
+    use std::sync::Arc;
+    use std::sync::Weak;
+
+    async fn test_runtime_handle() -> anyhow::Result<GoalRuntimeHandle> {
+        let tempdir = tempfile::TempDir::new()?;
+        let state_dbs =
+            codex_state::StateRuntime::init(tempdir.keep(), "test-provider".to_string()).await?;
+        Ok(GoalRuntimeHandle::new(
+            ThreadId::new(),
+            state_dbs,
+            GoalEventEmitter::new(Arc::new(NoopExtensionEventSink)),
+            GoalMetrics::default(),
+            Weak::new(),
+            Arc::new(GoalAccountingState::default()),
+            true,
+        ))
+    }
+
+    fn test_goal() -> ThreadGoal {
+        ThreadGoal {
+            thread_id: ThreadId::new(),
+            objective: "finish the runtime tests".to_string(),
+            status: ThreadGoalStatus::Active,
+            token_budget: Some(10_000),
+            tokens_used: 1_234,
+            time_used_seconds: 56,
+            created_at: 1,
+            updated_at: 2,
+        }
+    }
+
+    fn assert_returned_goal_item(
+        result: Result<(), ResponseInputItem>,
+        expected_role: &str,
+    ) -> String {
+        let Err(ResponseInputItem::Message {
+            role,
+            content,
+            phase,
+        }) = result
+        else {
+            panic!("expected returned goal steering message item");
+        };
+        assert_eq!(expected_role, role);
+        let [ContentItem::InputText { text }] = content.as_slice() else {
+            panic!("expected one input text item, got {content:#?}");
+        };
+        assert!(text.starts_with("<goal_context>"));
+        assert!(text.trim_end().ends_with("</goal_context>"));
+        assert!(text.contains("finish the runtime tests"));
+        assert_eq!(None, phase);
+        text.clone()
+    }
+
+    #[tokio::test]
+    async fn inject_active_turn_goal_steering_returns_developer_item_when_thread_unavailable()
+    -> anyhow::Result<()> {
+        let runtime = test_runtime_handle().await?;
+        let result = runtime
+            .inject_active_turn_goal_steering(
+                GoalSteeringKind::ObjectiveUpdated,
+                &test_goal(),
+                GoalContextRole::Developer,
+            )
+            .await;
+
+        assert_returned_goal_item(result, "developer");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn inject_active_turn_goal_steering_returns_user_item_when_configured()
+    -> anyhow::Result<()> {
+        let runtime = test_runtime_handle().await?;
+        let result = runtime
+            .inject_active_turn_goal_steering(
+                GoalSteeringKind::ObjectiveUpdated,
+                &test_goal(),
+                GoalContextRole::User,
+            )
+            .await;
+
+        assert_returned_goal_item(result, "user");
+        Ok(())
     }
 }

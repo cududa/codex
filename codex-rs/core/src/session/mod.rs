@@ -3242,6 +3242,35 @@ impl Session {
             .await
     }
 
+    /// Returns the input if there was no active turn, or if the active turn is
+    /// already finishing and cannot sample Goal steering.
+    pub async fn inject_goal_response_items(
+        &self,
+        purpose: crate::state::GoalSteeringCarryPurpose,
+        input: Vec<ResponseInputItem>,
+    ) -> Result<(), Vec<ResponseInputItem>> {
+        self.input_queue
+            .inject_goal_response_items(&self.active_turn, purpose, input)
+            .await
+    }
+
+    pub(crate) async fn close_goal_steering_injection_if_no_pending_input(&self) -> bool {
+        if !self
+            .input_queue
+            .close_goal_steering_injection_if_idle(&self.active_turn)
+            .await
+        {
+            return false;
+        }
+        !self.input_queue.has_pending_input(&self.active_turn).await
+    }
+
+    pub(crate) async fn current_turn_goal_steering_items(&self) -> Vec<ResponseInputItem> {
+        self.input_queue
+            .current_turn_goal_steering_items(&self.active_turn)
+            .await
+    }
+
     pub(crate) async fn record_memory_citation_for_turn(&self, sub_id: &str) {
         let turn_state = self
             .input_queue

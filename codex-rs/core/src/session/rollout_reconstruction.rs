@@ -1,4 +1,5 @@
 use super::*;
+use crate::context::is_goal_context_response_item;
 use crate::context_manager::is_user_turn_boundary;
 
 // Return value of `Session::reconstruct_history_from_rollout`, bundling the rebuilt history with
@@ -38,6 +39,14 @@ struct ActiveReplaySegment<'a> {
 fn turn_ids_are_compatible(active_turn_id: Option<&str>, item_turn_id: Option<&str>) -> bool {
     active_turn_id
         .is_none_or(|turn_id| item_turn_id.is_none_or(|item_turn_id| item_turn_id == turn_id))
+}
+
+fn filter_goal_context_response_items(items: &[ResponseItem]) -> Vec<ResponseItem> {
+    items
+        .iter()
+        .filter(|item| !is_goal_context_response_item(item))
+        .cloned()
+        .collect()
 }
 
 fn finalize_active_segment<'a>(
@@ -234,7 +243,7 @@ impl Session {
         let mut history = ContextManager::new();
         let mut saw_legacy_compaction_without_replacement_history = false;
         if let Some(base_replacement_history) = base_replacement_history {
-            history.replace(base_replacement_history.to_vec());
+            history.replace(filter_goal_context_response_items(base_replacement_history));
         }
         // Materialize exact history semantics from the replay-derived suffix. The eventual lazy
         // design should keep this same replay shape, but drive it from a resumable reverse source
@@ -242,6 +251,9 @@ impl Session {
         for item in rollout_suffix {
             match item {
                 RolloutItem::ResponseItem(response_item) => {
+                    if is_goal_context_response_item(response_item) {
+                        continue;
+                    }
                     history.record_items(
                         std::iter::once(response_item),
                         turn_context.truncation_policy,
@@ -251,7 +263,7 @@ impl Session {
                     if let Some(replacement_history) = &compacted.replacement_history {
                         // This should actually never happen, because the reverse loop above (to build rollout_suffix)
                         // should stop before any compaction that has Some replacement_history
-                        history.replace(replacement_history.clone());
+                        history.replace(filter_goal_context_response_items(replacement_history));
                     } else {
                         saw_legacy_compaction_without_replacement_history = true;
                         // Legacy rollouts without `replacement_history` should rebuild the

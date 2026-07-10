@@ -5,6 +5,7 @@ use crate::goals::GoalRuntimeEvent;
 use crate::session::Codex;
 use crate::session::SessionSettingsUpdate;
 use crate::session::SteerInputError;
+use crate::state::GoalSteeringCarryPurpose;
 use codex_features::Feature;
 use codex_otel::SessionTelemetry;
 use codex_protocol::config_types::ApprovalsReviewer;
@@ -261,6 +262,19 @@ impl CodexThread {
         items: Vec<ResponseInputItem>,
     ) -> Result<(), Vec<ResponseInputItem>> {
         self.codex.session.inject_response_items(items).await
+    }
+
+    /// Injects Goal steering items into the active turn and registers the same
+    /// accepted items as current-turn Goal steering for mid-turn compaction.
+    pub async fn inject_goal_steering_items_into_active_turn(
+        &self,
+        purpose: GoalSteeringCarryPurpose,
+        items: Vec<ResponseInputItem>,
+    ) -> Result<(), Vec<ResponseInputItem>> {
+        self.codex
+            .session
+            .inject_goal_response_items(purpose, items)
+            .await
     }
 
     pub async fn set_app_server_client_info(

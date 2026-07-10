@@ -280,7 +280,14 @@ pub(crate) async fn process_compacted_history(
         initial_context_injection,
         InitialContextInjection::BeforeLastUserMessage
     ) {
-        sess.build_initial_context(turn_context).await
+        let mut initial_context = sess.build_initial_context(turn_context).await;
+        initial_context.extend(
+            sess.current_turn_goal_steering_items()
+                .await
+                .into_iter()
+                .map(ResponseItem::from),
+        );
+        initial_context
     } else {
         Vec::new()
     };
@@ -306,6 +313,10 @@ pub(crate) async fn process_compacted_history(
 ///   messages. Legacy warning fragments are filtered by `parse_turn_item` before they reach this
 ///   check.
 pub(crate) fn should_keep_compacted_history_item(item: &ResponseItem) -> bool {
+    if crate::context::is_goal_context_response_item(item) {
+        return false;
+    }
+
     match item {
         ResponseItem::Message { role, .. } if role == "developer" => false,
         ResponseItem::Message { role, .. } if role == "user" => {

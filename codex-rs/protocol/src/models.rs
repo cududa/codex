@@ -1679,6 +1679,29 @@ mod tests {
     }
 
     #[test]
+    fn response_input_item_message_conversion_preserves_developer_role() {
+        let item = ResponseItem::from(ResponseInputItem::Message {
+            role: "developer".to_string(),
+            content: vec![ContentItem::InputText {
+                text: "<goal_context>\nContinue working.\n</goal_context>".to_string(),
+            }],
+            phase: None,
+        });
+
+        assert_eq!(
+            item,
+            ResponseItem::Message {
+                id: None,
+                role: "developer".to_string(),
+                content: vec![ContentItem::InputText {
+                    text: "<goal_context>\nContinue working.\n</goal_context>".to_string(),
+                }],
+                phase: None,
+            }
+        );
+    }
+
+    #[test]
     fn image_detail_roundtrips_all_wire_values() -> Result<()> {
         assert_eq!(
             serde_json::from_str::<ImageDetail>("\"auto\"")?,

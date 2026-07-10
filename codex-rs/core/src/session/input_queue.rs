@@ -1,4 +1,5 @@
 use crate::state::ActiveTurn;
+use crate::state::GoalSteeringCarryPurpose;
 use crate::state::MailboxDeliveryPhase;
 use crate::state::TurnState;
 use codex_protocol::models::ResponseInputItem;
@@ -174,6 +175,23 @@ impl InputQueue {
         turn_state.lock().await.pending_input.items.extend(input);
     }
 
+    pub(crate) async fn extend_goal_pending_input_for_turn_state(
+        &self,
+        turn_state: &Mutex<TurnState>,
+        purpose: GoalSteeringCarryPurpose,
+        input: Vec<ResponseInputItem>,
+    ) {
+        if input.is_empty() {
+            return;
+        }
+        let mut turn_state = turn_state.lock().await;
+        turn_state.append_current_turn_goal_steering_items(purpose, &input);
+        turn_state
+            .pending_input
+            .items
+            .extend(input.into_iter().map(TurnInput::ResponseInputItem));
+    }
+
     pub(crate) async fn take_pending_input_for_turn_state(
         &self,
         turn_state: &Mutex<TurnState>,
@@ -205,6 +223,73 @@ impl InputQueue {
             }
             None => Err(input),
         }
+    }
+
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "active turn checks and turn state updates must remain atomic"
+    )]
+    pub(crate) async fn inject_goal_response_items(
+        &self,
+        active_turn: &Mutex<Option<ActiveTurn>>,
+        purpose: GoalSteeringCarryPurpose,
+        input: Vec<ResponseInputItem>,
+    ) -> Result<(), Vec<ResponseInputItem>> {
+        let mut active = active_turn.lock().await;
+        match active.as_mut() {
+            Some(active_turn) => {
+                let mut turn_state = active_turn.turn_state.lock().await;
+                if !turn_state.accepts_goal_steering_injection() {
+                    return Err(input);
+                }
+                turn_state.append_current_turn_goal_steering_items(purpose, &input);
+                turn_state
+                    .pending_input
+                    .items
+                    .extend(input.into_iter().map(TurnInput::ResponseInputItem));
+                Ok(())
+            }
+            None => Err(input),
+        }
+    }
+
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "active turn checks and turn state updates must remain atomic"
+    )]
+    pub(crate) async fn close_goal_steering_injection_if_idle(
+        &self,
+        active_turn: &Mutex<Option<ActiveTurn>>,
+    ) -> bool {
+        let mut active = active_turn.lock().await;
+        let Some(active_turn) = active.as_mut() else {
+            return true;
+        };
+        let mut turn_state = active_turn.turn_state.lock().await;
+        if !turn_state.pending_input.items.is_empty() {
+            return false;
+        }
+        turn_state.close_goal_steering_injection();
+        true
+    }
+
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "active turn checks and turn state reads must remain atomic"
+    )]
+    pub(crate) async fn current_turn_goal_steering_items(
+        &self,
+        active_turn: &Mutex<Option<ActiveTurn>>,
+    ) -> Vec<ResponseInputItem> {
+        let active = active_turn.lock().await;
+        let Some(active_turn) = active.as_ref() else {
+            return Vec::new();
+        };
+        active_turn
+            .turn_state
+            .lock()
+            .await
+            .current_turn_goal_steering_items()
     }
 
     #[expect(

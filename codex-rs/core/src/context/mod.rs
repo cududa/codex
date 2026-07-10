@@ -41,17 +41,11 @@ pub(crate) use environment_context::EnvironmentContext;
 pub use fragment::ContextualUserFragment;
 pub(crate) use fragment::FragmentRegistration;
 pub(crate) use fragment::FragmentRegistrationProxy;
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/mod.rs block=2 basis=maintained-to-incoming
-// @@ -1,1 +1,2 @@
-// -
-// +pub(crate) use fragments::AdditionalContextDeveloperFragment;
-// +pub(crate) use fragments::AdditionalContextUserFragment;
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
-
+pub(crate) use fragments::AdditionalContextDeveloperFragment;
+pub(crate) use fragments::AdditionalContextUserFragment;
 pub use goal_context::GoalContext;
 pub use goal_context::GoalContextRole;
+pub(crate) use goal_context::is_goal_context_response_item;
 pub(crate) use goal_context::is_goal_context_text;
 pub(crate) use guardian_followup_review_reminder::GuardianFollowupReviewReminder;
 pub(crate) use hook_additional_context::HookAdditionalContext;

@@ -3,6 +3,7 @@ use std::sync::Weak;
 
 use async_trait::async_trait;
 use codex_core::ThreadManager;
+use codex_core::context::GoalContextRole;
 use codex_extension_api::ConfigContributor;
 use codex_extension_api::ExtensionData;
 use codex_extension_api::ExtensionEventSink;
@@ -32,17 +33,21 @@ use crate::events::GoalEventEmitter;
 use crate::metrics::GoalMetrics;
 use crate::runtime::GoalRuntimeHandle;
 use crate::spec::UPDATE_GOAL_TOOL_NAME;
-use crate::steering::budget_limit_steering_item;
+use crate::steering::GoalSteeringKind;
 use crate::tool::GoalToolExecutor;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GoalExtensionConfig {
     pub enabled: bool,
+    pub steering_role: GoalContextRole,
 }
 
 impl GoalExtensionConfig {
-    fn from_enabled(enabled: bool) -> Self {
-        Self { enabled }
+    fn from_parts(enabled: bool, steering_role: GoalContextRole) -> Self {
+        Self {
+            enabled,
+            steering_role,
+        }
     }
 }
 
@@ -53,6 +58,7 @@ pub struct GoalExtension<C> {
     metrics: GoalMetrics,
     thread_manager: Weak<ThreadManager>,
     goals_enabled: Arc<dyn Fn(&C) -> bool + Send + Sync>,
+    goal_steering_role: Arc<dyn Fn(&C) -> GoalContextRole + Send + Sync>,
 }
 
 impl<C> std::fmt::Debug for GoalExtension<C> {
@@ -68,6 +74,7 @@ impl<C> GoalExtension<C> {
         metrics_client: Option<MetricsClient>,
         thread_manager: Weak<ThreadManager>,
         goals_enabled: impl Fn(&C) -> bool + Send + Sync + 'static,
+        goal_steering_role: impl Fn(&C) -> GoalContextRole + Send + Sync + 'static,
     ) -> Self {
         Self {
             state_dbs,
@@ -75,6 +82,7 @@ impl<C> GoalExtension<C> {
             metrics: GoalMetrics::new(metrics_client),
             thread_manager,
             goals_enabled: Arc::new(goals_enabled),
+            goal_steering_role: Arc::new(goal_steering_role),
         }
     }
 }
@@ -86,9 +94,10 @@ where
 {
     async fn on_thread_start(&self, input: ThreadStartInput<'_, C>) {
         let enabled = (self.goals_enabled)(input.config);
+        let steering_role = (self.goal_steering_role)(input.config);
         input
             .thread_store
-            .insert(GoalExtensionConfig::from_enabled(enabled));
+            .insert(GoalExtensionConfig::from_parts(enabled, steering_role));
         let accounting_state = input
             .thread_store
             .get_or_init::<GoalAccountingState>(GoalAccountingState::default);
@@ -135,7 +144,8 @@ where
         new_config: &C,
     ) {
         let enabled = (self.goals_enabled)(new_config);
-        thread_store.insert(GoalExtensionConfig::from_enabled(enabled));
+        let steering_role = (self.goal_steering_role)(new_config);
+        thread_store.insert(GoalExtensionConfig::from_parts(enabled, steering_role));
         if let Some(runtime) = goal_runtime_handle(thread_store) {
             runtime.set_enabled(enabled);
         }
@@ -236,23 +246,23 @@ where
             );
             return;
         }
-// REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/extension.rs block=2 basis=maintained-to-incoming
-// @@ -1,12 +1,1 @@
-// -        match input.reason {
-// -            TurnAbortReason::Interrupted => {
-// -                // Generic interrupts are turn control, not goal lifecycle
-// -                // control. A host-backed extension should account and clear
-// -                // runtime turn state here without mutating goal status; explicit
-// -                // user/client pause actions own Paused transitions.
-// -            }
-// -            TurnAbortReason::Replaced
-// -            | TurnAbortReason::ReviewEnded
-// -            | TurnAbortReason::BudgetLimited => {}
-// -        }
-// -        accounting_state(input.thread_store).finish_turn(turn_id);
-// +        runtime.accounting_state().finish_turn(turn_id);
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
+        // REVIEW-DEDELUGER: incoming upstream would replace this preserved local shape; preserved maintained local block below.
+        // REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/extension.rs block=2 basis=maintained-to-incoming
+        // @@ -1,12 +1,1 @@
+        // -        match input.reason {
+        // -            TurnAbortReason::Interrupted => {
+        // -                // Generic interrupts are turn control, not goal lifecycle
+        // -                // control. A host-backed extension should account and clear
+        // -                // runtime turn state here without mutating goal status; explicit
+        // -                // user/client pause actions own Paused transitions.
+        // -            }
+        // -            TurnAbortReason::Replaced
+        // -            | TurnAbortReason::ReviewEnded
+        // -            | TurnAbortReason::BudgetLimited => {}
+        // -        }
+        // -        accounting_state(input.thread_store).finish_turn(turn_id);
+        // +        runtime.accounting_state().finish_turn(turn_id);
+        // REVIEW-DEDELUGER-END-INCOMING-DIFF
 
         match input.reason {
             TurnAbortReason::Interrupted => {
@@ -265,7 +275,7 @@ where
             | TurnAbortReason::ReviewEnded
             | TurnAbortReason::BudgetLimited => {}
         }
-        accounting_state(input.thread_store).finish_turn(turn_id);
+        runtime.accounting_state().finish_turn(turn_id);
     }
 }
 
@@ -303,10 +313,14 @@ where
 {
     fn on_tool_finish<'a>(&'a self, input: ToolFinishInput<'a>) -> ToolLifecycleFuture<'a> {
         Box::pin(async move {
+            let Some(config) = input.thread_store.get::<GoalExtensionConfig>() else {
+                return;
+            };
             let Some(runtime) = goal_runtime_handle(input.thread_store) else {
                 return;
             };
-            let should_count_for_goal_progress = runtime.is_enabled()
+            let should_count_for_goal_progress = config.enabled
+                && runtime.is_enabled()
                 && tool_attempt_counts_for_goal_progress(input.outcome)
                 && !(input.tool_name.namespace.is_none()
                     && input.tool_name.name == UPDATE_GOAL_TOOL_NAME);
@@ -342,8 +356,13 @@ where
             {
                 return;
             }
-            let item = budget_limit_steering_item(&goal);
-            runtime.inject_active_turn_steering(item).await;
+            let _ = runtime
+                .inject_active_turn_goal_steering(
+                    GoalSteeringKind::BudgetLimit,
+                    &goal,
+                    config.steering_role,
+                )
+                .await;
         })
     }
 }
@@ -427,6 +446,7 @@ pub fn install_with_backend<C>(
     metrics_client: Option<MetricsClient>,
     thread_manager: Weak<ThreadManager>,
     goals_enabled: impl Fn(&C) -> bool + Send + Sync + 'static,
+    goal_steering_role: impl Fn(&C) -> GoalContextRole + Send + Sync + 'static,
 ) where
     C: Send + Sync + 'static,
 {
@@ -436,6 +456,7 @@ pub fn install_with_backend<C>(
         metrics_client,
         thread_manager,
         goals_enabled,
+        goal_steering_role,
     ));
     registry.thread_lifecycle_contributor(extension.clone());
     registry.config_contributor(extension.clone());

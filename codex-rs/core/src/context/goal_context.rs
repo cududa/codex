@@ -11,6 +11,7 @@ use codex_config::config_toml::GoalSteeringRole;
 
 use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseInputItem;
+use codex_protocol::models::ResponseItem;
 
 pub(crate) const GOAL_CONTEXT_START_MARKER: &str = "<goal_context>";
 pub(crate) const GOAL_CONTEXT_END_MARKER: &str = "</goal_context>";
@@ -53,22 +54,21 @@ impl GoalContext {
             prompt: prompt.into(),
         }
     }
-// REVIEW-DEDELUGER: incoming upstream would delete this preserved local shape; preserved maintained local block below.
-// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/goal_context.rs block=4 basis=maintained-to-incoming
-// @@ -1,11 +0,0 @@
-// -
-// -    /// Converts the registered fragment into an active-turn injectable item.
-// -    pub fn into_response_input_item(self, role: GoalContextRole) -> ResponseInputItem {
-// -        ResponseInputItem::Message {
-// -            role: role.as_response_role().to_string(),
-// -            content: vec![ContentItem::InputText {
-// -                text: self.render(),
-// -            }],
-// -            phase: None,
-// -        }
-// -    }
-// REVIEW-DEDELUGER-END-INCOMING-DIFF
-
+    // REVIEW-DEDELUGER: incoming upstream would delete this preserved local shape; preserved maintained local block below.
+    // REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/goal_context.rs block=4 basis=maintained-to-incoming
+    // @@ -1,11 +0,0 @@
+    // -
+    // -    /// Converts the registered fragment into an active-turn injectable item.
+    // -    pub fn into_response_input_item(self, role: GoalContextRole) -> ResponseInputItem {
+    // -        ResponseInputItem::Message {
+    // -            role: role.as_response_role().to_string(),
+    // -            content: vec![ContentItem::InputText {
+    // -                text: self.render(),
+    // -            }],
+    // -            phase: None,
+    // -        }
+    // -    }
+    // REVIEW-DEDELUGER-END-INCOMING-DIFF
 
     /// Converts the registered fragment into an active-turn injectable item.
     pub fn into_response_input_item(self, role: GoalContextRole) -> ResponseInputItem {
@@ -102,4 +102,17 @@ impl ContextualUserFragment for GoalContext {
 
 pub(crate) fn is_goal_context_text(text: &str) -> bool {
     GoalContext::matches_text(text)
+}
+
+pub(crate) fn is_goal_context_response_item(item: &ResponseItem) -> bool {
+    let ResponseItem::Message { role, content, .. } = item else {
+        return false;
+    };
+    if role != "user" && role != "developer" {
+        return false;
+    }
+    let [ContentItem::InputText { text }] = content.as_slice() else {
+        return false;
+    };
+    is_goal_context_text(text)
 }

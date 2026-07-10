@@ -22,6 +22,7 @@ use crate::session::TurnInputQueue;
 use crate::session::turn_context::TurnContext;
 use crate::tasks::AnySessionTask;
 use codex_protocol::models::AdditionalPermissionProfile;
+use codex_protocol::models::ResponseInputItem;
 use codex_protocol::protocol::ReviewDecision;
 use codex_protocol::protocol::TokenUsage;
 
@@ -68,6 +69,26 @@ pub(crate) enum TaskKind {
     Compact,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) enum GoalSteeringInjectionPhase {
+    #[default]
+    Open,
+    Closed,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GoalSteeringCarryPurpose {
+    InitialOrContinuation,
+    BudgetLimit,
+    ObjectiveUpdated,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct GoalSteeringCarryItem {
+    purpose: GoalSteeringCarryPurpose,
+    item: ResponseInputItem,
+}
+
 pub(crate) struct RunningTask {
     pub(crate) done: Arc<Notify>,
     pub(crate) kind: TaskKind,
@@ -89,6 +110,8 @@ pub(crate) struct TurnState {
     pending_elicitations: HashMap<(String, RequestId), oneshot::Sender<ElicitationResponse>>,
     pending_dynamic_tools: HashMap<String, oneshot::Sender<DynamicToolResponse>>,
     pub(crate) pending_input: TurnInputQueue,
+    current_turn_goal_steering_items: Vec<GoalSteeringCarryItem>,
+    goal_steering_injection_phase: GoalSteeringInjectionPhase,
     mailbox_delivery_phase: MailboxDeliveryPhase,
     granted_permissions: Option<AdditionalPermissionProfile>,
     strict_auto_review_enabled: bool,
@@ -125,6 +148,7 @@ impl TurnState {
         self.pending_user_input.clear();
         self.pending_elicitations.clear();
         self.pending_dynamic_tools.clear();
+        self.current_turn_goal_steering_items.clear();
     }
 
     pub(crate) fn insert_pending_request_permissions(
@@ -202,6 +226,44 @@ impl TurnState {
 
     pub(crate) fn set_mailbox_delivery_phase(&mut self, phase: MailboxDeliveryPhase) {
         self.mailbox_delivery_phase = phase;
+    }
+
+    pub(crate) fn append_current_turn_goal_steering_items(
+        &mut self,
+        purpose: GoalSteeringCarryPurpose,
+        items: &[ResponseInputItem],
+    ) {
+        for item in items {
+            if let Some(existing) = self
+                .current_turn_goal_steering_items
+                .iter_mut()
+                .find(|existing| existing.purpose == purpose)
+            {
+                existing.item = item.clone();
+            } else {
+                self.current_turn_goal_steering_items
+                    .push(GoalSteeringCarryItem {
+                        purpose,
+                        item: item.clone(),
+                    });
+            }
+        }
+    }
+
+    pub(crate) fn current_turn_goal_steering_items(&self) -> Vec<ResponseInputItem> {
+        self.current_turn_goal_steering_items
+            .clone()
+            .into_iter()
+            .map(|item| item.item)
+            .collect()
+    }
+
+    pub(crate) fn close_goal_steering_injection(&mut self) {
+        self.goal_steering_injection_phase = GoalSteeringInjectionPhase::Closed;
+    }
+
+    pub(crate) fn accepts_goal_steering_injection(&self) -> bool {
+        self.goal_steering_injection_phase == GoalSteeringInjectionPhase::Open
     }
 
     pub(crate) fn record_granted_permissions(&mut self, permissions: AdditionalPermissionProfile) {

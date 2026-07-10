@@ -77,7 +77,10 @@ impl SessionTask for RegularTask {
             )
             .instrument(run_turn_span.clone())
             .await;
-            if !sess.input_queue.has_pending_input(&sess.active_turn).await {
+            if sess
+                .close_goal_steering_injection_if_no_pending_input()
+                .await
+            {
                 return last_agent_message;
             }
             next_input = Vec::new();

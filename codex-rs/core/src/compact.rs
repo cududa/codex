@@ -4,6 +4,7 @@ use std::time::Instant;
 use crate::Prompt;
 use crate::client::ModelClientSession;
 use crate::client_common::ResponseEvent;
+use crate::context::is_goal_context_response_item;
 use crate::hook_runtime::PostCompactHookOutcome;
 use crate::hook_runtime::PreCompactHookOutcome;
 use crate::hook_runtime::run_post_compact_hooks;
@@ -277,7 +278,13 @@ async fn run_compact_task_inner_impl(
         initial_context_injection,
         InitialContextInjection::BeforeLastUserMessage
     ) {
-        let initial_context = sess.build_initial_context(turn_context.as_ref()).await;
+        let mut initial_context = sess.build_initial_context(turn_context.as_ref()).await;
+        initial_context.extend(
+            sess.current_turn_goal_steering_items()
+                .await
+                .into_iter()
+                .map(ResponseItem::from),
+        );
         new_history =
             insert_initial_context_before_last_real_user_or_summary(new_history, initial_context);
     }
@@ -398,6 +405,7 @@ pub(crate) fn collect_user_messages(items: &[ResponseItem]) -> Vec<String> {
     items
         .iter()
         .filter_map(|item| match crate::event_mapping::parse_turn_item(item) {
+            _ if is_goal_context_response_item(item) => None,
             Some(TurnItem::UserMessage(user)) => {
                 if is_summary_message(&user.message()) {
                     None
