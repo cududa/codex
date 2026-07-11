@@ -10,3 +10,5 @@ Practical check:
 
 - After edits, sanity-check that docs mention only APIs/behavior that exist in code (especially the
   Enter/newline paths and `disable_paste_burst` semantics).
+- Follow the root `AGENTS.md` and `local/how-we-test.md` local validation posture; do not add a
+  broader TUI test run just because this folder changed.

@@ -53,17 +53,19 @@ In the codex-rs folder where the rust code lives:
     the new implementation so the invariants stay close to the code that owns them.
   - Avoid adding new standalone methods to `codex-rs/tui/src/chatwidget.rs` unless the change is
     trivial; prefer new modules/files and keep `chatwidget.rs` focused on orchestration.
-- When running Rust commands (e.g. `just fix` or `just test`) be patient with the command and never try to kill them using the PID. Rust lock can make the execution slow, this is expected.
+- When running Rust commands (e.g. `just fix` or `just test`) be patient with the command. Do not kill Rust processes just because they are slow; stop only the known process tree for an explicitly requested detached run or when the user asks you to stop it.
+
+`local/how-we-test.md` controls the local validation posture for this Windows ARM64 VM. Local Rust validation is expensive, so choose the cheapest command that gives useful signal for the risk of the change. Redirect expensive Rust command output to `codex-rs\target\codex-logs\` and surface only the actionable tail on failure.
 
 Run `just fmt` (in `codex-rs` directory) automatically after you have finished making Rust code changes; do not ask for approval to run it. Additionally, run targeted tests:
 
-1. Prefer the narrowest test filter that exercises the changed behavior. Use `just test -p <crate> <filter>` when it keeps the run focused and benefits from the repo's test defaults; a direct focused `cargo test -p <crate> <filter>` remains acceptable when it is the more precise or practical local check. For example, if changes were made in `codex-rs/tui`, run a specific `just test -p codex-tui <test_filter>` or `cargo test -p codex-tui <test_filter>` target rather than the whole crate when possible.
+1. Prefer a focused test filter that exercises the changed behavior. Use `just test -p <crate> <filter>` when it keeps the run focused and benefits from the repo's test defaults; a direct focused `cargo test -p <crate> <filter>` remains acceptable when it is the more precise or practical local check. For example, if changes were made in `codex-rs/tui`, run a specific `just test -p codex-tui <test_filter>` or `cargo test -p codex-tui <test_filter>` target rather than the whole crate when possible.
 2. Do not run full crate or workspace suites by default on this workstation. In particular, do not run `cargo test -p codex-tui`, `cargo test`, `just test`, or `--all-features` unless the user explicitly asks for that broader validation. These commands can take too long and consume too much local capacity.
 3. If broader validation seems useful, say what you would run and leave it for the user to opt in. Prefer any available `local-profile`, local profiling, or remote test workflow over a full local cargo suite when the user asks for broader coverage.
 
 For the local Codex npm route, `local/local_build/sdk_bundle.md` is the authority. It supersedes legacy `C:\Program Files\CodexPinned\bin` install assumptions: global npm is the single blessed CLI/SDK/local-applet route, the package includes Codex, rg, and SDK, preserves the current no-sandbox usage pattern, and all entrypoints share the normal `~\.codex` home. The installed package names are the private `@cududa/codex` and `@cududa/codex-sdk` packages, installed from staged local package folders rather than tarballs, so broad global npm updates cannot replace the local route with public `@openai/*` registry packages.
 
-Before finalizing a large change to `codex-rs`, run `just fix -p <project>` (in `codex-rs` directory) to fix any linter issues in the code. Prefer scoping with `-p` to avoid slow workspace‑wide Clippy builds; only run `just fix` without `-p` if you changed shared crates. Do not re-run tests after running `fix` or `fmt`.
+For large or lint-sensitive `codex-rs` changes, consider `just fix -p <project>` (in `codex-rs` directory) when the local cost is justified. Prefer scoping with `-p` to avoid slow workspace-wide Clippy builds; only run `just fix` without `-p` if you changed shared crates and the user explicitly wants that broader local pass. Do not re-run tests after running `fix` or `fmt`.
 
 ## The `codex-core` crate
 
@@ -124,7 +126,8 @@ is easy to review and future diffs stay visual.
 When UI or text output changes intentionally, update the snapshots as follows:
 
 - Run tests to generate any updated snapshots:
-  - `just test -p codex-tui`
+  - Prefer a focused snapshot-producing test for the changed behavior.
+  - Use `just test -p codex-tui` only when the user explicitly asks for the broader local run or when no focused snapshot route is practical.
 - Check what’s pending:
   - `cargo insta pending-snapshots -p codex-tui`
 - Review changes by reading the generated `*.snap.new` files directly in the repo, or preview a specific file:
@@ -218,7 +221,7 @@ These guidelines apply to app-server protocol work in `codex-rs`, especially:
 - Regenerate schema fixtures when API shapes change:
   `just write-app-server-schema`
   (and `just write-app-server-schema --experimental` when experimental API fixtures are affected).
-- Validate with `just test -p codex-app-server-protocol`.
+- Validate with a targeted test or schema check that covers the changed API behavior. Use `just test -p codex-app-server-protocol` only when the user explicitly asks for the broader local run or the protocol change truly needs the full crate validation.
 - Avoid boilerplate tests that only assert experimental field markers for individual
   request fields in `common.rs`; rely on schema generation/tests and behavioral coverage instead.
 
