@@ -12,7 +12,7 @@ posture for deciding when a command is worth paying for at all.
 
 ## Operating Assumptions
 
-- The local VM is useful for editing, focused checks, and narrow debugging.
+- The local VM is useful for editing, focused checks, and targeted debugging.
 - Broad confidence belongs to CI, remote execution, or an explicitly requested
   larger validation pass.
 - `scripts\stage_local_codex_sdk_bundle.py` is a release/build route, not a
@@ -59,8 +59,8 @@ session flow where a unit boundary cannot prove the behavior.
 
 ## Validation Ladder
 
-Use the narrowest rung that matches the change. Do not climb the ladder out of
-habit.
+Use the cheapest rung that gives useful signal for the change. Do not climb the
+ladder out of habit.
 
 - Docs-only or planning edits: inspect the diff; run nothing.
 - Test deletion only: inspect the diff; run nothing.
@@ -74,7 +74,7 @@ habit.
   targeted `cargo check` for the affected crate or target.
 - Rust behavior changes or nontrivial test rewrites: consider one direct
   `cargo test -p <crate> <single_filter>` when it is the smallest useful proof.
-- TUI/user-visible output changes: run the narrowest snapshot-generating test
+- TUI/user-visible output changes: run a focused snapshot-generating test
   that covers the changed output, then review and accept intended snapshots.
 - Dependency, Bazel, generated schema, or protocol changes: follow the specific
   repo rule for that surface, but still scope commands as tightly as the rule
@@ -104,7 +104,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 ```
 
-Examples of acceptable narrow checks when they are justified:
+Examples of acceptable focused checks when they are justified:
 
 ```powershell
 $log = "target\codex-logs\core-lib-check-$(Get-Date -Format yyyyMMdd-HHmmss).log"
@@ -159,6 +159,6 @@ When a change needs broad proof, prefer one of these routes:
 - A deliberately scheduled local run when the cost is worth blocking the
   workstation.
 
-Do not silently replace a needed broad check with a narrow local check. Say what
-the narrow check proves, what it does not prove, and where the remaining
+Do not silently replace a needed broad check with a focused local check. Say what
+the focused check proves, what it does not prove, and where the remaining
 confidence should come from.
