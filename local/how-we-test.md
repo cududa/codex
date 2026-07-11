@@ -18,6 +18,20 @@ posture for deciding when a command is worth paying for at all.
 - `scripts\stage_local_codex_sdk_bundle.py` is a release/build route, not a
   routine development test. A full run is too expensive to use as a default
   proof after ordinary edits.
+- The SDK staging route is the user's real local install path. Avoid suggesting
+  one-off optimized "try it quickly" Codex builds unless the user explicitly
+  asks for that mode.
+- This repo uses `sccache` through `codex-rs\.cargo\config.toml`:
+  `rustc-wrapper = "sccache"` and `SCCACHE_CACHE_SIZE=50G`. Cargo build,
+  check, test, nextest, rust-analyzer, and the local SDK staging build should
+  inherit that by default when run from `codex-rs` or through repo scripts that
+  set `codex-rs` as the Cargo working directory.
+- Preserve `codex-rs\target\debug` by default. It contains local test/debug
+  artifacts that are expensive to recreate after branch switches or upstream
+  merges. Use the bundle script's `--clean-debug-target` flag only for a
+  deliberate disk-pressure cleanup.
+- VS Code/rust-analyzer uses `codex-rs\target\rust-analyzer` so editor
+  diagnostics do not fight normal Cargo builds for the same target directory.
 - Reporting "not run due to local cost" is acceptable when the change does not
   justify compiling or executing tests locally.
 - A clean diff inspection is a real validation step for docs, moves, deletions,

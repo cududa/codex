@@ -38,6 +38,16 @@ Important earlier temp handoff:
 
 This document is not a substitute for the v135 implementation plan. It is a roadmap and conceptual handoff for v136-v140 and later integration discussions.
 
+## v135 Implementation Lessons To Carry Forward
+
+Recent local review of the v135 implementation surfaced useful hardening lessons. They do not overturn the v135 plan, but they should shape v136+ rather than being forgotten as one-off cleanup:
+
+- Hidden Goal-context predicates should converge as the wrapper changes. In v135, core reconstruction and app-server raw notification suppression have separate but matching `<goal_context>` predicates. For v136+, where `<codex_internal_context source="goal">` becomes the current wrapper, prefer one shared semantic predicate or one clearly owned helper that both reconstruction/history and app-server/raw surfaces follow. Mirrored local string checks are acceptable only with paired tests.
+- Historical Goal-context filtering must mean actual request exclusion. If a stale historical item with `role: "user"` survives into future model input, the model receives user-role Goal text. Do not describe such items as "non-authoritative" while still sending them.
+- Current-turn carry needs an explicit cardinality contract. The v135 carry buffer stores one item per steering purpose. That matches current producers, but v136+ should either encode "one item per purpose" in the type/API and test it, or move to a real list per purpose if upstream contributor/injection paths can emit multiple Goal items.
+- Mid-turn compaction and same-turn reset coverage is not optional. Tests should prove both sides: current-turn active Goal steering survives as developer-role input for the continuing turn, and stale historical Goal-context items are filtered before later reconstruction/request assembly.
+- Cheap reconstruction performance cleanup, such as returning owned history without a final clone, is worth doing opportunistically, but it is not the authority fix. Do not let performance cleanup distract from role and replay correctness.
+
 ## Non-Negotiable Invariant
 
 Active Goal steering must be constructed from live Goal state and reach final model input as developer-role by default:
@@ -169,8 +179,10 @@ Roadmap:
 - Accept the internal-context wrapper and source labeling as provenance terrain.
 - Adapt the Goal steering role boundary so active Goal steering is developer-role by default.
 - Treat prior-wrapper `<goal_context>` items and current-wrapper `<codex_internal_context source="goal">` historical items as hidden/provenance markers for exclusion before request assembly. A stale historical Goal-context item with `role: "user"` must not be left in the future model request and discounted by prose or provenance; it has to be removed before request assembly and replaced, when a Goal is active, by freshly rendered developer-role Goal steering. This is compatibility/filtering for persisted history, not two active Goal implementations.
+- Replace scattered hidden Goal-context marker checks with an intentional v136 predicate strategy. The predicate should recognize prior-wrapper `<goal_context>` only for persisted-history compatibility and current-wrapper `<codex_internal_context source="goal">` for v136 history/filtering. It should be usable, directly or by an explicitly mirrored test contract, by rollout reconstruction, compaction/history boundaries, app-server materialized history, and raw response item notifications.
 - Audit `inject_if_running` and direct `ResponseItem` storage so late or idle Goal injection cannot silently drop authority or persist unsampled hidden steering.
 - Preserve app-server resume ordering, but filter/exclude raw resumed/internal Goal-context transcript items before they become future model input. If an old internal Goal item with `role: "user"` is replayed into the request, the model receives user-role Goal text; the API has no secondary flag that strips that role effect. Active Goal continuation after resume must instead be freshly rendered from current Goal state as developer-role model input by default.
+- Decide the Goal carry cardinality at the new injection boundary. If v136 active steering remains one rendered item per purpose, encode that in the Goal steering API and tests. If `inject_if_running` / direct `ResponseItem` storage can accept multiple Goal items for one lifecycle event, carry a list per purpose instead of silently replacing earlier items.
 
 ### v137: Contributor And Fragment Pivot
 
@@ -188,9 +200,10 @@ Roadmap:
 
 - Accept extension ownership growth, templates, `GoalService`, idle continuation, and fragment extraction.
 - Adapt `TurnInputContributor` usage: Goal can use the contributor path only if the contributed Goal fragment/item is role-bearing developer input.
+- If Goal moves onto `TurnInputContributor`, make the contributor output explicitly role-bearing at the Goal boundary. A contributor returning boxed contextual fragments is acceptable only when the concrete Goal fragment serializes to developer-role by default and carries the source-labeled internal wrapper as content/provenance.
 - Do not let the trait name `ContextualUserFragment` or upstream user-role concrete fragments define Goal authority.
 - Keep skills and additional context as precedent only. They prove the conveyor exists; they are not Goal.
-- Add or preserve tests for developer-role final request input, current-turn Goal steering through compaction, and app-server external Goal set/clear through extension-owned service paths.
+- Add or preserve tests for developer-role final request input, current-turn Goal steering through compaction, app-server external Goal set/clear through extension-owned service paths, and the hidden Goal-context predicate equivalence across reconstruction/history and app-server raw notification surfaces.
 
 ### v138: Extension Ownership Pivot
 

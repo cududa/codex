@@ -66,9 +66,9 @@ def parse_args() -> argparse.Namespace:
         help="Reuse sdk/typescript/dist instead of rebuilding the SDK. Only for debugging.",
     )
     parser.add_argument(
-        "--skip-debug-target-clean",
+        "--clean-debug-target",
         action="store_true",
-        help="Keep codex-rs/target/debug instead of deleting test/dev artifacts before the local-release build.",
+        help="Delete codex-rs/target/debug before the local-release build to recover disk space.",
     )
     parser.add_argument(
         "--skip-local-install",
@@ -110,7 +110,7 @@ def main() -> int:
     elif args.reuse_codex_bin:
         print("Reusing existing local-release Codex binary.", flush=True)
     else:
-        if not args.skip_debug_target_clean:
+        if args.clean_debug_target:
             delete_debug_target()
         build_codex()
 

@@ -46,10 +46,19 @@ the release flow:
 python .\local\local_build\restore_local_release_profile.py
 ```
 
+This repo uses `sccache` through `codex-rs\.cargo\config.toml`:
+`rustc-wrapper = "sccache"` and `SCCACHE_CACHE_SIZE=50G`. Cargo builds in this
+repo should inherit that automatically when run from `codex-rs`; the SDK staging
+script does this for its Rust build step.
+
+This workstation also has matching Windows User environment variables as a
+machine-level backup, but the repo config is the durable setting that should
+make future agents and shells use the cache without remembering special setup.
+
 That command is expected to:
 
-- delete `codex-rs\target\debug` before building, so large test/dev artifacts
-  do not crowd out the Windows ARM64 local-release build;
+- preserve `codex-rs\target\debug` by default, so local test/debug and
+  rust-analyzer artifacts are not discarded during routine SDK installs;
 - build `codex-rs\target\aarch64-pc-windows-msvc\local-release\codex.exe`;
 - package `rg.exe` from PATH into the Codex npm package;
 - stage the private Codex package in the canonical v133 layout:
@@ -128,13 +137,13 @@ When the global npm route is running from the staged package folder, this flag
 also preserves the existing staged Codex package so SDK-only iteration does not
 try to overwrite a locked `codex.exe`.
 
-`--skip-debug-target-clean` keeps `codex-rs\target\debug` for local test or
-debug iteration, but it is not the normal route on this disk-constrained
-workstation.
+`--clean-debug-target` deletes `codex-rs\target\debug` before the local-release
+build. Use it only when disk pressure is more important than preserving local
+test/debug and rust-analyzer artifacts.
 
-`--skip-sdk-build`, `--skip-debug-target-clean`, `--skip-local-install`,
-`--skip-global-install`, `--skip-path-normalization`, and
-`--skip-legacy-delete` are debugging switches, not the blessed release flow.
+`--skip-sdk-build`, `--clean-debug-target`, `--skip-local-install`,
+`--skip-global-install`, `--skip-path-normalization`, and `--skip-legacy-delete`
+are debugging switches, not the blessed release flow.
 
 ## Local Git Remote Cleanup
 
