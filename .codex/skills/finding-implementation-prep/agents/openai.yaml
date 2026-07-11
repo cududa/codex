@@ -1,0 +1,4 @@
+interface:
+  display_name: "Finding Implementation Prep"
+  short_description: "Preserve large Review Finding plans as bounded slice packets."
+  default_prompt: "Use $finding-implementation-prep to stage the MCP remediation plan as a temporary local working copy, project it losslessly into bounded repo-local slice packets, create a compact coverage check and simple task index, enrich slices only with bounded file/test terrain, then delete the temporary full-plan copy before closeout."

@@ -1441,7 +1441,12 @@ fn is_goal_context_response_item(item: &codex_protocol::models::ResponseItem) ->
 
 fn is_goal_context_text(text: &str) -> bool {
     let trimmed = text.trim();
-    trimmed.starts_with("<goal_context>") && trimmed.ends_with("</goal_context>")
+    trimmed
+        .get(.."<goal_context>".len())
+        .is_some_and(|start| start.eq_ignore_ascii_case("<goal_context>"))
+        && trimmed
+            .get(trimmed.len().saturating_sub("</goal_context>".len())..)
+            .is_some_and(|end| end.eq_ignore_ascii_case("</goal_context>"))
 }
 
 pub(crate) async fn maybe_emit_hook_prompt_item_completed(
@@ -3885,6 +3890,16 @@ mod tests {
             conversation_id,
             "turn-1",
             goal_context_response_item("user"),
+            &outgoing,
+        )
+        .await;
+        maybe_emit_raw_response_item_completed(
+            conversation_id,
+            "turn-1",
+            raw_text_response_item(
+                "developer",
+                "  <GOAL_CONTEXT>\n<untrusted_objective>Keep going</untrusted_objective>\n</GOAL_CONTEXT>\n",
+            ),
             &outgoing,
         )
         .await;

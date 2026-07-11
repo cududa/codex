@@ -33,10 +33,6 @@ impl SessionTask for RegularTask {
         "session_task.turn"
     }
 
-    fn records_turn_token_usage_on_span(&self) -> bool {
-        true
-    }
-
     async fn run(
         self: Arc<Self>,
         session: Arc<SessionTaskContext>,
@@ -81,7 +77,10 @@ impl SessionTask for RegularTask {
             )
             .instrument(run_turn_span.clone())
             .await;
-            if !sess.input_queue.has_pending_input(&sess.active_turn).await {
+            if sess
+                .close_goal_steering_injection_if_no_pending_input()
+                .await
+            {
                 return last_agent_message;
             }
             next_input = Vec::new();

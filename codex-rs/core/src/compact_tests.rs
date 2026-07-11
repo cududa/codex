@@ -1,6 +1,5 @@
 use super::*;
 use crate::context::ContextualUserFragment;
-use crate::context::GoalContext;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_model_provider_info::WireApi;
 use codex_protocol::models::DEFAULT_IMAGE_DETAIL;
@@ -286,28 +285,6 @@ async fn process_compacted_history_replaces_developer_messages() {
         }],
         phase: None,
     });
-    assert_eq!(refreshed, expected);
-}
-
-#[tokio::test]
-async fn process_compacted_history_drops_role_neutral_goal_context() {
-    let compacted_history = vec![
-        message(
-            "developer",
-            &GoalContext::new("Continue working toward the active thread goal.").render(),
-        ),
-        user_message("summary"),
-        message(
-            "user",
-            &GoalContext::new("Continue working toward the active thread goal.").render(),
-        ),
-    ];
-    let (refreshed, mut expected) = process_compacted_history_with_test_session(
-        compacted_history,
-        /*previous_turn_settings*/ None,
-    )
-    .await;
-    expected.push(user_message("summary"));
     assert_eq!(refreshed, expected);
 }
 

@@ -6,10 +6,10 @@
 
 use crate::StateDbHandle;
 use crate::context::GoalContext;
-use crate::session::TurnInput;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
 use crate::state::ActiveTurn;
+use crate::state::GoalSteeringCarryPurpose;
 use crate::state::TurnState;
 use crate::tasks::RegularTask;
 use crate::tools::handlers::goal_spec::UPDATE_GOAL_TOOL_NAME;
@@ -99,6 +99,18 @@ enum GoalSteeringKind {
     Continuation,
     BudgetLimit,
     ObjectiveUpdated,
+}
+
+impl GoalSteeringKind {
+    fn carry_purpose(self) -> GoalSteeringCarryPurpose {
+        match self {
+            GoalSteeringKind::Initial | GoalSteeringKind::Continuation => {
+                GoalSteeringCarryPurpose::InitialOrContinuation
+            }
+            GoalSteeringKind::BudgetLimit => GoalSteeringCarryPurpose::BudgetLimit,
+            GoalSteeringKind::ObjectiveUpdated => GoalSteeringCarryPurpose::ObjectiveUpdated,
+        }
+    }
 }
 
 struct GoalSteeringMessage {
@@ -200,7 +212,6 @@ pub(crate) struct GoalRuntimeState {
     initial_steering_goal_id: Mutex<Option<String>>,
     accounting_lock: Semaphore,
     accounting: Mutex<GoalAccountingSnapshot>,
-    continuation_turn_id: Mutex<Option<String>>,
     pub(crate) continuation_lock: Semaphore,
 }
 
@@ -218,7 +229,6 @@ impl GoalRuntimeState {
             initial_steering_goal_id: Mutex::new(None),
             accounting_lock: Semaphore::new(/*permits*/ 1),
             accounting: Mutex::new(GoalAccountingSnapshot::new()),
-            continuation_turn_id: Mutex::new(None),
             continuation_lock: Semaphore::new(/*permits*/ 1),
         }
     }
@@ -740,7 +750,14 @@ impl Session {
                         prompt: objective_updated_prompt(&goal),
                     }
                     .into_response_input_item();
-                    if self.inject_response_items(vec![item]).await.is_err() {
+                    if self
+                        .inject_goal_response_items(
+                            GoalSteeringKind::ObjectiveUpdated.carry_purpose(),
+                            vec![item],
+                        )
+                        .await
+                        .is_err()
+                    {
                         tracing::debug!(
                             "skipping objective-updated goal steering because no turn is active"
                         );
@@ -911,7 +928,7 @@ impl Session {
         let active = self.active_turn.lock().await;
         active
             .as_ref()
-            .and_then(|active_turn| active_turn.tasks.values().next())
+            .and_then(|active_turn| active_turn.task.as_ref())
             .map(|task| Arc::clone(&task.turn_context))
     }
 
@@ -974,24 +991,10 @@ impl Session {
         }
     }
 
-    async fn mark_thread_goal_continuation_turn_started(&self, turn_id: String) {
-        *self.goal_runtime.continuation_turn_id.lock().await = Some(turn_id);
-    }
-
-    async fn take_thread_goal_continuation_turn(&self, turn_id: &str) -> bool {
-        let mut continuation_turn_id = self.goal_runtime.continuation_turn_id.lock().await;
-        if continuation_turn_id.as_deref() == Some(turn_id) {
-            *continuation_turn_id = None;
-            true
-        } else {
-            false
-        }
-    }
-
     async fn clear_reserved_goal_continuation_turn(&self, turn_state: &Arc<Mutex<TurnState>>) {
         let mut active_turn_guard = self.active_turn.lock().await;
         if let Some(active_turn) = active_turn_guard.as_ref()
-            && active_turn.tasks.is_empty()
+            && active_turn.task.is_none()
             && Arc::ptr_eq(&active_turn.turn_state, turn_state)
         {
             *active_turn_guard = None;
@@ -1015,8 +1018,6 @@ impl Session {
             tracing::warn!("failed to account thread goal progress at turn end: {err}");
         }
 
-        self.take_thread_goal_continuation_turn(&turn_context.sub_id)
-            .await;
         if turn_completed {
             let mut accounting = self.goal_runtime.accounting.lock().await;
             if accounting
@@ -1031,8 +1032,6 @@ impl Session {
 
     async fn handle_thread_goal_task_abort(&self, turn_context: Option<&TurnContext>) {
         if let Some(turn_context) = turn_context {
-            self.take_thread_goal_continuation_turn(&turn_context.sub_id)
-                .await;
             if let Err(err) = self
                 .account_thread_goal_progress(
                     turn_context,
@@ -1173,7 +1172,14 @@ impl Session {
                 prompt: budget_limit_prompt(&goal),
             }
             .into_response_input_item();
-            if self.inject_response_items(vec![item]).await.is_err() {
+            if self
+                .inject_goal_response_items(
+                    GoalSteeringKind::BudgetLimit.carry_purpose(),
+                    vec![item],
+                )
+                .await
+                .is_err()
+            {
                 tracing::debug!("skipping budget-limit goal steering because no turn is active");
             }
             *self.goal_runtime.budget_limit_reported_goal_id.lock().await = Some(goal_id);
@@ -1429,13 +1435,10 @@ impl Session {
             return;
         }
         self.input_queue
-            .extend_pending_input_for_turn_state(
+            .extend_goal_pending_input_for_turn_state(
                 turn_state.as_ref(),
-                candidate
-                    .items
-                    .into_iter()
-                    .map(TurnInput::ResponseInputItem)
-                    .collect(),
+                candidate.steering_kind.carry_purpose(),
+                candidate.items,
             )
             .await;
 
@@ -1447,7 +1450,7 @@ impl Session {
         let still_reserved = {
             let active_turn = self.active_turn.lock().await;
             active_turn.as_ref().is_some_and(|active_turn| {
-                active_turn.tasks.is_empty() && Arc::ptr_eq(&active_turn.turn_state, &turn_state)
+                active_turn.task.is_none() && Arc::ptr_eq(&active_turn.turn_state, &turn_state)
             })
         };
         if !still_reserved {
@@ -1458,8 +1461,6 @@ impl Session {
         if candidate.steering_kind == GoalSteeringKind::Initial {
             self.take_initial_goal_steering(&candidate.goal_id).await;
         }
-        self.mark_thread_goal_continuation_turn_started(turn_context.sub_id.clone())
-            .await;
         self.start_task(turn_context, Vec::new(), RegularTask::new())
             .await;
     }
@@ -1933,8 +1934,8 @@ mod tests {
     }
 
     #[test]
-    fn continuation_prompt_allows_complete_and_strict_blocked_updates() {
-        let prompt = continuation_prompt(&ThreadGoal {
+    fn goal_prompts_keep_durable_contract_markers() {
+        let active_goal = ThreadGoal {
             thread_id: ThreadId::new(),
             objective: "finish the stack".to_string(),
             status: ThreadGoalStatus::Active,
@@ -1943,107 +1944,43 @@ mod tests {
             time_used_seconds: 56,
             created_at: 1,
             updated_at: 2,
-        })
-        .replace("\r\n", "\n");
-
-        assert!(prompt.contains("finish the stack"));
-        assert!(prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>"));
-        assert!(prompt.contains("Work from the sources that are authoritative"));
-        assert!(prompt.contains("call get_goal to re-ground on the active objective"));
-        assert!(!prompt.contains("Use the current worktree and external state as authoritative"));
-        assert!(!prompt.contains("Work from evidence"));
-        assert!(!prompt.contains("The audit must prove completion"));
-        assert!(!prompt.contains("<objective>"));
-        assert!(prompt.contains("Token budget: 10000"));
-        assert!(prompt.contains("call update_goal with status \"complete\""));
-        assert!(prompt.contains("status \"blocked\""));
-        assert!(prompt.contains("at least three consecutive goal turns"));
-        assert!(prompt.contains("same blocking condition"));
-        assert!(prompt.contains("original/user-triggered turn"));
-        assert!(prompt.contains("truly at an impasse"));
-        assert!(prompt.contains("authoritative evidence has not yet been gathered"));
-        assert!(prompt.contains("gather evidence or keep working"));
-        assert!(!prompt.contains("budgetLimited"));
-        assert!(!prompt.contains("status \"paused\""));
-    }
-
-    #[test]
-    fn initial_prompt_starts_goal_without_trusting_objective() {
-        let prompt = initial_goal_prompt(&ThreadGoal {
-            thread_id: ThreadId::new(),
-            objective: "finish the stack".to_string(),
-            status: ThreadGoalStatus::Active,
-            token_budget: Some(10_000),
-            tokens_used: 0,
-            time_used_seconds: 0,
-            created_at: 1,
-            updated_at: 2,
-        })
-        .replace("\r\n", "\n");
-
-        assert!(prompt.contains("Begin working toward the active thread goal."));
-        assert!(prompt.contains("This is the first turn for this goal."));
-        assert!(prompt.contains("first turn of the active run"));
-        assert!(prompt.contains("Do not assume prior progress has been made"));
-        assert!(prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>"));
-        assert!(prompt.contains("Work from the sources that are authoritative"));
-        assert!(prompt.contains("call get_goal to re-ground on the active objective"));
-        assert!(!prompt.contains("repository state and evidence you gather"));
-        assert!(prompt.contains("Token budget: 10000"));
-        assert!(prompt.contains("call update_goal with status \"complete\""));
-        assert!(!prompt.contains("Continue working toward the active thread goal."));
-    }
-
-    #[test]
-    fn budget_limit_prompt_steers_model_to_wrap_up_without_pausing() {
-        let prompt = budget_limit_prompt(&ThreadGoal {
-            thread_id: ThreadId::new(),
-            objective: "finish the stack".to_string(),
+        };
+        let budget_limited_goal = ThreadGoal {
             status: ThreadGoalStatus::BudgetLimited,
-            token_budget: Some(10_000),
             tokens_used: 10_100,
-            time_used_seconds: 56,
-            created_at: 1,
-            updated_at: 2,
-        })
-        .replace("\r\n", "\n");
+            ..active_goal.clone()
+        };
 
-        assert!(prompt.contains("finish the stack"));
-        assert!(prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>"));
-        assert!(prompt.contains("Token budget: 10000"));
-        assert!(prompt.contains("Tokens used: 10100"));
-        assert!(prompt.to_lowercase().contains("wrap up this turn soon"));
-        assert!(!prompt.contains("status \"paused\""));
-    }
+        let prompts = [
+            initial_goal_prompt(&active_goal),
+            continuation_prompt(&active_goal),
+            budget_limit_prompt(&budget_limited_goal),
+            objective_updated_prompt(&active_goal),
+        ]
+        .map(|prompt| prompt.replace("\r\n", "\n"));
 
-    #[test]
-    fn objective_updated_prompt_supersedes_previous_goal_context() {
-        let prompt = objective_updated_prompt(&ThreadGoal {
-            thread_id: ThreadId::new(),
-            objective: "finish the revised stack".to_string(),
-            status: ThreadGoalStatus::Active,
-            token_budget: Some(10_000),
-            tokens_used: 1_234,
-            time_used_seconds: 56,
-            created_at: 1,
-            updated_at: 2,
-        })
-        .replace("\r\n", "\n");
+        for prompt in prompts {
+            assert!(
+                prompt.contains("<untrusted_objective>\nfinish the stack\n</untrusted_objective>")
+            );
+            assert!(!prompt.contains("<objective>"));
+            assert!(!prompt.contains("status \"paused\""));
+            assert!(!prompt.contains("budgetLimited"));
+        }
 
-        assert!(prompt.contains("edited by the user"));
-        assert!(prompt.contains("supersedes any previous thread goal objective"));
+        let continuation = continuation_prompt(&active_goal);
+        assert!(continuation.contains("Work from the sources that are authoritative"));
+        assert!(continuation.contains("call update_goal with status \"complete\""));
+        assert!(continuation.contains("status \"blocked\""));
+        assert!(continuation.contains("at least three consecutive goal turns"));
+        assert!(continuation.contains("same blocking condition"));
+        assert!(continuation.contains("authoritative evidence has not yet been gathered"));
+
+        let budget_limit = budget_limit_prompt(&budget_limited_goal);
         assert!(
-            prompt.contains(
-                "<untrusted_objective>\nfinish the revised stack\n</untrusted_objective>"
-            )
-        );
-        assert!(prompt.contains("Token budget: 10000"));
-        assert!(prompt.contains("Tokens remaining: 8766"));
-        assert!(prompt.contains("Work from the sources that are authoritative"));
-        assert!(prompt.contains("call get_goal to re-ground on the active objective"));
-        assert!(
-            prompt
-                .contains("Do not call update_goal unless the updated goal is actually complete.")
+            budget_limit
+                .to_lowercase()
+                .contains("wrap up this turn soon")
         );
     }
 

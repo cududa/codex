@@ -5,6 +5,7 @@ use crate::goals::GoalRuntimeEvent;
 use crate::session::Codex;
 use crate::session::SessionSettingsUpdate;
 use crate::session::SteerInputError;
+use crate::state::GoalSteeringCarryPurpose;
 use codex_features::Feature;
 use codex_otel::SessionTelemetry;
 use codex_protocol::config_types::ApprovalsReviewer;
@@ -21,6 +22,7 @@ use codex_protocol::models::PermissionProfile;
 use codex_protocol::models::ResponseInputItem;
 use codex_protocol::models::ResponseItem;
 use codex_protocol::openai_models::ReasoningEffort;
+use codex_protocol::protocol::AdditionalContextEntry;
 use codex_protocol::protocol::AskForApproval;
 use codex_protocol::protocol::Event;
 use codex_protocol::protocol::Op;
@@ -41,6 +43,7 @@ use codex_thread_store::ThreadStoreError;
 use codex_thread_store::ThreadStoreResult;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use rmcp::model::ReadResourceRequestParams;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -236,11 +239,41 @@ impl CodexThread {
     pub async fn steer_input(
         &self,
         input: Vec<UserInput>,
+        additional_context: BTreeMap<String, AdditionalContextEntry>,
         expected_turn_id: Option<&str>,
         responsesapi_client_metadata: Option<HashMap<String, String>>,
     ) -> Result<String, SteerInputError> {
         self.codex
-            .steer_input(input, expected_turn_id, responsesapi_client_metadata)
+            .steer_input(
+                input,
+                additional_context,
+                expected_turn_id,
+                responsesapi_client_metadata,
+            )
+            .await
+    }
+
+    /// Injects hidden model-visible items into the currently active turn.
+    ///
+    /// This is the runtime-owned counterpart to user-facing `steer_input`.
+    /// It returns the unchanged items when this thread has no active turn.
+    pub async fn inject_response_items_into_active_turn(
+        &self,
+        items: Vec<ResponseInputItem>,
+    ) -> Result<(), Vec<ResponseInputItem>> {
+        self.codex.session.inject_response_items(items).await
+    }
+
+    /// Injects Goal steering items into the active turn and registers the same
+    /// accepted items as current-turn Goal steering for mid-turn compaction.
+    pub async fn inject_goal_steering_items_into_active_turn(
+        &self,
+        purpose: GoalSteeringCarryPurpose,
+        items: Vec<ResponseInputItem>,
+    ) -> Result<(), Vec<ResponseInputItem>> {
+        self.codex
+            .session
+            .inject_goal_response_items(purpose, items)
             .await
     }
 

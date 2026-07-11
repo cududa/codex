@@ -39,6 +39,13 @@ Normal release flow:
 python .\scripts\stage_local_codex_sdk_bundle.py
 ```
 
+If an upstream merge drops the local Cargo profile, restore it before running
+the release flow:
+
+```powershell
+python .\local\local_build\restore_local_release_profile.py
+```
+
 That command is expected to:
 
 - delete `codex-rs\target\debug` before building, so large test/dev artifacts

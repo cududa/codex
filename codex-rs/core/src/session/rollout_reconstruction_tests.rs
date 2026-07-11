@@ -34,6 +34,33 @@ fn assistant_message(text: &str) -> ResponseItem {
     }
 }
 
+fn goal_context_message(role: &str, text: &str) -> ResponseItem {
+    ResponseItem::Message {
+        id: None,
+        role: role.to_string(),
+        content: vec![ContentItem::InputText {
+            text: format!("<goal_context>\n{text}\n</goal_context>"),
+        }],
+        phase: None,
+    }
+}
+
+fn mixed_goal_context_message(role: &str, text: &str) -> ResponseItem {
+    ResponseItem::Message {
+        id: None,
+        role: role.to_string(),
+        content: vec![
+            ContentItem::InputText {
+                text: format!("<goal_context>\n{text}\n</goal_context>"),
+            },
+            ContentItem::InputText {
+                text: "ordinary adjacent text".to_string(),
+            },
+        ],
+        phase: None,
+    }
+}
+
 fn inter_agent_assistant_message(text: &str) -> ResponseItem {
     let communication = InterAgentCommunication::new(
         AgentPath::root(),
@@ -50,6 +77,40 @@ fn inter_agent_assistant_message(text: &str) -> ResponseItem {
         }],
         phase: None,
     }
+}
+
+#[tokio::test]
+async fn reconstruct_history_filters_pure_goal_context_from_replacement_history() {
+    let (session, _turn_context) = make_session_and_context().await;
+    let before_goal = user_message("before goal context");
+    let mixed_user = mixed_goal_context_message("user", "mixed user goal context");
+    let after_compaction = assistant_message("after compaction");
+    let rollout_items = vec![
+        RolloutItem::Compacted(CompactedItem {
+            message: "summary".to_string(),
+            replacement_history: Some(vec![
+                before_goal.clone(),
+                goal_context_message("user", "stale user replacement goal context"),
+                goal_context_message("developer", "stale developer replacement goal context"),
+                mixed_user.clone(),
+            ]),
+        }),
+        RolloutItem::ResponseItem(after_compaction.clone()),
+    ];
+
+    session
+        .record_initial_history(InitialHistory::Resumed(ResumedHistory {
+            conversation_id: ThreadId::default(),
+            history: rollout_items,
+            rollout_path: Some(PathBuf::from("/tmp/resume.jsonl")),
+        }))
+        .await;
+
+    let history = session.clone_history().await;
+    assert_eq!(
+        history.raw_items(),
+        &[before_goal, mixed_user, after_compaction]
+    );
 }
 
 #[tokio::test]

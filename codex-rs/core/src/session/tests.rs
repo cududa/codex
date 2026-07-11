@@ -81,7 +81,6 @@ use crate::turn_diff_tracker::TurnDiffTracker;
 use codex_app_server_protocol::AppInfo;
 use codex_app_server_protocol::McpElicitationSchema;
 use codex_config::config_toml::ConfigToml;
-use codex_config::config_toml::GoalSteeringRole;
 use codex_config::config_toml::ProjectConfig;
 use codex_config::permissions_toml::FilesystemPermissionToml;
 use codex_config::permissions_toml::FilesystemPermissionsToml;
@@ -145,7 +144,6 @@ use core_test_support::context_snapshot::ContextSnapshotOptions;
 use core_test_support::context_snapshot::ContextSnapshotRenderMode;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
-use core_test_support::responses::ev_completed_with_tokens;
 use core_test_support::responses::ev_function_call;
 use core_test_support::responses::ev_response_created;
 use core_test_support::responses::mount_sse_once;
@@ -194,6 +192,29 @@ fn user_message(text: &str) -> ResponseItem {
             text: text.to_string(),
         }],
         phase: None,
+    }
+}
+
+fn goal_context_input_item(role: &str, text: &str) -> ResponseInputItem {
+    ResponseInputItem::Message {
+        role: role.to_string(),
+        content: vec![ContentItem::InputText {
+            text: format!("<goal_context>\n{text}\n</goal_context>"),
+        }],
+        phase: None,
+    }
+}
+
+fn response_item_text_contains(item: &ResponseItem, needle: &str) -> bool {
+    match item {
+        ResponseItem::Message { content, .. } => content.iter().any(|content| {
+            matches!(
+                content,
+                ContentItem::InputText { text } | ContentItem::OutputText { text }
+                    if text.contains(needle)
+            )
+        }),
+        _ => false,
     }
 }
 
@@ -2288,6 +2309,7 @@ async fn fork_startup_context_then_first_turn_diff_snapshot() -> anyhow::Result<
             }],
             final_output_json_schema: None,
             responsesapi_client_metadata: None,
+            additional_context: Default::default(),
             thread_settings: Default::default(),
         })
         .await?;
@@ -2334,6 +2356,7 @@ async fn fork_startup_context_then_first_turn_diff_snapshot() -> anyhow::Result<
             }],
             final_output_json_schema: None,
             responsesapi_client_metadata: None,
+            additional_context: Default::default(),
             thread_settings: ThreadSettingsOverrides {
                 approval_policy: Some(AskForApproval::Never),
                 collaboration_mode: Some(collaboration_mode),
@@ -3000,6 +3023,7 @@ async fn set_rate_limits_retains_previous_credits() {
         app_server_client_name: None,
         app_server_client_version: None,
         session_source: SessionSource::Exec,
+        forked_from_thread_id: None,
         thread_source: None,
         dynamic_tools: Vec::new(),
         persist_extended_history: false,
@@ -3104,6 +3128,7 @@ async fn set_rate_limits_updates_plan_type_when_present() {
         app_server_client_name: None,
         app_server_client_version: None,
         session_source: SessionSource::Exec,
+        forked_from_thread_id: None,
         thread_source: None,
         dynamic_tools: Vec::new(),
         persist_extended_history: false,
@@ -3631,6 +3656,7 @@ pub(crate) async fn make_session_configuration_for_tests() -> SessionConfigurati
         app_server_client_name: None,
         app_server_client_version: None,
         session_source: SessionSource::Exec,
+        forked_from_thread_id: None,
         thread_source: None,
         dynamic_tools: Vec::new(),
         persist_extended_history: false,
@@ -4320,7 +4346,7 @@ async fn absolute_cwd_update_with_turn_environment_is_allowed() {
 }
 
 #[tokio::test]
-async fn session_new_fails_when_zsh_fork_enabled_without_zsh_path() {
+async fn session_new_fails_when_zsh_fork_enabled_without_packaged_zsh() {
     let codex_home = tempfile::tempdir().expect("create temp dir");
     let mut config = build_test_config(codex_home.path()).await;
     config
@@ -4374,6 +4400,7 @@ async fn session_new_fails_when_zsh_fork_enabled_without_zsh_path() {
         app_server_client_name: None,
         app_server_client_version: None,
         session_source: SessionSource::Exec,
+        forked_from_thread_id: None,
         thread_source: None,
         dynamic_tools: Vec::new(),
         persist_extended_history: false,
@@ -4421,7 +4448,7 @@ async fn session_new_fails_when_zsh_fork_enabled_without_zsh_path() {
         Err(err) => err,
     };
     let msg = format!("{err:#}");
-    assert!(msg.contains("zsh fork feature enabled, but `zsh_path` is not configured"));
+    assert!(msg.contains("zsh fork feature enabled, but no packaged zsh fork is available"));
 }
 
 // todo: use online model info
@@ -4483,6 +4510,7 @@ pub(crate) async fn make_session_and_context() -> (Session, TurnContext) {
         app_server_client_name: None,
         app_server_client_version: None,
         session_source: SessionSource::Exec,
+        forked_from_thread_id: None,
         thread_source: None,
         dynamic_tools: Vec::new(),
         persist_extended_history: false,
@@ -4520,6 +4548,7 @@ pub(crate) async fn make_session_and_context() -> (Session, TurnContext) {
             McpConnectionManager::new_uninitialized_with_permission_profile(
                 &config.permissions.approval_policy,
                 config.permissions.permission_profile(),
+                config.prefix_mcp_tool_names(),
             ),
         )),
         mcp_startup_cancellation_token: Mutex::new(CancellationToken::new()),
@@ -4716,6 +4745,7 @@ async fn make_session_with_config_and_rx(
         app_server_client_name: None,
         app_server_client_version: None,
         session_source: SessionSource::Exec,
+        forked_from_thread_id: None,
         thread_source: None,
         dynamic_tools: Vec::new(),
         persist_extended_history: false,
@@ -4819,6 +4849,7 @@ async fn make_session_with_history_source_and_agent_control_and_rx(
         app_server_client_name: None,
         app_server_client_version: None,
         session_source: session_source.clone(),
+        forked_from_thread_id: None,
         thread_source: None,
         dynamic_tools: Vec::new(),
         persist_extended_history: false,
@@ -5430,6 +5461,7 @@ fn op_kind_for_input_and_context_ops() {
             items: vec![],
             final_output_json_schema: None,
             responsesapi_client_metadata: None,
+            additional_context: Default::default(),
             thread_settings: Default::default(),
         }
         .kind(),
@@ -5460,6 +5492,7 @@ async fn user_turn_updates_approvals_reviewer() {
             environments: None,
             final_output_json_schema: None,
             responsesapi_client_metadata: None,
+            additional_context: Default::default(),
             thread_settings: codex_protocol::protocol::ThreadSettingsOverrides {
                 cwd: Some(config.cwd.to_path_buf()),
                 approval_policy: Some(config.permissions.approval_policy.value()),
@@ -5781,10 +5814,10 @@ async fn spawn_task_turn_span_inherits_dispatch_trace_context() {
     async {
         sess.spawn_task(
             Arc::clone(&tc),
-            vec![UserInput::Text {
+            vec![TurnInput::UserInput(vec![UserInput::Text {
                 text: "hello".to_string(),
                 text_elements: Vec::new(),
-            }],
+            }])],
             TraceCaptureTask {
                 captured_trace: Arc::clone(&captured_trace),
             },
@@ -6312,6 +6345,7 @@ where
         app_server_client_name: None,
         app_server_client_version: None,
         session_source: SessionSource::Exec,
+        forked_from_thread_id: None,
         thread_source: None,
         dynamic_tools,
         persist_extended_history: false,
@@ -6349,6 +6383,7 @@ where
             McpConnectionManager::new_uninitialized_with_permission_profile(
                 &config.permissions.approval_policy,
                 config.permissions.permission_profile(),
+                config.prefix_mcp_tool_names(),
             ),
         )),
         mcp_startup_cancellation_token: Mutex::new(CancellationToken::new()),
@@ -6606,10 +6641,10 @@ async fn spawn_task_does_not_update_previous_turn_settings_for_non_run_turn_task
     let (sess, tc, _rx) = make_session_and_context_with_rx().await;
     sess.set_previous_turn_settings(/*previous_turn_settings*/ None)
         .await;
-    let input = vec![UserInput::Text {
+    let input = vec![TurnInput::UserInput(vec![UserInput::Text {
         text: "hello".to_string(),
         text_elements: Vec::new(),
-    }];
+    }])];
 
     sess.spawn_task(
         Arc::clone(&tc),
@@ -7875,10 +7910,10 @@ impl SessionTask for GuardianDeniedApprovalTask {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn guardian_auto_review_interrupts_after_three_consecutive_denials() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
-    let input = vec![UserInput::Text {
+    let input = vec![TurnInput::UserInput(vec![UserInput::Text {
         text: "trigger guardian denials".to_string(),
         text_elements: Vec::new(),
-    }];
+    }])];
     sess.spawn_task(Arc::clone(&tc), input, GuardianDeniedApprovalTask)
         .await;
 
@@ -7906,10 +7941,10 @@ async fn guardian_auto_review_interrupts_after_three_consecutive_denials() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn guardian_helper_review_interrupts_after_three_consecutive_denials() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
-    let input = vec![UserInput::Text {
+    let input = vec![TurnInput::UserInput(vec![UserInput::Text {
         text: "keep turn active for helper reviews".to_string(),
         text_elements: Vec::new(),
-    }];
+    }])];
     sess.spawn_task(
         Arc::clone(&tc),
         input,
@@ -7966,10 +8001,10 @@ async fn guardian_helper_review_interrupts_after_three_consecutive_denials() {
 #[test_log::test]
 async fn abort_regular_task_emits_turn_aborted_only() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
-    let input = vec![UserInput::Text {
+    let input = vec![TurnInput::UserInput(vec![UserInput::Text {
         text: "hello".to_string(),
         text_elements: Vec::new(),
-    }];
+    }])];
     sess.spawn_task(
         Arc::clone(&tc),
         input,
@@ -7999,10 +8034,10 @@ async fn abort_regular_task_emits_turn_aborted_only() {
 #[tokio::test]
 async fn abort_gracefully_emits_turn_aborted_only() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
-    let input = vec![UserInput::Text {
+    let input = vec![TurnInput::UserInput(vec![UserInput::Text {
         text: "hello".to_string(),
         text_elements: Vec::new(),
-    }];
+    }])];
     sess.spawn_task(
         Arc::clone(&tc),
         input,
@@ -8032,10 +8067,10 @@ async fn abort_gracefully_emits_turn_aborted_only() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn task_finish_emits_turn_item_lifecycle_for_leftover_pending_user_input() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
-    let input = vec![UserInput::Text {
+    let input = vec![TurnInput::UserInput(vec![UserInput::Text {
         text: "hello".to_string(),
         text_elements: Vec::new(),
-    }];
+    }])];
     sess.spawn_task(
         Arc::clone(&tc),
         input,
@@ -8058,6 +8093,7 @@ async fn task_finish_emits_turn_item_lifecycle_for_leftover_pending_user_input()
     }];
     sess.steer_input(
         pending_user_input.clone(),
+        /*additional_context*/ Default::default(),
         Some(&tc.sub_id),
         /*responsesapi_client_metadata*/ None,
     )
@@ -8154,7 +8190,10 @@ async fn steer_input_requires_active_turn() {
 
     let err = sess
         .steer_input(
-            input, /*expected_turn_id*/ None, /*responsesapi_client_metadata*/ None,
+            input,
+            /*additional_context*/ Default::default(),
+            /*expected_turn_id*/ None,
+            /*responsesapi_client_metadata*/ None,
         )
         .await
         .expect_err("steering without active turn should fail");
@@ -8165,10 +8204,10 @@ async fn steer_input_requires_active_turn() {
 #[tokio::test]
 async fn steer_input_enforces_expected_turn_id() {
     let (sess, tc, _rx) = make_session_and_context_with_rx().await;
-    let input = vec![UserInput::Text {
+    let input = vec![TurnInput::UserInput(vec![UserInput::Text {
         text: "hello".to_string(),
         text_elements: Vec::new(),
-    }];
+    }])];
     sess.spawn_task(
         Arc::clone(&tc),
         input,
@@ -8186,6 +8225,7 @@ async fn steer_input_enforces_expected_turn_id() {
     let err = sess
         .steer_input(
             steer_input,
+            /*additional_context*/ Default::default(),
             Some("different-turn-id"),
             /*responsesapi_client_metadata*/ None,
         )
@@ -8210,10 +8250,10 @@ async fn steer_input_rejects_non_regular_turns() {
         (TaskKind::Compact, NonSteerableTurnKind::Compact),
     ] {
         let (sess, _tc, _rx) = make_session_and_context_with_rx().await;
-        let input = vec![UserInput::Text {
+        let input = vec![TurnInput::UserInput(vec![UserInput::Text {
             text: "hello".to_string(),
             text_elements: Vec::new(),
-        }];
+        }])];
         let turn_context = sess.new_default_turn_with_sub_id("turn".to_string()).await;
         sess.spawn_task(
             turn_context,
@@ -8232,6 +8272,7 @@ async fn steer_input_rejects_non_regular_turns() {
         let err = sess
             .steer_input(
                 steer_input,
+                /*additional_context*/ Default::default(),
                 /*expected_turn_id*/ None,
                 /*responsesapi_client_metadata*/ None,
             )
@@ -8247,10 +8288,10 @@ async fn steer_input_rejects_non_regular_turns() {
 #[tokio::test]
 async fn steer_input_returns_active_turn_id() {
     let (sess, tc, _rx) = make_session_and_context_with_rx().await;
-    let input = vec![UserInput::Text {
+    let input = vec![TurnInput::UserInput(vec![UserInput::Text {
         text: "hello".to_string(),
         text_elements: Vec::new(),
-    }];
+    }])];
     sess.spawn_task(
         Arc::clone(&tc),
         input,
@@ -8268,6 +8309,7 @@ async fn steer_input_returns_active_turn_id() {
     let turn_id = sess
         .steer_input(
             steer_input,
+            /*additional_context*/ Default::default(),
             Some(&tc.sub_id),
             /*responsesapi_client_metadata*/ None,
         )
@@ -8492,6 +8534,7 @@ async fn active_goal_continuation_runs_again_after_no_tool_turn() -> anyhow::Res
             }],
             final_output_json_schema: None,
             responsesapi_client_metadata: None,
+            additional_context: Default::default(),
             thread_settings: Default::default(),
         })
         .await?;
@@ -8562,109 +8605,6 @@ async fn active_goal_continuation_runs_again_after_no_tool_turn() -> anyhow::Res
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn active_goal_continuation_uses_configured_user_role() -> anyhow::Result<()> {
-    let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
-        config
-            .features
-            .enable(Feature::Goals)
-            .expect("goal mode should be enableable in tests");
-        config.goals.steering_role = GoalSteeringRole::User;
-    });
-    let test = builder.build(&server).await?;
-    let responses = mount_sse_sequence(
-        &server,
-        vec![
-            sse(vec![
-                ev_response_created("resp-1"),
-                ev_function_call(
-                    "call-create-goal",
-                    "create_goal",
-                    r#"{"objective":"write a benchmark note"}"#,
-                ),
-                ev_completed("resp-1"),
-            ]),
-            sse(vec![
-                ev_assistant_message("msg-1", "Draft ready."),
-                ev_completed("resp-2"),
-            ]),
-            sse(vec![
-                ev_response_created("resp-3"),
-                ev_function_call(
-                    "call-complete-goal",
-                    "update_goal",
-                    r#"{"status":"complete"}"#,
-                ),
-                ev_completed("resp-3"),
-            ]),
-            sse(vec![
-                ev_assistant_message("msg-2", "Goal complete."),
-                ev_completed("resp-4"),
-            ]),
-        ],
-    )
-    .await;
-
-    test.codex
-        .submit(Op::UserInput {
-            environments: None,
-            items: vec![UserInput::Text {
-                text: "write a benchmark note".into(),
-                text_elements: Vec::new(),
-            }],
-            final_output_json_schema: None,
-            responsesapi_client_metadata: None,
-            thread_settings: Default::default(),
-        })
-        .await?;
-
-    let mut completed_turns = 0;
-    tokio::time::timeout(std::time::Duration::from_secs(8), async {
-        loop {
-            let event = test.codex.next_event().await?;
-            if matches!(event.msg, EventMsg::TurnComplete(_)) {
-                completed_turns += 1;
-                if completed_turns == 2 {
-                    return anyhow::Ok(());
-                }
-            }
-        }
-    })
-    .await??;
-
-    let requests = responses.requests();
-    let user_goal_contexts = requests
-        .iter()
-        .flat_map(|request| request.message_input_texts("user"))
-        .collect::<Vec<_>>();
-    assert!(
-        user_goal_contexts.iter().any(|text| {
-            let normalized_text = text.replace("\r\n", "\n");
-            normalized_text.starts_with("<goal_context>")
-                && normalized_text.trim_end().ends_with("</goal_context>")
-                && normalized_text.contains("Begin working toward the active thread goal.")
-                && normalized_text.contains("This is the first turn for this goal.")
-                && normalized_text.contains(
-                    "<untrusted_objective>\nwrite a benchmark note\n</untrusted_objective>",
-                )
-        }),
-        "configured user role should place initial goal steering in a user message, got {user_goal_contexts:?}"
-    );
-    let developer_goal_contexts = requests
-        .iter()
-        .flat_map(|request| request.message_input_texts("developer"))
-        .collect::<Vec<_>>();
-    assert!(
-        developer_goal_contexts
-            .iter()
-            .all(|text| !text.contains("Begin working toward the active thread goal.")),
-        "configured user role should not place initial goal steering in a developer message"
-    );
-
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pending_request_user_input_does_not_spawn_extra_goal_continuation() -> anyhow::Result<()> {
     let server = start_mock_server().await;
     let mut builder = test_codex().with_config(|config| {
@@ -8729,6 +8669,7 @@ async fn pending_request_user_input_does_not_spawn_extra_goal_continuation() -> 
             }],
             final_output_json_schema: None,
             responsesapi_client_metadata: None,
+            additional_context: Default::default(),
             thread_settings: Default::default(),
         })
         .await?;
@@ -8874,33 +8815,7 @@ async fn create_thread_goal_fills_empty_thread_preview() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn budget_limited_accounting_steers_active_turn_without_aborting() -> anyhow::Result<()> {
-    budget_limited_accounting_steers_active_turn_with_role(
-        |_config| {},
-        GoalSteeringRole::Developer,
-    )
-    .await
-}
-
-#[tokio::test]
-async fn budget_limited_accounting_uses_configured_user_role() -> anyhow::Result<()> {
-    budget_limited_accounting_steers_active_turn_with_role(
-        |config| {
-            config.goals.steering_role = GoalSteeringRole::User;
-        },
-        GoalSteeringRole::User,
-    )
-    .await
-}
-
-async fn budget_limited_accounting_steers_active_turn_with_role<F>(
-    configure_config: F,
-    expected_role: GoalSteeringRole,
-) -> anyhow::Result<()>
-where
-    F: FnOnce(&mut Config),
-{
-    let (sess, tc, rx, _codex_home) =
-        make_goal_session_and_context_with_config_and_rx(configure_config).await;
+    let (sess, tc, rx, _codex_home) = make_goal_session_and_context_with_rx().await;
     sess.set_thread_goal(
         tc.as_ref(),
         SetGoalRequest {
@@ -8950,7 +8865,7 @@ where
     else {
         panic!("expected one budget-limit steering message, got {pending_input:#?}");
     };
-    assert_eq!(expected_role.as_response_role(), role);
+    assert_eq!("developer", role);
     let [ContentItem::InputText { text }] = content.as_slice() else {
         panic!("expected one text span in budget-limit steering message, got {content:#?}");
     };
@@ -9178,33 +9093,7 @@ async fn external_goal_mutation_accounts_active_turn_before_status_change() -> a
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn external_objective_change_steers_active_turn_with_default_role() -> anyhow::Result<()> {
-    external_objective_change_steers_active_turn_with_role(
-        |_config| {},
-        GoalSteeringRole::Developer,
-    )
-    .await
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn external_objective_change_uses_configured_user_role() -> anyhow::Result<()> {
-    external_objective_change_steers_active_turn_with_role(
-        |config| {
-            config.goals.steering_role = GoalSteeringRole::User;
-        },
-        GoalSteeringRole::User,
-    )
-    .await
-}
-
-async fn external_objective_change_steers_active_turn_with_role<F>(
-    configure_config: F,
-    expected_role: GoalSteeringRole,
-) -> anyhow::Result<()>
-where
-    F: FnOnce(&mut Config),
-{
-    let (sess, tc, _rx, _codex_home) =
-        make_goal_session_and_context_with_config_and_rx(configure_config).await;
+    let (sess, tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
     sess.spawn_task(
         Arc::clone(&tc),
         Vec::new(),
@@ -9249,7 +9138,7 @@ where
             matches!(
                 item,
                 TurnInput::ResponseInputItem(ResponseInputItem::Message { role, content, .. })
-                    if role == expected_role.as_response_role()
+                    if role == "developer"
                         && content.iter().any(|content| matches!(
                             content,
                             ContentItem::InputText { text }
@@ -9266,6 +9155,52 @@ where
             )
         }),
         "expected objective-updated steering prompt in pending input: {pending_input:?}"
+    );
+
+    sess.abort_all_tasks(TurnAbortReason::Replaced).await;
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn late_goal_steering_injection_is_not_persisted_unsampled() -> anyhow::Result<()> {
+    let (sess, tc, _rx, _codex_home) = make_goal_session_and_context_with_rx().await;
+    sess.spawn_task(
+        Arc::clone(&tc),
+        Vec::new(),
+        NeverEndingTask {
+            kind: TaskKind::Regular,
+            listen_to_cancellation_token: false,
+        },
+    )
+    .await;
+    assert!(
+        sess.close_goal_steering_injection_if_no_pending_input()
+            .await
+    );
+
+    let late_goal = goal_context_input_item("developer", "late unsampled goal steering");
+    let returned = sess
+        .inject_goal_response_items(
+            crate::state::GoalSteeringCarryPurpose::ObjectiveUpdated,
+            vec![late_goal],
+        )
+        .await
+        .expect_err("late goal steering should be rejected");
+    assert_eq!(1, returned.len());
+    let pending_input = sess.input_queue.get_pending_input(&sess.active_turn).await;
+    assert!(
+        pending_input.is_empty(),
+        "rejected late goal steering should not be queued as pending input"
+    );
+    assert!(
+        !sess
+            .clone_history()
+            .await
+            .raw_items()
+            .iter()
+            .any(|item| response_item_text_contains(item, "late unsampled goal steering")),
+        "rejected late goal steering should not be recorded in history"
     );
 
     sess.abort_all_tasks(TurnAbortReason::Replaced).await;
@@ -9331,107 +9266,6 @@ async fn external_active_goal_set_marks_current_turn_for_accounting() -> anyhow:
     assert_eq!(25, goal.tokens_used);
 
     sess.abort_all_tasks(TurnAbortReason::Replaced).await;
-
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn completed_goal_accounts_current_turn_tokens_before_tool_response() -> anyhow::Result<()> {
-    let server = start_mock_server().await;
-    let mut builder = test_codex().with_config(|config| {
-        config
-            .features
-            .enable(Feature::Goals)
-            .expect("goal mode should be enableable in tests");
-    });
-    let test = builder.build(&server).await?;
-    let responses = mount_sse_sequence(
-        &server,
-        vec![
-            sse(vec![
-                ev_response_created("resp-1"),
-                ev_function_call(
-                    "call-create-goal",
-                    "create_goal",
-                    r#"{"objective":"write a report","token_budget":500}"#,
-                ),
-                ev_completed("resp-1"),
-            ]),
-            sse(vec![
-                ev_response_created("resp-2"),
-                ev_function_call(
-                    "call-complete-goal",
-                    "update_goal",
-                    r#"{"status":"complete"}"#,
-                ),
-                ev_completed_with_tokens("resp-2", /*total_tokens*/ 580),
-            ]),
-            sse(vec![
-                ev_assistant_message("msg-1", "Goal complete."),
-                ev_completed("resp-3"),
-            ]),
-        ],
-    )
-    .await;
-
-    test.codex
-        .submit(Op::UserInput {
-            environments: None,
-            items: vec![UserInput::Text {
-                text: "write a report".into(),
-                text_elements: Vec::new(),
-            }],
-            final_output_json_schema: None,
-            responsesapi_client_metadata: None,
-            thread_settings: Default::default(),
-        })
-        .await?;
-
-    tokio::time::timeout(std::time::Duration::from_secs(8), async {
-        loop {
-            let event = test.codex.next_event().await?;
-            if matches!(event.msg, EventMsg::TurnComplete(_)) {
-                return anyhow::Ok(());
-            }
-        }
-    })
-    .await??;
-
-    let complete_output = responses
-        .function_call_output_text("call-complete-goal")
-        .expect("complete tool output should be sent to the model");
-    let complete_output: serde_json::Value = serde_json::from_str(&complete_output)?;
-    assert_eq!(complete_output["goal"]["tokensUsed"], 580);
-    assert_eq!(complete_output["goal"]["status"], "complete");
-    assert_eq!(complete_output["remainingTokens"], 0);
-    assert_eq!(
-        complete_output["completionBudgetReport"],
-        "Goal achieved. Report final usage from this tool result's structured goal fields. If `goal.tokenBudget` is present, include token usage from `goal.tokensUsed` and `goal.tokenBudget`. If `goal.timeUsedSeconds` is greater than 0, summarize elapsed time in a concise, human-friendly form appropriate to the response language."
-    );
-    let requests = responses.requests();
-    let completion_followup_request = requests
-        .last()
-        .expect("completion tool output should be sent in a follow-up request");
-    assert!(
-        !completion_followup_request.body_contains_text("budget_limited"),
-        "completion follow-up should not include budget-limit steering"
-    );
-
-    let state_db = codex_state::StateRuntime::init(
-        test.config.sqlite_home.clone(),
-        test.config.model_provider_id.clone(),
-    )
-    .await?;
-    let persisted_goal = state_db
-        .thread_goals()
-        .get_thread_goal(test.session_configured.thread_id)
-        .await?
-        .expect("goal should be persisted");
-    assert_eq!(
-        codex_state::ThreadGoalStatus::Complete,
-        persisted_goal.status
-    );
-    assert_eq!(580, persisted_goal.tokens_used);
 
     Ok(())
 }
@@ -9549,6 +9383,7 @@ async fn steered_input_reopens_mailbox_delivery_for_current_turn() {
             text: "follow up".to_string(),
             text_elements: Vec::new(),
         }],
+        /*additional_context*/ Default::default(),
         Some(&tc.sub_id),
         /*responsesapi_client_metadata*/ None,
     )
@@ -9598,6 +9433,7 @@ async fn stale_defer_mailbox_delivery_does_not_override_steered_input() {
             text: "follow up".to_string(),
             text_elements: Vec::new(),
         }],
+        /*additional_context*/ Default::default(),
         Some(&tc.sub_id),
         /*responsesapi_client_metadata*/ None,
     )
@@ -9679,10 +9515,10 @@ async fn tool_calls_reopen_mailbox_delivery_for_current_turn() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn abort_review_task_emits_exited_then_aborted_and_records_history() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
-    let input = vec![UserInput::Text {
+    let input = vec![TurnInput::UserInput(vec![UserInput::Text {
         text: "start review".to_string(),
         text_elements: Vec::new(),
-    }];
+    }])];
     sess.spawn_task(Arc::clone(&tc), input, ReviewTask::new())
         .await;
 
