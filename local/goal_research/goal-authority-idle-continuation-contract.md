@@ -224,17 +224,20 @@ The Continuation candidate key is the logical equivalent of:
 ```text
 {
   goal_id,
-  history_version,
+  model_visible_history_key,
   durable_facts_version,
 }
 ```
 
-`history_version` must represent model-visible rollout history changes that
-can justify another automatic Continuation. The automatic Continuation steering
-item itself must not be the history change that justifies another automatic
-Continuation. A later assistant output, tool result, user item, mailbox item,
-or other non-Continuation-steering model-visible change may justify a later
-Continuation.
+`model_visible_history_key` must represent model-visible rollout history
+changes that can justify another automatic Continuation. The automatic
+Continuation steering item itself must not be the history change that justifies
+another automatic Continuation. A later assistant output, tool result, user
+item, mailbox item, or other non-Continuation-steering model-visible change may
+justify a later Continuation.
+
+The current `ContextManager::history_version()` is not enough by itself. It is
+a rewrite counter, not a complete key for model-visible work progress.
 
 Acceptable implementations include a monotonic rollout/history generation that
 excludes the just-recorded automatic Continuation steering item for this
@@ -265,9 +268,9 @@ The watermark must not advance when:
   recorded
 
 After the watermark advances, repeated idle-hook calls with the same
-`goal_id`, `history_version`, and `durable_facts_version` must not launch
-another automatic Continuation. The Continuation steering item in final model
-request input must not, by itself, change the key used for that
+`goal_id`, `model_visible_history_key`, and `durable_facts_version` must not
+launch another automatic Continuation. The Continuation steering item in final
+model request input must not, by itself, change the key used for that
 duplicate-suppression decision.
 
 ## Lock And Reservation
@@ -322,7 +325,7 @@ Thread resume is hydration, not cadence.
 The Continuation watermark itself may remain runtime-only, but the key it
 compares against must be reconstructable after resume from stable inputs:
 current `goal_id`, current durable facts version, and the eligible
-`history_version` described above. Resume may initialize the in-memory
+`model_visible_history_key` described above. Resume may initialize the in-memory
 watermark from the last structurally recorded automatic Continuation metadata
 if that is stored, or it may derive an equivalent suppression state from the
 current history/facts key. It must not simply empty the watermark in a way that
@@ -410,7 +413,7 @@ The current code also has terrain that must not become the design:
   same-turn injection
 - pending durable cadence intent is not represented as structured durable state
 - automatic Continuation duplicate suppression is not the explicit
-  `{ goal_id, history_version, durable_facts_version }` watermark
+  `{ goal_id, model_visible_history_key, durable_facts_version }` watermark
 - Goal-owned synthetic turns still use the active Goal-only context path
   covered by the fake-shim removal map
 
@@ -448,4 +451,4 @@ Implementation should include focused tests proving:
   matching outer developer-role Goal item, pending cadence
   intent remains pending and the Continuation watermark does not advance.
 - Final model payload tests prove Goal-owned synthetic turns use developer-role
-  generic internal context and do not emit active `<goal_context>` artifacts.
+  generic internal context and do not emit active `<goal_context>` items.

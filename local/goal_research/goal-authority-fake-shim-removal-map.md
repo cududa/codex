@@ -114,11 +114,15 @@ Removing the active shim includes updating these consumers. They currently call
 or depend on `is_goal_context_*` behavior, so the removal work must replace that
 active dependency with:
 
-- a generic current-internal-context predicate for the new active Goal shape
+- strict generic internal-context classifiers for the new active Goal shape
 - a legacy pure-artifact predicate for old persisted `<goal_context>` artifacts
 
 This is not a staged permission to preserve the shim. The consumer replacement
 is part of removing the active shim.
+
+Classifier output is not authority. Current Goal authority is proven only by
+the cadence contract: final model request input contains exactly one current
+Goal item whose outer role is `developer`.
 
 ### Event And UI Hiding
 
@@ -130,12 +134,13 @@ Files:
 
 Current dependency:
 
-- Goal artifact text is hidden from typed/materialized user-visible turn items
-  or classified as contextual content
+- legacy Goal wrapper text is hidden from typed/materialized user-visible turn
+  items or classified as contextual content
 
 Required replacement:
 
-- hide current `<codex_internal_context source="goal">` active frames
+- omit pure current `<codex_internal_context source="goal">` model-input items
+  from typed/materialized user-visible turn projections
 - continue hiding pure legacy `<goal_context>` artifacts from typed/materialized
   user-visible turn projections
 - do not add special Goal suppression to raw response item notifications; raw
@@ -143,13 +148,18 @@ Required replacement:
   changes the general raw-response contract
 - do not hide mixed ordinary user/developer prose merely because it contains a
   marker-like string
+- do not treat typed/materialized projection hiding as proof that Goal
+  authority exists
 
 Implementation pitfall:
 
-- deleting `is_goal_context_*` callsites without replacing their artifact
+- deleting `is_goal_context_*` callsites without replacing strict
   classification can expose Goal steering in typed UI or app-server projections
 - carrying forward local-only raw-response suppression would preserve fake-shim
   behavior instead of removing the active shim
+- calling current developer-role Goal input an "artifact" can make future code
+  clean up the active cadence item instead of preserving or repairing it
+  according to the cadence contract
 
 ### Compaction
 
@@ -162,17 +172,18 @@ Files:
 
 Current dependency:
 
-- pure Goal context artifacts are filtered or reinserted through current-turn
+- pure legacy Goal wrapper items are filtered or reinserted through current-turn
   carry paths
 
 Required replacement:
 
 - filter pure legacy `<goal_context>` artifacts from reconstructed history
-- filter pure current Goal internal-context artifacts when they are stale
-  historical items
-- do not treat filtering as model authority delivery
-- maintain or repair cadence-required current authority only according to the
+- drop stale or duplicate pure Goal internal-context items when they are not
+  the single current cadence item for the final request
+- preserve or repair the single current cadence item only according to the
   primary cadence contract
+- do not treat filtering as model authority delivery
+- do not convert active durable Goal state alone into a current Goal item
 
 Implementation pitfall:
 
@@ -194,13 +205,14 @@ Files:
 
 Current dependency:
 
-- pure Goal artifacts are removed from reconstructed history
+- pure legacy Goal wrapper artifacts are removed from reconstructed history
 - mixed messages are retained
 
 Required replacement:
 
 - retain cleanup behavior for pure legacy artifacts
-- add pure current internal-context Goal artifact cleanup
+- clean up stale or duplicate pure Goal internal-context messages without
+  treating cleanup as cadence delivery
 - retain mixed-content retention
 - never reconstruct active Goal state by parsing a rendered artifact
 
@@ -226,7 +238,7 @@ Current dependency:
 
 Required replacement:
 
-- current Goal internal-context items must not become visible user-turn
+- pure Goal internal-context items must not become visible user-turn
   markers
 - legacy `<goal_context>` artifacts must remain non-user cleanup
   artifacts
@@ -234,7 +246,7 @@ Required replacement:
 
 Implementation pitfall:
 
-- a generic internal-context predicate that is too broad can erase real user
+- a generic internal-context classifier that is too broad can erase real user
   messages; one that is too narrow can leave stale Goal authority as user prose
 
 ### Contextual Fragment Infrastructure
@@ -335,7 +347,7 @@ Generic internal-context code must own:
 ## Required Work Areas
 
 These work areas are not permission to land a half-converted active Goal path.
-A version plan can sequence the work internally for reviewability, but an
+A version plan can sequence the work internally for reviewability, but a
 completed implementation must not leave any active Goal steering producer on
 `GoalContext` or any active Goal authority decision on `<goal_context>`.
 This includes extension producers that remain compiled and reachable under any
@@ -353,20 +365,22 @@ Tests must prove:
 - developer-role conversion produces developer-role model input
 - user-role conversion is not used by active Goal steering
 
-### Work Area 2: Predicates And Legacy Handling
+### Work Area 2: Classifiers And Legacy Handling
 
-Create shared predicates for:
+Create shared classifiers for:
 
-- pure current Goal internal-context items
+- pure current Goal internal-context items, for projection and cleanup only
 - pure legacy `<goal_context>` artifacts
 - mixed content that must not be treated as a pure artifact
 
 Tests must cover:
 
-- current Goal internal context hidden/classified correctly
+- current Goal internal context is omitted from typed/materialized projections
+  only when the item is pure
 - legacy Goal context hidden/classified correctly
 - non-Goal internal context is not treated as Goal
 - mixed visible text is preserved
+- classifier results are not accepted as proof of current Goal authority
 
 ### Work Area 3: Active Core Steering
 
@@ -391,14 +405,16 @@ request input shape as core-produced steering.
 ### Work Area 5: Cleanup Consumers
 
 Update event mapping, compaction, rollout reconstruction, history boundaries,
-and typed/materialized app-server projections to use shared predicates.
+and typed/materialized app-server projections to use shared classifiers.
 
 Tests must prove:
 
-- current Goal internal context is hidden from typed UI/projections
+- pure current Goal internal-context items are omitted from typed
+  UI/projections
 - legacy Goal context is still hidden from typed UI/projections
 - raw response item notifications are not specially suppressed for Goal context
-- stale pure Goal artifacts are cleaned up
+- stale or duplicate pure Goal internal-context messages and pure legacy
+  artifacts are cleaned up
 - ordinary user/developer prose is retained
 
 ## Integration With Cadence Contract

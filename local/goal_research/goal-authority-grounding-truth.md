@@ -111,6 +111,14 @@ Repair item
 A developer-role Goal steering item inserted or corrected at a reconstruction seam so the next model request
 preserves authority that cadence requires.
 
+Cadence-required Goal authority
+
+Goal authority required by an actual cadence obligation for the current
+request: pending Initial, ObjectiveUpdated, or BudgetLimit intent; an automatic
+Continuation selected by the idle predicate; or seam preservation/repair of a
+cadence item already required for this request. Active durable Goal state alone
+is not cadence-required authority.
+
 Rendered Goal item
 
 A concrete model-visible item that was sent to the model. It is evidence of prior steering, not the source of

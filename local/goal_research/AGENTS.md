@@ -89,6 +89,7 @@ Keep these decisions intact:
 - automatic Continuation uses runtime-only watermarking
 - ordinary user turns are not cadence events
 - active durable Goal state alone must not emit Goal steering
+- active durable Goal state alone is not cadence-required authority
 - request repair is request-local by default and is not cadence
 - resume is hydration, not cadence
 - legacy `<goal_context>` is artifact handling only

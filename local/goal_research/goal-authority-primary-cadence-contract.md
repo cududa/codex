@@ -121,13 +121,18 @@ The implementation must track the logical equivalent of:
 ```text
 last_auto_continuation_attempt {
   goal_id,
-  history_version,
+  model_visible_history_key,
   durable_facts_version,
 }
 ```
 
 This watermark suppresses duplicate automatic Continuations for the same active
 Goal when neither model-visible history nor durable Goal facts have changed.
+
+`model_visible_history_key` is a logical key for the model-visible history
+state that can justify another automatic Continuation. It must not be confused
+with the current `ContextManager::history_version()`, which only tracks some
+history rewrites and is not by itself a valid Continuation suppression key.
 
 The watermark must not suppress:
 
@@ -155,6 +160,17 @@ Goal owns when steering is due.
 
 Request repair does not decide cadence. Repair may only preserve or restore the
 authority that cadence requires across a seam.
+
+Cadence-required Goal authority is narrow. A request requires Goal authority
+only when one of these is true:
+
+- persisted pending Initial, ObjectiveUpdated, or BudgetLimit intent is due
+- automatic Continuation has been selected by the idle predicate for this
+  request
+- a seam is preserving or repairing a cadence item that is already required for
+  this request
+
+Active durable Goal state alone is not cadence-required authority.
 
 The primary pipeline is:
 
@@ -566,10 +582,10 @@ InternalModelContextFragment(source = "goal", rendered_goal_prompt)
   -> ResponseItem::Message { role: "developer", ... }
 ```
 
-## Shared Artifact Classification
+## Shared Classification
 
-Artifact detection must be shared infrastructure, not scattered Goal-specific
-marker checks.
+Internal-context and legacy-artifact classification must be shared
+infrastructure, not scattered Goal-specific marker checks.
 
 The implementation must provide strict classifiers for:
 
@@ -578,6 +594,10 @@ The implementation must provide strict classifiers for:
 - non-Goal internal-context items
 - mixed visible prose that contains marker-like strings but is not a pure
   artifact
+
+These classifiers are not authority predicates. Current Goal authority still
+requires final model request input proof that exactly one current Goal item is
+present as outer developer-role model input.
 
 The classifiers must require whole-message purity. A mixed ordinary
 user/developer message must not be hidden, dropped, deduplicated, or treated as
