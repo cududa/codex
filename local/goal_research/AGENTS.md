@@ -3,6 +3,10 @@
 This directory contains local authority docs for Goal behavior in this fork.
 Treat them as design contracts, not brainstorming notes.
 
+Version-specific implementation plans may live outside this directory, such as
+`local/goal_136_plan`. Those plans are execution artifacts, not peer authority.
+They must conform to the authority order here.
+
 Before editing docs or implementing Goal authority work, read the applicable
 files directly top to bottom. Do not rely on grep-only scans for these docs.
 
