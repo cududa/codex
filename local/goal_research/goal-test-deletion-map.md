@@ -39,7 +39,7 @@ it after the fake active steering path is removed.
 
 These tests are local false-compatibility pressure. Delete them during prep.
 They defend `<goal_context>`, `GoalContext`, `GoalContextRole`, fake hidden
-provenance, or Goal-specific raw/event handling.
+provenance, or Goal-specific raw/event suppression.
 
 - `codex-rs/core/src/context/contextual_user_message_tests.rs`
   - `detects_goal_context_fragment`
@@ -56,11 +56,17 @@ provenance, or Goal-specific raw/event handling.
 - `codex-rs/app-server-protocol/src/protocol/thread_history.rs`
   - `ignores_goal_context_response_items_in_rollout_replay`
 - `codex-rs/app-server/src/bespoke_event_handling.rs`
-  - `emits_goal_context_raw_response_item_notifications`
+  - delete any old `suppresses_goal_context_raw_response_item_notifications`
+    or equivalent Goal-specific raw-stream filtering assertion if present
 
 After deletion, any remaining legacy `<goal_context>` coverage must be limited
 to old artifact cleanup or typed projection hiding. It must not defend active
 Goal steering.
+
+Keep or adapt `emits_goal_context_raw_response_item_notifications` when it
+proves the desired raw contract: raw response item notifications remain raw for
+legacy Goal artifacts, current internal-context items, and mixed prose. That
+test is not fake-shim preservation when it rejects local raw suppression.
 
 ## Delete Local-Only Core Overlay Tests
 
