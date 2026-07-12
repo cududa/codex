@@ -10,8 +10,8 @@ The purpose is to make the wrong implementations hard to justify:
 
 - no Goal reminder on every ordinary user turn
 - no user-role active Goal steering
-- no Goal-only fake provenance wrapper as the active architecture
-- no recovery of active Goal state from rendered wrapper text
+- no Goal-only fake provenance mechanism in the active Goal path
+- no recovery of active Goal state from rendered marker text
 - no treating UI hiding, hidden classification, or tool output as model authority
 
 ## Core Truth
@@ -19,10 +19,10 @@ The purpose is to make the wrong implementations hard to justify:
 A Goal has model authority only when the model actually receives current Goal steering as developer-role model
 input.
 
-Durable state, UI state, wrapper text, hidden markers, app-server projections, and tool output are not enough
+Durable state, UI state, rendered marker text, hidden markers, app-server projections, and tool output are not enough
 by themselves.
 
-The model-bound active Goal steering item is:
+The active Goal steering item in final model request input is:
 
 ```text
 ResponseItem::Message.role = "developer"
@@ -32,12 +32,13 @@ body = current rendered Goal steering prompt
 objective = escaped as untrusted text
 ```
 
-The internal-context wrapper identifies provenance. The outer developer role carries authority.
+The internal-context text identifies provenance. The outer developer role carries authority.
 
 ## Required Active Steering Shape
 
 Active Goal steering must use the generic internal-context abstraction through an explicit role-bearing
-conversion.
+conversion. The existing Goal-only active context path is deletion terrain for active Goal steering, not an
+architecture to preserve, keep in place, or design around.
 
 Expected shape:
 
@@ -52,13 +53,19 @@ InternalModelContextFragment::new(
 The exact names may change, but the responsibilities may not:
 
 InternalModelContextFragment
-owns wrapper rendering and source provenance.
+owns internal-context rendering and source provenance.
 
 InternalModelContextRole::Developer
 owns the outer model role.
 
 ResponseItem::Message.role
-is the authority boundary.
+is the authority source.
+
+Adding `Developer` to a role enum is not sufficient by itself. Active Goal
+call sites must invoke the generic role-bearing conversion with
+`InternalModelContextRole::Developer` or its direct equivalent, and tests must
+inspect the final model request input to prove the outer message role is
+`developer`.
 
 Active Goal steering must not use ContextualUserFragment::into(...) or any equivalent conversion path that
 hardcodes, defaults, or infers role = "user".
@@ -76,12 +83,28 @@ or map it to developer-role behavior. They must not preserve user-role Goal stee
 
 Durable Goal state
 
-Structured persisted Goal facts: objective, status, budget, usage, timestamps, active run state, and pending
-steering intent.
+Structured persisted Goal facts plus structured persisted Goal cadence state.
+Goal facts include objective, status, budget, usage, timestamps, and active run
+state. Pending steering intent is durable cadence state; it is not rendered
+marker text and is not a model-visible Goal item.
 
 Cadence item
 
 A developer-role Goal steering item recorded because Goal cadence says steering is due.
+
+Final model request input
+
+The actual input list for the request that will be sent to the model. A Goal
+cadence item exists only when this input list contains the Goal steering item as
+an outer developer-role message. Rendering, constructing a response item,
+attempting same-turn injection, reserving a turn, or recording harness-local
+metadata is not enough.
+
+If that input list is built but the request is not submitted to the model
+client and no equivalent rollout request is recorded, pending cadence intent
+remains pending. A send failure before any response is created must have an
+explicit retry policy; the default is to keep pending Initial,
+ObjectiveUpdated, and BudgetLimit intent pending.
 
 Repair item
 
@@ -95,7 +118,7 @@ truth for current Goal facts.
 
 Seam
 
-A boundary where model-visible context can be rebuilt, filtered, compacted, resumed, rolled back, forked,
+A point where model-visible context can be rebuilt, filtered, compacted, resumed, rolled back, forked,
 retried, or transferred through previous_response_id / model-context state.
 
 ## Primary Cadence
@@ -106,29 +129,49 @@ Cadence, not request repair, decides when Goal should speak.
 
 | Event | Trigger | Model-Visible Item | Durable Ordering |
 | --- | --- | --- | --- |
-| Initial | A newly active Goal enters the active run | Record one developer-role Goal item | Mark Initial intent/state before steering |
-| Continuation | Thread is idle after meaningful autonomous work | Record one developer-role Goal item | Goal must still be active |
-| ObjectiveUpdated | Active objective changes | Record one developer-role Goal item | Persist updated objective first |
-| BudgetLimit | Budget state changes and model should wrap up | Record one developer-role Goal item | Persist usage/status first |
+| Initial | A newly active Goal enters the active run | Final model request input contains one developer-role Goal item | Persist pending Initial intent before steering |
+| Continuation | Thread is idle after meaningful autonomous work | Final model request input contains one developer-role Goal item | Goal must still be active; runtime suppression must allow it |
+| ObjectiveUpdated | Active objective changes | Final model request input contains one developer-role Goal item | Persist updated objective and pending ObjectiveUpdated intent first |
+| BudgetLimit | Budget state changes and model should wrap up | Final model request input contains one developer-role Goal item | Persist usage/status and pending BudgetLimit intent first |
+
+The record step happens only when the final model request input contains the
+outer developer-role Goal item, not when a prompt is rendered, a response item
+is constructed, same-turn injection is attempted, or a turn is reserved.
 
 A Continuation is not “any next request.” It is due only when the lifecycle says the thread is idle and Goal
 continuation should run.
 
 The idle predicate must account for at least:
 
-no active turn
-no queued user/pending work that should run first
-no trigger-turn mailbox input waiting
-current collaboration mode allows Goal steering
-durable Goal still exists and is active
-the continuation is not suppressed by runtime accounting rules
+- no active turn
+- no queued user/pending work that should run first
+- no trigger-turn mailbox input waiting
+- current collaboration mode allows Goal steering
+- durable Goal still exists and is active
+- the continuation is not suppressed by runtime accounting rules
+
+Version plans that implement Continuation must spell out the idle lifecycle
+caller sequence, reservation/lock behavior, retry/failure behavior, and
+watermark update point. Those details may refine when the predicate is checked;
+they must not redefine ordinary user turns as Continuation events. The
+dedicated contract is
+`local/goal_research/goal-authority-idle-continuation-contract.md`.
+
+Initial, ObjectiveUpdated, and BudgetLimit intent must survive until the final
+model request input contains the developer-role Goal item that consumes that
+intent. Continuation is derived from the idle lifecycle predicate, not from
+persisted pending intent.
 
 ## Ordinary User Turns
 
 An ordinary user turn is not a cadence event.
 
-If a Goal is active, the ordinary user turn should preserve valid existing Goal authority in the model context.
-It must not inject a fresh full Continuation item merely because the user sent another message.
+If a Goal is active, the ordinary user turn may rely on already-valid current Goal authority when the final
+model request input can prove it. It must not inject a fresh full Continuation item merely because the user sent
+another message.
+
+An ordinary user turn may carry a Goal item when it is consuming an already-persisted pending Initial,
+ObjectiveUpdated, or BudgetLimit intent. That is cadence delivery, not a Goal reminder caused by the user turn.
 
 Repair may act only if a seam or model-context transition means the next request would otherwise violate
 current cadence-required authority.
@@ -150,11 +193,11 @@ pending steering kind
 
 If durable structured Goal state is absent, runtime must not resurrect a Goal from historical rendered text.
 
-## Legacy Goal Wrapper Compatibility
+## Legacy Goal Artifact Handling
 
 <goal_context> is a legacy rendered Goal artifact.
 
-Runtime may continue to recognize pure legacy wrappers only for artifact handling:
+Runtime may recognize pure legacy artifacts only for artifact handling:
 
 - hiding legacy Goal artifacts from typed/materialized UI projections
 - filtering or deduplicating pure legacy Goal artifacts during compaction and reconstruction
@@ -174,6 +217,8 @@ Runtime must not use <goal_context> to:
 - migrate old Goal sessions into active Goals
 
 New active Goal steering must use generic internal context plus explicit developer-role conversion.
+
+Any remaining code for old `<goal_context>` artifacts must not keep a Goal-specific active-context abstraction alive.
 
 ## Request Repair
 
@@ -202,8 +247,9 @@ retry paths
 previous_response_id / model-context transitions
 
 If a previous_response_id or model-side context path can prove the current developer-role Goal item is already
-present, repair does not need to resend it. If it cannot prove that, repair must restore the cadence-required
-developer-role Goal authority for that request.
+present in the final model request input, repair does not need to resend it. If it cannot prove that, repair
+must restore the cadence-required developer-role Goal authority for that request. Cross-turn
+previous_response_id reuse is not proof by itself.
 
 ## Repair Decision Table
 
@@ -216,7 +262,8 @@ developer-role Goal authority for that request.
 | Duplicate current Goal items | Yes, dedupe | No new cadence event |
 | Wrong-role current Goal item | Yes, replace with developer-role item | No by default |
 | Legacy <goal_context> only, no durable state | No active Goal repair; artifact handling only | No |
-| Durable state and cadence intent require Goal authority, but next request has none | Yes | Only if reconstructing cadence history explicitly requires it |
+| Durable state and pending Initial/ObjectiveUpdated/BudgetLimit intent require Goal authority, but next request has none | Yes, as cadence delivery | Yes, when consuming the pending intent |
+| Structured reconstruction proves a recorded cadence item was lost | Yes | Yes, if reconstructing recorded history |
 
 ## Anti-Patterns
 
@@ -226,21 +273,23 @@ Do not convert active Goal state into repeated full Goal reminders on every ordi
 
 ### User-Role Goal Steering
 
-Do not emit active Goal steering as user-role input. A provenance wrapper does not compensate for the wrong
+Do not emit active Goal steering as user-role input. Provenance text does not compensate for the wrong
 outer role.
 
-### Wrapper As Authority
+### Rendered Text As Authority
 
 Do not treat <goal_context> or source = "goal" as authority. The outer model role carries authority.
 
 ### Goal-Only Fake Provenance
 
-Do not build active Goal steering around a Goal-specific wrapper serializer. Use the generic internal-context
+Do not build active Goal steering around a Goal-specific active context helper. Use the generic internal-context
 abstraction with explicit role-bearing conversion.
+
+Do not leave the Goal-only active context path as an active-path subsystem under compatibility or migration language.
 
 ### Runtime Archaeology
 
-Do not parse rendered Goal wrappers to recover active Goal state.
+Do not parse rendered Goal artifacts to recover active Goal state.
 
 ### Tool Output As Steering
 
@@ -264,14 +313,17 @@ For each relevant scenario, verify:
 - No active Goal steering item is user-role.
 - Active Goal steering uses generic internal context with source = "goal".
 - Active Goal steering is built through explicit role-bearing conversion, not
-ContextualUserFragment::into(...).
+  ContextualUserFragment::into(...).
 
 - The body reflects current durable Goal state.
 - The objective is escaped as untrusted text.
 - Goal items exist only when cadence or repair requires them.
 - Ordinary user turns do not receive blind fresh Continuation items.
+- Ordinary user turns may consume already-pending Initial, ObjectiveUpdated, or BudgetLimit intent.
+- Resume preserves already-pending Initial intent but does not create Initial from active Goal state alone.
 - Duplicate current Goal authority is removed or prevented.
-- Legacy <goal_context> compatibility is limited to artifact handling.
+- Legacy <goal_context> handling is limited to artifact handling.
+- Raw response item notifications are not specially suppressed for Goal context.
 
 Required scenario coverage should include:
 
@@ -289,6 +341,8 @@ rollback
 fork
 previous_response_id / model-context transition
 legacy <goal_context> artifact filtering
+resume with pending Initial intent
+resume after Initial was already consumed
 
 ## Conformance Requirements
 
@@ -297,8 +351,12 @@ Any implementation plan must identify:
 - cadence event sources
 - durable state fields used
 - pending steering intent representation
+- final model request input construction point that consumes pending steering intent
+- idle lifecycle caller, reservation, retry, and watermark update behavior for
+  `MaybeContinueIfIdle`
 - developer-role internal-context construction API
 - places where user-role conversion paths are removed for active Goal steering
+- resume behavior for pending intent versus already-introduced active Goals
 - repair insertion points
 - legacy artifact predicates
 - tests that inspect final model payloads or rollout items

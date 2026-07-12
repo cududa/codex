@@ -18,18 +18,18 @@ InternalModelContextFragment(source = "goal", rendered_goal_prompt)
   -> ResponseItem::Message { role: "developer", ... }
 ```
 
-The retired active target is:
+The deleted active target is:
 
 ```text
 GoalContext
   -> <goal_context>...</goal_context>
   -> GoalContextRole
-  -> ResponseInputItem/ResponseItem role chosen by Goal-only wrapper code
+  -> ResponseInputItem/ResponseItem role chosen by Goal-only code
 ```
 
 ## Active Shim Roots To Remove
 
-### Core Goal Wrapper
+### Core GoalContext Shim
 
 File:
 
@@ -41,14 +41,15 @@ Current responsibilities:
 - wraps rendered Goal prompt text
 - defines `GoalContextRole::{User, Developer}`
 - converts Goal prompt into a response input item
-- detects pure Goal wrapper messages through `is_goal_context_*`
+- detects pure Goal artifact messages through `is_goal_context_*`
 
-Required removal work:
+Required deletion work:
 
 - stop using `GoalContext` for active Goal steering
 - stop using `GoalContextRole` as the active steering role abstraction
-- move active wrapper rendering to generic internal-context infrastructure
-- leave only legacy pure-wrapper artifact detection for old persisted items
+- move active internal-context rendering to generic internal-context infrastructure
+- leave only legacy pure-artifact detection for old persisted items;
+  do not leave a Goal-specific active-context abstraction behind
 
 ### Core Goal Steering Producer
 
@@ -64,14 +65,15 @@ Current responsibilities:
 - ObjectiveUpdated steering creates active `<goal_context>` items
 - BudgetLimit steering creates active `<goal_context>` items
 
-Required removal work:
+Required deletion work:
 
 - leave cadence decisions and prompt rendering in Goal-specific code
 - replace active `GoalContext` construction with generic internal-context item
   construction
 - make active steering developer-role only
-- remove or neutralize user-role active Goal steering configuration
-- do not call legacy wrapper matching from active prompt construction
+- remove, reject, or hard-map user-role active Goal steering configuration to
+  developer-role behavior
+- do not call legacy artifact matching from active Goal item construction
 
 ### Extension Goal Steering Producer
 
@@ -87,14 +89,24 @@ Current responsibilities:
 - extension runtime injects Goal steering into the active turn
 - core thread API routes extension Goal items into session Goal injection
 
-Required removal work:
+Required deletion work:
 
 - do not change extension ownership/timing except where the version plan
   explicitly uses `ext/goal`
-- replace extension active wrapper construction with the same generic
+- replace extension active GoalContext construction with the same generic
   role-bearing internal-context builder used by core
 - do not let extension Goal steering call a user-role
   `ContextualUserFragment` conversion for active Goal authority
+
+Scope clarification:
+
+- if an extension path remains compiled and reachable as an active Goal
+  steering producer under any supported configuration, it must be converted in
+  the same completed implementation
+- if a version plan does not use `ext/goal`, it may leave unrelated extension
+  ownership/timing untouched, but it must either convert, remove, or prove
+  unreachable any extension path that would otherwise emit active Goal steering
+  through `GoalContext`
 
 ## Shim-Dependent Consumers To Replace Carefully
 
@@ -103,7 +115,7 @@ or depend on `is_goal_context_*` behavior, so the removal work must replace that
 active dependency with:
 
 - a generic current-internal-context predicate for the new active Goal shape
-- a legacy pure-wrapper predicate for old persisted `<goal_context>` artifacts
+- a legacy pure-artifact predicate for old persisted `<goal_context>` artifacts
 
 This is not a staged permission to preserve the shim. The consumer replacement
 is part of removing the active shim.
@@ -118,7 +130,7 @@ Files:
 
 Current dependency:
 
-- Goal wrapper text is hidden from typed/materialized user-visible turn items
+- Goal artifact text is hidden from typed/materialized user-visible turn items
   or classified as contextual content
 
 Required replacement:
@@ -165,9 +177,13 @@ Required replacement:
 Implementation pitfall:
 
 - mid-turn compaction has historically used current-turn Goal carry to carry
-  active steering across compaction. A version plan must decide whether that
-  carry remains a recorded cadence item, structured cadence intent, or
-  request-local repair.
+  active steering across compaction. Under the cadence contract, carry is
+  turn-local evidence for preserving a cadence item already included in final
+  model request input. It must
+  not be converted into new durable Goal facts or new structured pending
+  cadence intent. A version plan must decide only whether a given compaction
+  seam is preserving an already included cadence item or applying request-local
+  repair.
 
 ### Rollout Reconstruction
 
@@ -178,15 +194,15 @@ Files:
 
 Current dependency:
 
-- pure Goal wrapper artifacts are removed from reconstructed history
+- pure Goal artifacts are removed from reconstructed history
 - mixed messages are retained
 
 Required replacement:
 
-- retain cleanup behavior for pure legacy wrappers
+- retain cleanup behavior for pure legacy artifacts
 - add pure current internal-context Goal artifact cleanup
 - retain mixed-content retention
-- never reconstruct active Goal state by parsing a rendered wrapper
+- never reconstruct active Goal state by parsing a rendered artifact
 
 Implementation pitfall:
 
@@ -211,8 +227,8 @@ Current dependency:
 Required replacement:
 
 - current Goal internal-context items must not become visible user-turn
-  boundaries
-- legacy `<goal_context>` artifacts must remain non-user-boundary cleanup
+  markers
+- legacy `<goal_context>` artifacts must remain non-user cleanup
   artifacts
 - ordinary user messages must still count normally
 
@@ -239,7 +255,7 @@ Required replacement:
 
 - add or adapt a generic internal-context abstraction that supports explicit
   model role selection
-- source validation and pure-wrapper parsing must live in generic
+- source validation and pure-artifact parsing must live in generic
   infrastructure
 - do not solve Goal authority with a Goal-specific helper that bypasses the
   generic abstraction
@@ -260,7 +276,7 @@ Remove as active Goal steering machinery:
   `GoalContext`
 - extension active steering paths that delegate to `GoalContext`
 - user-role active Goal steering behavior
-- request-time recovery of Goal state from rendered wrapper text
+- request-time recovery of Goal state from rendered artifact text
 
 ## Required Legacy Artifact Handling
 
@@ -291,14 +307,14 @@ InternalContextSource
   validates and renders source names such as "goal"
 
 InternalModelContextFragment
-  owns wrapper rendering:
+  owns internal-context rendering:
   <codex_internal_context source="goal">...</codex_internal_context>
 
 InternalModelContextRole
   owns the outer model role, especially Developer
 
 into_response_item(role)
-  produces the model-bound ResponseItem with explicit role
+  produces the ResponseItem with explicit outer model role
 ```
 
 Goal-specific code must own:
@@ -312,7 +328,7 @@ Goal-specific code must own:
 Generic internal-context code must own:
 
 - source validation
-- wrapper rendering
+- internal-context rendering
 - pure internal-context detection
 - role-bearing conversion
 
@@ -320,8 +336,10 @@ Generic internal-context code must own:
 
 These work areas are not permission to land a half-converted active Goal path.
 A version plan can sequence the work internally for reviewability, but an
-accepted implementation must not leave any active Goal steering producer on
+completed implementation must not leave any active Goal steering producer on
 `GoalContext` or any active Goal authority decision on `<goal_context>`.
+This includes extension producers that remain compiled and reachable under any
+supported configuration.
 
 ### Work Area 1: Generic Internal Context
 
@@ -367,8 +385,8 @@ Tests must prove:
 Move `ext/goal` steering producers to the same generic role-bearing path when a
 version plan makes extension steering production active.
 
-Tests must prove extension-produced Goal steering has the same model-bound
-shape as core-produced steering.
+Tests must prove extension-produced Goal steering has the same final model
+request input shape as core-produced steering.
 
 ### Work Area 5: Cleanup Consumers
 
@@ -389,8 +407,8 @@ This removal map does not decide when Goal speaks.
 
 The cadence contract decides when active Goal steering is due.
 
-This map decides how to retire the fake active wrapper and what consumers must
-be replaced so the active steering shape can become:
+This map decides how to delete the fake active GoalContext path from the active Goal path
+and what consumers must be replaced so the active steering shape can become:
 
 ```text
 generic internal context + explicit developer role
@@ -401,5 +419,5 @@ without regressing:
 - UI hiding
 - compaction cleanup
 - rollout reconstruction cleanup
-- user-turn boundary handling
+- user-turn handling
 - legacy artifact compatibility
