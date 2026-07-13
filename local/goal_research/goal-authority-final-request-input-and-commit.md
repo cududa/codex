@@ -1,0 +1,276 @@
+# Goal Authority Final Request Input And Commit
+
+## Purpose
+
+This document defines the central implementation seam for active Goal
+authority.
+
+It consolidates the previous cadence-module, finalizer/commit, and
+`goals.rs` adapter design notes. The replacement architecture is not a new
+context helper layer. The replacement is per-attempt ownership of the actual
+model request input.
+
+## Code Terrain
+
+The actual model request path is:
+
+```text
+codex-rs/core/src/session/turn.rs
+  run_sampling_request(...)
+  -> build_prompt(input, ...)
+
+codex-rs/core/src/client_common.rs
+  Prompt { input: Vec<ResponseItem> }
+
+codex-rs/core/src/client.rs
+  build_responses_request(...)
+  -> let input = prompt.get_formatted_input()
+
+codex-rs/codex-api/src/common.rs
+  ResponsesApiRequest { input: Vec<ResponseItem> }
+```
+
+`ResponseItem::Message.role` is the model role. There is no deeper authority
+layer after `Prompt.input`.
+
+Important current terrain:
+
+- `run_sampling_request(...)` receives an initial `Vec<ResponseItem>`, but
+  later retry attempts rebuild prompt input from
+  `sess.clone_history().await.for_prompt(...)`
+- `build_prompt(...)` is the last local construction point before the model
+  client receives request input
+- `ResponseEvent::Created` currently has no Goal commit behavior
+- current Goal steering builds concrete `ResponseInputItem`s through
+  `GoalContext::into_response_input_item(...)`
+- current same-turn injection and carry store concrete Goal
+  `ResponseInputItem`s before final request shaping
+
+The final request-input shaping point must run for every request attempt after
+that attempt's base `Vec<ResponseItem>` is known and before `build_prompt(...)`
+hands it to the model client.
+
+## Core Rule
+
+Active Goal authority is established only when the final request input contains
+exactly one selected current Goal item:
+
+```text
+ResponseItem::Message {
+  role: "developer",
+  content: [ContentItem::InputText { text: current rendered Goal context }],
+  ...
+}
+```
+
+Rendering text, constructing a helper output, injecting a `ResponseInputItem`,
+reserving a turn, or carrying current-turn metadata is not authority and is not
+a commit.
+
+## Final Request-Input Shaping
+
+The shaping function owns Goal authority for a request attempt.
+
+Logical signature:
+
+```text
+finalize_goal_request_input(
+  attempt_context,
+  base_input: Vec<ResponseItem>,
+) -> FinalizedGoalRequestInput
+```
+
+`attempt_context` must include the logical equivalents of:
+
+- thread id and turn id
+- current durable Goal snapshot, including facts version
+- pending Initial, ObjectiveUpdated, and BudgetLimit intent snapshot
+- optional runtime Continuation request selected by the idle predicate
+- collaboration/feature eligibility facts
+- model-visible history key for this attempt
+- transport context needed to account for full request versus WebSocket delta
+- repair context for compaction, resume, rollback, reconstruction, retry, or
+  previous-response/model-context transitions
+
+`FinalizedGoalRequestInput` must include:
+
+```text
+input: Vec<ResponseItem>
+commit: Option<GoalRequestCommit>
+repair_report: GoalRepairReport
+```
+
+## Shaping Responsibilities
+
+For every attempt, the shaping function must:
+
+1. inspect the actual `Vec<ResponseItem>` that would otherwise become
+   `Prompt.input`
+2. classify pure current Goal internal-context items and pure legacy
+   `<goal_context>` artifacts
+3. remove, ignore, or replace stale, wrong-role, duplicate, legacy, or
+   pre-injected Goal-looking items according to the authority contracts
+4. select at most one Goal cadence item for this request
+5. render selected Goal text from current durable Goal facts
+6. insert or verify exactly one outer developer-role Goal `ResponseItem` when
+   cadence-required authority is due
+7. return commit metadata tied to that exact item
+
+It must not insert Goal steering merely because an active durable Goal exists.
+
+## Selection Order
+
+When more than one item is due for the same request opportunity, selection
+order is:
+
+```text
+BudgetLimit
+ObjectiveUpdated
+Initial
+Continuation
+```
+
+Continuation never supersedes persisted pending intent.
+
+## Commit Metadata
+
+`GoalRequestCommit` must be inert until the request enters model execution.
+
+Logical fields:
+
+```text
+GoalRequestCommit {
+  thread_id,
+  turn_id,
+  goal_id,
+  kind: Initial | ObjectiveUpdated | BudgetLimit | Continuation,
+  facts_version,
+  model_visible_history_key,
+  item_fingerprint,
+  inserted_or_verified,
+}
+```
+
+`item_fingerprint` must identify the exact developer-role Goal item in the
+final request input. It may be a structured fingerprint rather than a persisted
+copy of the whole item, but it must be enough for tests and commit logic to
+prove the commit refers to the item actually sent.
+
+## Commit Point
+
+Commit happens only after the request is known to have entered model execution.
+
+Expected commit point:
+
+```text
+ResponseEvent::Created
+```
+
+If code inspection later proves a more precise local point, the implementation
+plan must name it. Until then, use `ResponseEvent::Created`.
+
+Commit behavior:
+
+- Initial, ObjectiveUpdated, and BudgetLimit commit consumes matching pending
+  intent by exact key
+- BudgetLimit commit may clear superseded Initial or ObjectiveUpdated intent
+  for the same Goal
+- Continuation commit advances runtime Continuation suppression for
+  `{ goal_id, model_visible_history_key, facts_version }`
+- committed carry may record that this turn already delivered a specific Goal
+  item, but must not store pre-finalizer concrete `ResponseInputItem`s as
+  authority
+
+No commit occurs when:
+
+- rendering succeeds but the item is not in final request input
+- shaping returns an error before `build_prompt(...)`
+- `build_prompt(...)` constructs a `Prompt` but the request is not submitted
+- stream setup fails before model execution begins
+- a helper output exists but the final request input did not contain the
+  selected developer-role Goal item
+
+## Retry And Follow-Up
+
+The shaping function must run for every model request attempt.
+
+This matters because `run_sampling_request(...)` may rebuild prompt input from
+history inside its retry loop after the first attempt. The implementation must
+not shape only the first pre-loop snapshot.
+
+Rules:
+
+- retry before commit leaves pending intent and Continuation watermark
+  unchanged
+- retry after commit reruns shaping against committed state/history
+- same-turn follow-up after tool output or mailbox input reruns shaping
+- WebSocket incremental transport may send a delta, but shaping still attaches
+  to the full logical request input used to derive that delta
+
+## Current-Turn Carry
+
+Current carry may preserve evidence that a finalized request already contained
+a Goal item.
+
+It must not carry prebuilt active Goal `ResponseInputItem`s as authority.
+
+Replacement carry should be the logical equivalent of:
+
+```text
+CommittedGoalRequestCarry {
+  turn_id,
+  goal_id,
+  kind,
+  facts_version,
+  model_visible_history_key,
+  item_fingerprint,
+}
+```
+
+This carry can support mid-turn compaction repair. It cannot create new cadence
+intent and cannot prove authority for a different request attempt.
+
+## `goals.rs` Adapter
+
+`codex-rs/core/src/goals.rs` should remain an adapter for Goal lifecycle and
+tool/app-server-facing behavior.
+
+It may own:
+
+- tool command handling
+- protocol/state conversion
+- validation
+- external Goal mutation entry points
+- usage accounting entry points
+- prompt body rendering helpers, if kept small
+
+It must not own:
+
+- per-attempt final request-input shaping
+- repair decisions
+- commit metadata construction
+- pending-intent selection for a request attempt
+- Continuation watermark policy
+- pre-finalizer concrete Goal item injection as authority
+
+## Tests
+
+Focused tests must inspect captured final request input, not helper output.
+
+Required coverage:
+
+- Initial final request input contains exactly one current developer-role Goal
+  item
+- ObjectiveUpdated renders from persisted updated durable state
+- BudgetLimit renders from persisted usage/status state
+- Continuation appears only when selected by idle predicate
+- stale, duplicate, wrong-role, legacy, and pre-injected Goal-looking items are
+  removed, ignored, or replaced
+- no active `<goal_context>` item reaches final request input
+- no user-role Goal steering item reaches final request input
+- pending intent is consumed only after the commit point
+- retry before commit does not consume pending intent
+- follow-up request reruns shaping from rebuilt prompt input
+- `ResponseEvent::Created` commit updates pending intent or Continuation
+  suppression as appropriate
+- current-turn carry records committed metadata, not pre-finalizer model input

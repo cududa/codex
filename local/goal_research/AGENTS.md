@@ -50,8 +50,10 @@ authority, or hiddenness-as-authority.
 implementable cadence model. It defines durable Goal facts, persisted pending
 cadence intent, consumption when final model request input contains the
 developer-role Goal item, request repair, supersedence, and the verification
-checklist. Version plans should generally derive their state model and tests
-from this file.
+checklist. In the current code, final model request input means the logical
+`Vec<ResponseItem>` that becomes `Prompt.input` and then
+`ResponsesApiRequest.input`. Version plans should generally derive their state
+model and tests from this file.
 
 `goal-authority-idle-continuation-contract.md` is a focused companion to the
 cadence contract. It fills in the `MaybeContinueIfIdle` gap. Use it only for
@@ -79,12 +81,36 @@ grounding truth decides what is allowed
   -> test deletion map decides how to reset test pressure before replacement tests
 ```
 
+## Design Deliverables
+
+The authority contracts are mature, and the remaining implementation-design
+deliverables are tracked in `goal-authority-open-design-deliverables.md`. Do
+not treat the repo as ready for a new implementation execution plan unless
+that checklist marks all required deliverables Ready or a later authority
+update explicitly resolves them.
+
+Use `goal-authority-open-design-deliverables.md` as the current checklist.
+It tracks the implementation-design seams for:
+
+- durable cadence state
+- final request-input shaping and commit
+- `model_visible_history_key`
+- `ext/goal` ownership, with upstream guidance expected because Goal is moving
+  toward extension ownership
+- repair/classifier integration
+
+When the checklist marks all deliverables Ready, the next step is an
+implementation execution plan that translates them into file-specific slices.
+
 ## Non-Negotiables
 
 Keep these decisions intact:
 
 - active Goal steering is developer-role model input
-- active Goal steering uses generic role-bearing internal context
+- active Goal authority is established only by the final model request input
+  containing the selected developer-role Goal `ResponseItem`
+- generic internal context may provide Goal text rendering, provenance, and
+  cleanup classification; it is not an authority mechanism by itself
 - active Goal steering does not use `GoalContext`, `GoalContextRole`, or
   `<goal_context>`
 - Initial, ObjectiveUpdated, and BudgetLimit use persisted pending cadence
@@ -134,6 +160,7 @@ Known terrain that must not become the design:
 - runtime-only Initial pending state as the durable cadence model
 - ObjectiveUpdated or BudgetLimit steering being dropped after failed
   same-turn injection
+- pre-finalizer concrete Goal `ResponseInputItem` carry as proof of authority
 - Goal-only fake provenance machinery as active steering machinery
 - special local raw-response suppression for Goal context
 

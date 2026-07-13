@@ -36,45 +36,49 @@ The internal-context text identifies provenance. The outer developer role carrie
 
 ## Required Active Steering Shape
 
-Active Goal steering must use the generic internal-context abstraction through an explicit role-bearing
-conversion. The existing Goal-only active context path is deletion terrain for active Goal steering, not an
-architecture to preserve, keep in place, or design around.
+Active Goal steering must be established at the final model request input
+shaping point. In the current code this means the logical `Vec<ResponseItem>`
+that becomes `Prompt.input` and then `ResponsesApiRequest.input`.
+
+Generic internal context may be used to render the Goal text and identify
+`source = "goal"`, but that helper is not the authority mechanism. The existing
+Goal-only active context path is deletion terrain for active Goal steering, not
+an architecture to preserve, keep in place, or design around.
 
 Expected shape:
 
 ```rust
-InternalModelContextFragment::new(
-    InternalContextSource::from_static("goal"),
-    rendered_goal_prompt,
-)
-.into_response_item(InternalModelContextRole::Developer)
+let text = render_internal_goal_context(rendered_goal_prompt);
+ResponseItem::Message {
+    role: "developer",
+    content: vec![ContentItem::InputText { text }],
+    ..
+}
 ```
 
 The exact names may change, but the responsibilities may not:
 
-InternalModelContextFragment
-owns internal-context rendering and source provenance.
+Goal cadence owns selecting whether Goal steering is due for this request.
 
-InternalModelContextRole::Developer
-owns the outer model role.
+Internal-context rendering owns text/provenance/classification only.
 
 ResponseItem::Message.role
 is the authority source.
 
-Adding `Developer` to a role enum is not sufficient by itself. Active Goal
-call sites must invoke the generic role-bearing conversion with
-`InternalModelContextRole::Developer` or its direct equivalent, and tests must
-inspect the final model request input to prove the outer message role is
-`developer`.
+Adding `Developer` to a role enum, or adding a helper that can produce a
+developer-role item, is not sufficient by itself. Active Goal authority is
+proven only when final model request input contains exactly one current Goal
+`ResponseItem::Message` whose outer role is `developer`.
 
 Active Goal steering must not use ContextualUserFragment::into(...) or any equivalent conversion path that
 hardcodes, defaults, or infers role = "user".
 
 There is no user-role active Goal steering path.
 
-Implementation plans must add or adapt a generic role-bearing conversion API on
-InternalModelContextFragment or its direct equivalent. They must not solve Goal authority with a
-Goal-specific helper that bypasses the generic internal-context abstraction.
+Implementation plans may add or adapt generic internal-context rendering and
+classification helpers. They must not treat those helpers as authority. The
+plan must identify the final request-input shaping point that inserts,
+replaces, or verifies the actual developer-role Goal `ResponseItem`.
 
 If older configuration exposes a Goal steering role override, implementation plans must remove it, reject it,
 or map it to developer-role behavior. They must not preserve user-role Goal steering as compatibility.
@@ -94,11 +98,14 @@ A developer-role Goal steering item recorded because Goal cadence says steering 
 
 Final model request input
 
-The actual input list for the request that will be sent to the model. A Goal
-cadence item exists only when this input list contains the Goal steering item as
-an outer developer-role message. Rendering, constructing a response item,
-attempting same-turn injection, reserving a turn, or recording harness-local
-metadata is not enough.
+The actual logical input list for the request that will be sent to the model.
+In current code, this is the `Vec<ResponseItem>` that becomes `Prompt.input`
+and then `ResponsesApiRequest.input`, before any transport-specific full
+request or WebSocket incremental delta is derived. A Goal cadence item exists
+only when this input list contains the Goal steering item as an outer
+developer-role message. Rendering, constructing a response item, attempting
+same-turn injection, reserving a turn, or recording harness-local metadata is
+not enough.
 
 If that input list is built but the request is not submitted to the model
 client and no equivalent rollout request is recorded, pending cadence intent
@@ -224,7 +231,9 @@ Runtime must not use <goal_context> to:
 - preserve user-role steering behavior
 - migrate old Goal sessions into active Goals
 
-New active Goal steering must use generic internal context plus explicit developer-role conversion.
+New active Goal steering may use generic internal context text, but authority
+comes from the final request input containing the selected developer-role Goal
+`ResponseItem`.
 
 Any remaining code for old `<goal_context>` artifacts must not keep a Goal-specific active-context abstraction alive.
 
@@ -290,8 +299,9 @@ Do not treat <goal_context> or source = "goal" as authority. The outer model rol
 
 ### Goal-Only Fake Provenance
 
-Do not build active Goal steering around a Goal-specific active context helper. Use the generic internal-context
-abstraction with explicit role-bearing conversion.
+Do not build active Goal steering around a Goal-specific active context helper.
+Do not replace it with another helper-only authority layer. Generic internal
+context can render and classify text; final request input owns authority.
 
 Do not leave the Goal-only active context path as an active-path subsystem under compatibility or migration language.
 
@@ -319,8 +329,11 @@ For each relevant scenario, verify:
 
 - Active Goal steering is developer-role model input.
 - No active Goal steering item is user-role.
-- Active Goal steering uses generic internal context with source = "goal".
-- Active Goal steering is built through explicit role-bearing conversion, not
+- Active Goal steering text identifies `source = "goal"` when the current
+  internal-context representation is used.
+- Active Goal steering is inserted or verified at the final request-input
+  shaping point, not merely by a helper output.
+- Active Goal steering is not built through
   ContextualUserFragment::into(...).
 
 - The body reflects current durable Goal state.
@@ -362,7 +375,7 @@ Any implementation plan must identify:
 - final model request input construction point that consumes pending steering intent
 - idle lifecycle caller, reservation, retry, and watermark update behavior for
   `MaybeContinueIfIdle`
-- developer-role internal-context construction API
+- final request-input shaping API and any internal-context rendering helper
 - places where user-role conversion paths are removed for active Goal steering
 - resume behavior for pending intent versus already-introduced active Goals
 - repair insertion points

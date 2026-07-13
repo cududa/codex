@@ -96,7 +96,7 @@ shape. Replace it later with a final model request input test that proves:
 
 - exactly one current Goal steering item is present
 - its outer role is `developer`
-- it uses generic internal context
+- its text uses the current Goal internal-context representation
 - no active `<goal_context>` item is emitted
 - no user-role Goal steering item is emitted
 

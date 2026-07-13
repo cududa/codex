@@ -41,25 +41,31 @@ The internal-context text supplies provenance and hidden classification.
 
 The outer developer role supplies authority.
 
-Active Goal steering must be built through a generic role-bearing internal
-context abstraction, not through `GoalContext`, `<goal_context>`, or another
+Active Goal authority must be established at the final request-input shaping
+point. In the current code, this is the logical `Vec<ResponseItem>` that
+becomes `Prompt.input` and then `ResponsesApiRequest.input`, before any
+transport-specific full request or WebSocket incremental delta is derived.
+
+Generic internal context may render Goal text and supply provenance and cleanup
+classification. It is not an authority mechanism by itself. Active Goal
+steering must not be built through `GoalContext`, `<goal_context>`, or another
 Goal-only active context path.
 
 Expected logical shape:
 
 ```text
-InternalModelContextFragment(source = "goal", rendered_goal_prompt)
-  -> explicit role-bearing conversion
-  -> ResponseItem::Message { role: "developer", ... }
+Goal cadence selects cadence item for this request
+  -> render current Goal text from durable state
+  -> final request-input shaping inserts or verifies exactly one
+     ResponseItem::Message { role: "developer", source = "goal", ... }
 ```
 
 The exact Rust type names may change. The responsibilities may not.
 
-Adding a `Developer` variant to the generic internal-context role type is
-necessary only if the type lacks one today. It is not sufficient. Active Goal
-steering producers must call the generic role-bearing conversion with
-`Developer`, and tests must inspect the final model request input to prove the
-outer model item role is `developer`.
+Adding a `Developer` variant to a helper role type, or adding a helper that can
+produce developer-role internal context, is not sufficient. Tests must inspect
+the final model request input to prove the selected Goal item is present as an
+outer developer-role `ResponseItem`.
 
 ## Cadence State Model
 
@@ -178,17 +184,20 @@ The primary pipeline is:
 Goal cadence event
   -> durable state is already current
   -> mark or derive cadence intent
-  -> include one developer-role internal-context Goal steering item in final
-     model request input
+  -> shape the final model request input by cleaning stale Goal-looking items
+     and inserting or verifying one developer-role Goal steering item
   -> the final model request input contains that item as an outer
      developer-role message
   -> record the cadence item and consume pending intent there when pending
      intent exists
 ```
 
-In this contract, `final model request input` means the actual input list for
-the request that will be sent to the model. For rollout reconstruction tests,
-the recorded rollout item must represent that same model input shape.
+In this contract, `final model request input` means the actual logical input
+list for the request that will be sent to the model. In current code, this is
+the `Vec<ResponseItem>` that becomes `Prompt.input` and then
+`ResponsesApiRequest.input`, before any transport-specific full request or
+WebSocket incremental delta is derived. For rollout reconstruction tests, the
+recorded rollout item must represent that same model input shape.
 
 A cadence item is recorded only when final model request input contains exactly
 one current Goal steering item whose outer model role is `developer`.
@@ -357,7 +366,8 @@ Consumption requires all of the following:
 - the durable facts version still matches or has been intentionally superseded
 - the chosen steering item was rendered from current durable facts
 - the item is developer-role model input
-- the item uses the current generic internal-context representation
+- the item uses the current Goal internal-context text representation when
+  that representation is part of the active design
 - the final model request input contains the item
 - the cadence item is recorded as model-visible Goal steering, unless the
   operation is explicitly request-local repair rather than cadence delivery
@@ -409,7 +419,8 @@ Current Goal authority means all of the following are true:
 - the durable Goal status allows the steering kind being considered
 - the steering item was produced for the current Goal identity and current
   durable facts
-- the item uses the current generic internal-context representation
+- the item uses the current Goal internal-context text representation when
+  that representation is part of the active design
 - the item is developer-role model input
 - the item is not a legacy `<goal_context>` artifact
 - the item is not duplicated by another current Goal authority item
@@ -447,6 +458,7 @@ Invalid proof sources include:
 - app-server typed or materialized projections
 - raw response item events
 - legacy `<goal_context>` text
+- helper output before final request-input shaping
 - generic hidden classification without developer role
 - rendered artifact parsing
 - cross-turn `previous_response_id` reuse without exact final model request
@@ -480,7 +492,8 @@ Request-local repair:
 
 - may alter the prompt input for the current model request
 - must render from durable Goal state
-- must use developer-role generic internal context
+- must leave the final request input with a developer-role Goal item when
+  cadence-required authority is due
 - must not consume pending cadence intent unless it is explicitly delivering
   that pending intent
 - must not persist a new rollout item
@@ -577,9 +590,9 @@ abstraction alive. The active path must have no dependency on `GoalContext`,
 Replace active steering with:
 
 ```text
-InternalModelContextFragment(source = "goal", rendered_goal_prompt)
-  -> explicit role-bearing conversion
-  -> ResponseItem::Message { role: "developer", ... }
+Goal cadence-selected request item
+  -> final request-input shaping
+  -> exactly one ResponseItem::Message { role: "developer", source = "goal", ... }
 ```
 
 ## Shared Classification
@@ -608,7 +621,7 @@ Generic internal-context infrastructure owns:
 - source validation
 - internal-context rendering
 - pure internal-context detection
-- role-bearing conversion
+- optional conversion helpers for ordinary context construction
 
 Goal-specific code owns:
 
@@ -617,6 +630,8 @@ Goal-specific code owns:
 - steering kind selection
 - prompt rendering
 - objective escaping
+- final request-input Goal shaping and commit metadata, or a narrowly named
+  cadence module that owns those responsibilities on Goal's behalf
 
 Legacy Goal artifact code owns only:
 
@@ -696,7 +711,7 @@ recorded rollout tests prove:
 - BudgetLimit renders from persisted usage/status state
 - BudgetLimit supersedes older active-state pending intent for the same Goal
 - active Goal steering is developer-role
-- active Goal steering uses generic internal context
+- active Goal steering is inserted or verified in the final model request input
 - active Goal steering does not use `<goal_context>`
 - request repair fixes seam loss without becoming cadence
 - request-local repair does not create rollout history
@@ -722,6 +737,8 @@ Future version plans must identify:
   reservation/lock behavior, retry/failure semantics, and the runtime
   continuation watermark update point
 - the final model request input proof path for current Goal authority
+- the final request-input shaping point that removes stale/wrong-role/duplicate
+  Goal-looking items and inserts or verifies the selected current item
 - the request-local repair insertion point
 - the narrow cases where repair records reconstructed cadence history
 - the shared classifier API for current internal-context items and legacy

@@ -24,7 +24,8 @@ This document conforms to:
 - `local/goal_research/goal-authority-fake-shim-removal-map.md`
 
 It does not redefine active Goal steering shape. Active Goal steering remains
-developer-role model input built through generic role-bearing internal context.
+developer-role model input established at the final request-input shaping
+point.
 
 ## Non-Negotiables
 
@@ -416,6 +417,9 @@ The current code also has terrain that must not become the design:
   `{ goal_id, model_visible_history_key, durable_facts_version }` watermark
 - Goal-owned synthetic turns still use the active Goal-only context path
   covered by the fake-shim removal map
+- current-turn carry stores concrete Goal `ResponseInputItem`s before final
+  request-input shaping; replacement carry should be metadata/evidence for an
+  already finalized request item, not prebuilt authority
 
 ## Acceptance Tests
 
@@ -450,5 +454,6 @@ Implementation should include focused tests proving:
 - If request construction fails before final model request input contains the
   matching outer developer-role Goal item, pending cadence
   intent remains pending and the Continuation watermark does not advance.
-- Final model payload tests prove Goal-owned synthetic turns use developer-role
-  generic internal context and do not emit active `<goal_context>` items.
+- Final model payload tests prove Goal-owned synthetic turns produce exactly
+  one developer-role Goal item in final request input and do not emit active
+  `<goal_context>` items.

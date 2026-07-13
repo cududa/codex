@@ -3,8 +3,8 @@
 ## Purpose
 
 This document maps the existing Goal-only provenance shim so implementation
-plans can remove the active shim and replace active steering with generic
-role-bearing internal context deliberately.
+plans can remove the active shim and replace active steering with final
+request-input ownership deliberately.
 
 The map is not an architecture to preserve. It is demolition terrain. Any
 remaining `<goal_context>` behavior after this work is legacy artifact handling,
@@ -13,9 +13,10 @@ not an active Goal steering path.
 The active target is:
 
 ```text
-InternalModelContextFragment(source = "goal", rendered_goal_prompt)
-  -> explicit role-bearing conversion
-  -> ResponseItem::Message { role: "developer", ... }
+Goal cadence selects current request item
+  -> final request-input shaping cleans stale/wrong-role/duplicate Goal items
+  -> final Vec<ResponseItem> contains exactly one current
+     ResponseItem::Message { role: "developer", source = "goal", ... }
 ```
 
 The deleted active target is:
@@ -47,7 +48,8 @@ Required deletion work:
 
 - stop using `GoalContext` for active Goal steering
 - stop using `GoalContextRole` as the active steering role abstraction
-- move active internal-context rendering to generic internal-context infrastructure
+- move active Goal text rendering to generic internal-context infrastructure
+  only as a helper if useful
 - leave only legacy pure-artifact detection for old persisted items;
   do not leave a Goal-specific active-context abstraction behind
 
@@ -68,8 +70,8 @@ Current responsibilities:
 Required deletion work:
 
 - leave cadence decisions and prompt rendering in Goal-specific code
-- replace active `GoalContext` construction with generic internal-context item
-  construction
+- replace active `GoalContext` construction with final request-input shaping
+  that inserts or verifies the selected developer-role Goal `ResponseItem`
 - make active steering developer-role only
 - remove, reject, or hard-map user-role active Goal steering configuration to
   developer-role behavior
@@ -93,8 +95,9 @@ Required deletion work:
 
 - do not change extension ownership/timing except where the version plan
   explicitly uses `ext/goal`
-- replace extension active GoalContext construction with the same generic
-  role-bearing internal-context builder used by core
+- replace extension active GoalContext construction with the same final
+  request-input shaping path used by core, or make the extension a caller into
+  that shared cadence path
 - do not let extension Goal steering call a user-role
   `ContextualUserFragment` conversion for active Goal authority
 
@@ -134,7 +137,7 @@ Files:
 
 Current dependency:
 
-- legacy Goal wrapper text is hidden from typed/materialized user-visible turn
+- legacy Goal marker text is hidden from typed/materialized user-visible turn
   items or classified as contextual content
 
 Required replacement:
@@ -172,7 +175,7 @@ Files:
 
 Current dependency:
 
-- pure legacy Goal wrapper items are filtered or reinserted through current-turn
+- pure legacy Goal marker items are filtered or reinserted through current-turn
   carry paths
 
 Required replacement:
@@ -205,7 +208,7 @@ Files:
 
 Current dependency:
 
-- pure legacy Goal wrapper artifacts are removed from reconstructed history
+- pure legacy Goal marker artifacts are removed from reconstructed history
 - mixed messages are retained
 
 Required replacement:
@@ -265,17 +268,19 @@ Current dependency:
 
 Required replacement:
 
-- add or adapt a generic internal-context abstraction that supports explicit
-  model role selection
+- add or adapt generic internal-context rendering/classification helpers for
+  source-tagged internal text
 - source validation and pure-artifact parsing must live in generic
   infrastructure
-- do not solve Goal authority with a Goal-specific helper that bypasses the
-  generic abstraction
+- do not solve Goal authority with helper output. Authority is the selected
+  developer-role Goal `ResponseItem` in final request input.
 
 Implementation pitfall:
 
 - `source = "goal"` is provenance, not authority. A user-role internal context
   remains user-role model input.
+- a developer-role helper output created before final request-input shaping is
+  still not a cadence commit by itself
 
 ## What To Remove
 
@@ -310,11 +315,19 @@ This legacy path must not:
 
 ## What To Replace With
 
-Introduce or adapt a generic role-bearing internal-context API.
+Introduce final request-input Goal shaping. Generic internal context may be
+introduced or adapted as a rendering/classification helper, but it is not the
+main replacement architecture.
 
 Expected responsibilities:
 
 ```text
+Goal cadence/final request-input shaping
+  selects due pending or runtime cadence item
+  removes stale/wrong-role/duplicate Goal-looking items from this request
+  inserts or verifies exactly one current developer-role Goal ResponseItem
+  returns commit metadata tied to that exact item
+
 InternalContextSource
   validates and renders source names such as "goal"
 
@@ -322,11 +335,8 @@ InternalModelContextFragment
   owns internal-context rendering:
   <codex_internal_context source="goal">...</codex_internal_context>
 
-InternalModelContextRole
-  owns the outer model role, especially Developer
-
-into_response_item(role)
-  produces the ResponseItem with explicit outer model role
+optional helper constructors
+  may produce ordinary context ResponseItems, but do not own Goal authority
 ```
 
 Goal-specific code must own:
@@ -342,7 +352,6 @@ Generic internal-context code must own:
 - source validation
 - internal-context rendering
 - pure internal-context detection
-- role-bearing conversion
 
 ## Required Work Areas
 
@@ -353,19 +362,35 @@ completed implementation must not leave any active Goal steering producer on
 This includes extension producers that remain compiled and reachable under any
 supported configuration.
 
-### Work Area 1: Generic Internal Context
+### Work Area 1: Final Request-Input Goal Shaping
 
-Add or adapt the generic internal-context module so it can produce developer-role
-response items explicitly.
+Add the cadence-owned request-input shaping path that receives the actual
+per-attempt `Vec<ResponseItem>` before `Prompt.input` / `ResponsesApiRequest.input`.
+
+Tests must prove:
+
+- stale, wrong-role, duplicate, and legacy Goal-looking items are removed,
+  replaced, or ignored according to cadence rules
+- selected Initial, ObjectiveUpdated, BudgetLimit, and Continuation items are
+  inserted as outer developer-role `ResponseItem`s
+- commit metadata refers to the exact item placed in final request input
+- helper output before final request-input shaping is not accepted as proof of
+  authority
+
+### Work Area 2: Generic Internal Context Helpers
+
+Add or adapt generic internal-context rendering and classification helpers only
+as supporting infrastructure.
 
 Tests must prove:
 
 - source validation accepts `goal`
 - malformed source values are rejected
-- developer-role conversion produces developer-role model input
-- user-role conversion is not used by active Goal steering
+- rendered Goal internal context can be recognized as pure internal context
+- helper output does not consume cadence intent or advance Continuation
+  accounting
 
-### Work Area 2: Classifiers And Legacy Handling
+### Work Area 3: Classifiers And Legacy Handling
 
 Create shared classifiers for:
 
@@ -382,10 +407,10 @@ Tests must cover:
 - mixed visible text is preserved
 - classifier results are not accepted as proof of current Goal authority
 
-### Work Area 3: Active Core Steering
+### Work Area 4: Active Core Steering
 
-Move core Goal steering producers from `GoalContext` to generic
-role-bearing internal context.
+Move core Goal steering producers from prebuilt `GoalContext` items to cadence
+request intent plus final request-input shaping.
 
 Tests must prove:
 
@@ -393,16 +418,18 @@ Tests must prove:
   developer role
 - active steering uses `<codex_internal_context source="goal">`
 - active steering no longer emits `<goal_context>`
+- current-turn carry does not move pre-finalizer concrete Goal
+  `ResponseInputItem`s as authority
 
-### Work Area 4: Extension Steering
+### Work Area 5: Extension Steering
 
-Move `ext/goal` steering producers to the same generic role-bearing path when a
-version plan makes extension steering production active.
+Move `ext/goal` steering producers to the same final request-input shaping path
+when a version plan makes extension steering production active.
 
 Tests must prove extension-produced Goal steering has the same final model
 request input shape as core-produced steering.
 
-### Work Area 5: Cleanup Consumers
+### Work Area 6: Cleanup Consumers
 
 Update event mapping, compaction, rollout reconstruction, history boundaries,
 and typed/materialized app-server projections to use shared classifiers.
@@ -427,7 +454,7 @@ This map decides how to delete the fake active GoalContext path from the active 
 and what consumers must be replaced so the active steering shape can become:
 
 ```text
-generic internal context + explicit developer role
+final request-input Goal ownership + developer-role ResponseItem
 ```
 
 without regressing:
