@@ -1,6 +1,6 @@
-# Batch 02: Final Request-Input Shaping And Commit
+# Work Area 02: Final Request-Input Shaping And Commit
 
-This batch adds the core authority seam for active Goal steering:
+This Work Area adds the core authority seam for active Goal steering:
 
 - per-attempt shaping of the actual `Vec<ResponseItem>` before `Prompt.input`
 - selection of durable pending Initial, ObjectiveUpdated, and BudgetLimit
@@ -11,60 +11,47 @@ This batch adds the core authority seam for active Goal steering:
 
 It does not implement automatic idle Continuation policy. It does not convert
 `ext/goal`. It does not finish broad classifier/projection cleanup.
-Batch 03 consumes this seam for the real `model_visible_history_key`,
+Work Area 03 consumes this seam for the real `model_visible_history_key`,
 automatic Continuation selection, and Continuation watermark commit behavior.
 
-## Slice Index
+## Implementation Pass Planning Status
 
-Implement Batch 02 through these slices rather than as one large request-loop
-change:
+Work Area 02 should be split directly from targeted request-construction code
+reads. It is not expected to need a separate prep-map layer. The relevant
+pressure points are the request-loop seam, the Created-event commit seam,
+current core producer conversion, committed carry metadata, and request-payload
+tests.
 
-- `02a-goal-cadence-module-types.md`
-  - introduce `goal_cadence.rs`, core types, item fingerprinting, repair
-    report shape, selected-item metadata, and a private renderer if shared
-    internal-context helpers do not exist yet
-- `02b-per-attempt-finalizer-wiring.md`
-  - wire a no-op or cleanup-only finalizer into every
-    `run_sampling_request(...)` attempt after base input is known and before
-    `build_prompt(...)`
-- `02c-pending-intent-selection-and-insertion.md`
-  - select durable pending Initial / ObjectiveUpdated / BudgetLimit intent and
-    insert exactly one current developer-role Goal item in final request input
-- `02d-created-commit-and-carry.md`
-  - commit on `ResponseEvent::Created`, consume pending intent by exact key,
-    and record committed current-turn carry metadata
-- `02e-core-producer-conversion.md`
-  - convert core Initial / ObjectiveUpdated / BudgetLimit producers away from
-    pre-finalizer concrete Goal injection and toward durable cadence intent
-    plus typed wake/recheck metadata
-- `02f-request-payload-and-retry-tests.md`
-  - add request-payload, cleanup, commit, and retry-before/after-Created
-    acceptance tests that inspect final `/responses` input
+The old labels for module types, no-op finalizer wiring, pending insertion,
+Created commit, producer conversion, and request-payload tests are not
+authority by themselves. Reuse, rename, merge, or split them only after a
+targeted direct read confirms the boundaries.
 
-The parent Batch 02 file remains the overview contract. The slice docs are
-ordered work packets for the same rewrite branch. They exist so agents can
-continue the request/commit rewrite across compactions without reopening the
-architecture. They should state their handoff state and downstream owner for
-intentionally incomplete work, not imply independent mergeability.
+The parent Work Area 02 file remains the overview contract. Final implementation
+pass docs should be ordered units of work for the same rewrite branch. They
+exist so agents can continue the request/commit rewrite across compactions
+without reopening the architecture. They should state handoff state and
+downstream owner for intentionally incomplete work, not imply independent
+mergeability.
 
 Testing posture:
 
-- each slice should include focused validation for behavior it actually
-  introduces
-- unit tests are enough for pure types, selection, commit primitives, and
-  producer state effects when they prove the slice contract
-- compile-only validation is acceptable only for an intentionally no-op or
-  type-only slice with no executable behavior to assert
-- `02f` is the representative full-flow acceptance layer for final
-  `/responses` payloads and retry behavior; it does not replace slice-local
-  tests for 02a-02e
+- each final implementation pass should include validation for behavior or
+  interfaces it actually introduces
+- pure module behavior, selection, commit primitives, and producer state
+  effects should be tested near the pass that introduces them
+- avoid type-only or no-op passes unless the continuation state is explicit
+  and no executable behavior exists yet
+- the final integrated Work Area 02 target-state pass should prove full
+  `/responses` payload, retry, follow-up, cleanup, and commit behavior; it does
+  not replace pass-local tests for earlier behavior
 
 ## Direction Lock
 
 Request:
 
 - translate the final request-input authority contract into an execution-ready
-  batch
+  Work Area
 - ground the plan in current request construction, retry, stream, and Goal
   injection code
 - do not implement Rust code in this planning pass
@@ -81,7 +68,7 @@ Authority:
 - `local/goal_research/goal-authority-model-visible-history-key.md`
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
-- `local/goal_136_plan/batches/01-durable-cadence-state.md`
+- `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
 
 Terrain:
 
@@ -122,13 +109,13 @@ Code-shape temptation:
 
 Locked direction:
 
-- add a dedicated core finalizer module, proposed as
-  `codex-rs/core/src/goal_cadence.rs`
+- add a dedicated private core request-input shaping module directory at
+  `codex-rs/core/src/goal_cadence/`
 - run final request-input shaping inside `run_sampling_request(...)` for every
   attempt, after that attempt's base prompt input is known and before
   `build_prompt(...)`
 - make `ResponseEvent::Created` the commit point for the selected request item
-- use Batch 01 durable pending intent APIs for Initial, ObjectiveUpdated, and
+- use Work Area 01 durable pending intent APIs for Initial, ObjectiveUpdated, and
   BudgetLimit
 - keep `goals.rs` as lifecycle/tool/app-server adapter and prompt-body helper,
   not final request-input authority owner
@@ -137,16 +124,16 @@ Locked direction:
 
 Exclusions:
 
-- no automatic Continuation selection, reservation, or watermark policy; Batch
+- no automatic Continuation selection, reservation, or watermark policy; Work Area
   03 owns that
-- no `ext/goal` producer conversion; Batch 04 owns that
-- no broad projection/raw/compaction classifier replacement; Batch 05 owns that
-- no final deletion of all `GoalContext` terrain; Batch 06 owns final cleanup
+- no `ext/goal` producer conversion; Work Area 04 owns that
+- no broad projection/raw/compaction classifier replacement; Work Area 05 owns that
+- no final deletion of all `GoalContext` terrain; Work Area 06 owns final cleanup
 - no user-role active Goal steering compatibility
 
 ## Bounded Code Terrain Read
 
-Files read for this batch:
+Files read for this Work Area:
 
 - `codex-rs/core/src/session/turn.rs`
 - `codex-rs/core/src/client_common.rs`
@@ -187,20 +174,20 @@ Findings:
 - the replacement carry must be committed metadata, not a pre-finalizer
   model-input item
 
-## Ownership Split For This Batch
+## Ownership Split For This Work Area
 
-This batch introduces the active Goal authority seam but does not move the
+This Work Area introduces the active Goal authority seam but does not move the
 whole Goal runtime into core. Use this file split while implementing:
 
-- `codex-rs/core/src/goal_cadence.rs` is the finalizer module for this batch.
-  It owns cleanup of active Goal artifacts, pending-intent selection,
-  developer-role `ResponseItem` construction, and commit metadata for the
-  exact final request item.
+- `codex-rs/core/src/goal_cadence/` is the request-input shaping module
+  directory for this Work Area. It owns cleanup of active Goal artifacts,
+  pending-intent selection, developer-role `ResponseItem` construction, and
+  commit metadata for the exact final request item.
 - `codex-rs/core/src/session/turn.rs` is only the sampling placement owner. It
   passes the actual per-attempt base input into the finalizer before
   `build_prompt(...)` and passes commit metadata to the Created-event commit
   point.
-- Batch 01 APIs in `codex-rs/state/src/runtime/goals.rs` own durable facts,
+- Work Area 01 APIs in `codex-rs/state/src/runtime/goals.rs` own durable facts,
   pending intent snapshots, and exact-key intent consumption. They do not
   choose the model role or render Goal prompt text.
 - `codex-rs/core/src/goals.rs` is edited only to convert existing core
@@ -215,7 +202,7 @@ whole Goal runtime into core. Use this file split while implementing:
 
 ## Required Edits
 
-### 1. Add Core Goal Cadence Module
+### 1. Add Core Goal Cadence Module Directory
 
 Edit:
 
@@ -227,7 +214,9 @@ Add:
 
 Add:
 
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/mod.rs`
+- private submodules as needed, such as `prompt.rs`, `repair.rs`, or
+  `fingerprint.rs`
 
 This module owns final request-input Goal authority. It must not live in
 generic context code and should not be absorbed into `goals.rs`.
@@ -276,6 +265,11 @@ pub(crate) struct FinalizedGoalRequestInput {
     pub commit: Option<GoalRequestCommit>,
     pub repair_report: GoalRepairReport,
 }
+
+pub(crate) enum GoalFinalizationOutcome {
+    Submit(FinalizedGoalRequestInput),
+    AbortSyntheticGoalTurn,
+}
 ```
 
 The exact field representation may change, but the semantics may not:
@@ -285,46 +279,49 @@ The exact field representation may change, but the semantics may not:
 - `item` is a finalized `ResponseItem`, not a pre-finalizer
   `ResponseInputItem`
 - `model_visible_history_key` may be `None` only for non-Continuation commits
-  before Batch 03; Continuation commits must require a real key
+  before Work Area 03; Continuation commits must require a real key
 - repair report is diagnostic/test support, not a cadence decision source
 
 ### 2. Add Final Request-Input Shaping Function
 
 Edit:
 
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 - `codex-rs/core/src/session/turn.rs`
 
 Add a function equivalent to:
 
 ```rust
-pub(crate) async fn finalize_goal_request_input(
-    sess: &Session,
-    turn_context: &TurnContext,
+pub(crate) fn finalize_request_input(
     base_input: Vec<ResponseItem>,
-    runtime_request: GoalRuntimeRequest,
-) -> CodexResult<FinalizedGoalRequestInput>;
+    context: GoalRequestContext,
+) -> GoalFinalizationOutcome;
 ```
 
-`GoalRuntimeRequest` must include:
+`GoalRequestContext` must include:
 
 - thread id
 - turn id
-- current durable Goal cadence snapshot from Batch 01
-- optional automatic Continuation request, initially `None` in Batch 02
+- current durable Goal cadence snapshot from Work Area 01
+- optional automatic Continuation request, initially `None` in Work Area 02
 - optional model-visible history key for this attempt
 - Goals feature and collaboration-mode eligibility facts for this attempt
 - request/transport facts needed for diagnostics and repair
-- request-local repair context, if the finalizer needs to distinguish cleanup
+- request-local repair context, if the shaper needs to distinguish cleanup
   from cadence delivery
 
-The finalizer must treat feature-disabled or collaboration-ineligible attempts
+`GoalRequestContext` must not contain `&Session`, `StateDbHandle`, or
+`TurnContext`. `session/turn.rs` or a nearby adapter assembles a fresh context
+for each request attempt before calling this function. The shaper does not
+load durable state itself.
+
+The shaper must treat feature-disabled or collaboration-ineligible attempts
 as selecting no active Goal item and consuming no pending intent. These typed
 eligibility facts are gates on delivery; they are not cadence authority by
 themselves.
 
-Batch 02 must not invent a fake history key. If the full key projection is not
-implemented until Batch 03, non-Continuation commits may carry
+Work Area 02 must not invent a fake history key. If the full key projection is not
+implemented until Work Area 03, non-Continuation commits may carry
 `model_visible_history_key: None`. Continuation remains inactive until a real
 key exists. Do not use `ContextManager::history_version()` as a Continuation
 key.
@@ -337,13 +334,13 @@ classify/remove pure legacy <goal_context> artifacts from active request input
 classify/remove stale, wrong-role, duplicate, or pre-injected Goal-looking items
 apply feature/collaboration eligibility gates for active Goal delivery
 capture real model_visible_history_key before inserting selected Goal item,
-  when the Batch 03 key implementation already exists; otherwise keep None
+  when the Work Area 03 key implementation already exists; otherwise keep None
   for non-Continuation commits
 read/select pending durable intent in order:
   BudgetLimit
   ObjectiveUpdated
   Initial
-  Continuation (not active until Batch 03)
+  Continuation (not active until Work Area 03)
 render selected Goal text from durable state
 insert exactly one developer-role Goal ResponseItem when selected
 return FinalizedGoalRequestInput { input, commit, repair_report }
@@ -356,7 +353,7 @@ Selection rules:
 - pending ObjectiveUpdated supersedes Initial
 - pending Initial is selected only when no higher-priority pending intent is
   due
-- Continuation is not selected in Batch 02
+- Continuation is not selected in Work Area 02
 - active durable Goal state alone selects nothing
 - historical rendered Goal items select nothing
 
@@ -384,12 +381,16 @@ let base_prompt_input = if let Some(input) = initial_input.take() {
         .for_prompt(&turn_context.model_info.input_modalities)
 };
 
-let finalized_goal_input = goal_cadence::finalize_goal_request_input(
-    sess.as_ref(),
-    turn_context.as_ref(),
+let goal_request_context = assemble_goal_request_context_for_attempt(...).await?;
+let finalized_goal_input = match goal_cadence::finalize_request_input(
     base_prompt_input,
-    runtime_request,
-).await?;
+    goal_request_context,
+) {
+    GoalFinalizationOutcome::Submit(finalized) => finalized,
+    GoalFinalizationOutcome::AbortSyntheticGoalTurn => {
+        return Ok(SamplingRequestResult::synthetic_goal_turn_aborted());
+    }
+};
 
 let prompt = build_prompt(
     finalized_goal_input.input,
@@ -400,6 +401,12 @@ let prompt = build_prompt(
 ```
 
 Then pass `finalized_goal_input.commit` into `try_run_sampling_request(...)`.
+
+`assemble_goal_request_context_for_attempt(...)` is illustrative placement, not
+a required function name. The important split is that `session/turn.rs` or a
+nearby adapter loads durable snapshots and turn metadata, while
+`goal_cadence::finalize_request_input(...)` remains a pure request-input
+shaper over `Vec<ResponseItem>` plus typed facts.
 
 Do not shape `sampling_request_input` only in `run_turn(...)`; that would miss
 retry attempts that rebuild prompt input from history.
@@ -412,9 +419,9 @@ would make Goal authority a client serialization side effect.
 Edit:
 
 - `codex-rs/core/src/session/turn.rs`
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 - `codex-rs/core/src/goals.rs`
-- Batch 01 state APIs in `codex-rs/state/src/runtime/goals.rs`
+- Work Area 01 state APIs in `codex-rs/state/src/runtime/goals.rs`
 
 Change `try_run_sampling_request(...)` to accept:
 
@@ -439,7 +446,7 @@ Commit behavior:
 - clear superseded Initial or ObjectiveUpdated intent after committed
   BudgetLimit when required
 - store committed current-turn carry metadata for this turn
-- do not advance Continuation watermark in Batch 02
+- do not advance Continuation watermark in Work Area 02
 
 No commit occurs when:
 
@@ -485,9 +492,9 @@ This carry records that the final request input already contained the selected
 Goal item for the current turn. It does not store `ResponseInputItem`. It does
 not create cadence intent.
 
-Batch 02 should not yet delete all old concrete carry consumers. It should
+Work Area 02 should not yet delete all old concrete carry consumers. It should
 introduce the replacement carry and switch finalizer-owned commits to use it.
-Batch 05 handles compaction/projection classifier conversion, and Batch 06
+Work Area 05 handles compaction/projection classifier conversion, and Work Area 06
 removes the dead old carry once no reachable producer depends on it.
 
 ### 6. Convert Core Pending Producers For Durable Intent
@@ -500,7 +507,7 @@ This is producer adapter work in the current v136 file, not a new service
 home. Do not introduce a parallel core `GoalService`, and do not move final
 request-input shaping or commit ownership into `goals.rs`.
 
-After Batch 01 exists, switch core Goal mutation/accounting paths for these
+After Work Area 01 exists, switch core Goal mutation/accounting paths for these
 kinds to cadence-aware state APIs:
 
 - Initial
@@ -518,12 +525,12 @@ Required replacements:
 - `GoalSteeringMessage::into_response_input_item` must not be used for these
   core producer paths after conversion
 
-Allowed to remain for later batches:
+Allowed to remain for later Work Areas:
 
-- automatic Continuation selection and reservation until Batch 03
-- `ext/goal` pre-finalizer producer path until Batch 04, if the branch is not
-  accepted as a completed rewrite before Batch 04
-- legacy artifact classifiers until Batch 05
+- automatic Continuation selection and reservation until Work Area 03
+- `ext/goal` pre-finalizer producer path until Work Area 04, if the branch is
+  not being presented as final rewrite behavior before Work Area 04
+- legacy artifact classifiers until Work Area 05
 
 Do not leave a converted core Initial, ObjectiveUpdated, or BudgetLimit path
 also injecting concrete Goal `ResponseInputItem`s as active steering.
@@ -533,8 +540,8 @@ also injecting concrete Goal `ResponseInputItem`s as active steering.
 Edit:
 
 - `codex-rs/core/src/goals.rs`
-- `codex-rs/core/src/goal_cadence.rs`
-- generic internal-context rendering helper module chosen by Batch 05, if it
+- `codex-rs/core/src/goal_cadence/`
+- generic internal-context rendering helper module chosen by Work Area 05, if it
   already exists by implementation time
 
 Keep prompt body helpers in `goals.rs` if useful:
@@ -543,7 +550,7 @@ Keep prompt body helpers in `goals.rs` if useful:
 - ObjectiveUpdated prompt body
 - BudgetLimit prompt body
 
-But final `ResponseItem` construction belongs to `goal_cadence.rs`.
+But final `ResponseItem` construction belongs to `goal_cadence/`.
 
 The active item text must use the current source-tagged internal-context
 representation, not `<goal_context>`.
@@ -560,17 +567,17 @@ ResponseItem::Message {
 }
 ```
 
-If generic rendering helpers are not ready yet, Batch 02 may add a narrow
-private renderer in `goal_cadence.rs` with the same wire shape and move it to
-shared classifier infrastructure in Batch 05. It must not use `GoalContext`.
+If generic rendering helpers are not ready yet, Work Area 02 may add a narrow
+private renderer in `goal_cadence/prompt.rs` with the same wire shape and move it to
+shared classifier infrastructure in Work Area 05. It must not use `GoalContext`.
 
-### 8. Final Request Cleanup In This Batch
+### 8. Final Request Cleanup In This Work Area
 
 Edit:
 
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 
-Batch 02 finalizer must remove or replace Goal-looking items from the active
+Work Area 02 finalizer must remove or replace Goal-looking items from the active
 request input before inserting selected cadence:
 
 - pure legacy `<goal_context>` items
@@ -581,7 +588,7 @@ request input before inserting selected cadence:
 - pre-injected Goal-looking items from old producer/carry paths
 
 This cleanup is local to final request-input shaping. It is not the broad typed
-projection/raw/compaction classifier conversion from Batch 05.
+projection/raw/compaction classifier conversion from Work Area 05.
 
 Whole-message purity is required. Mixed ordinary prose that contains marker-like
 strings must remain in request input.
@@ -606,8 +613,8 @@ Required tests:
 
 - `goal_authority_initial_reaches_final_request_as_single_developer_item`
   - create active Goal through the core path
-  - first `/responses` request contains exactly one developer-role current Goal
-    internal-context item
+  - first `/responses` request contains exactly one current Goal
+    `ResponseItem` with outer `role: "developer"`
   - no `<goal_context>` item reaches the request
   - pending Initial intent is consumed only after `ResponseEvent::Created`
 - `goal_authority_objective_updated_renders_from_persisted_state`
@@ -654,19 +661,19 @@ Update existing local tests that assert:
 - user-role active Goal steering
 - current-turn carry of concrete Goal `ResponseInputItem`s
 
-Those tests should have been deleted or reset by Batch 00. If any remain,
-Batch 02 implementation must remove or rewrite them rather than preserving the
+Those tests should have been deleted or reset by Work Area 00. If any remain,
+Work Area 02 implementation must remove or rewrite them rather than preserving the
 old path.
 
 ## Verification
 
-Docs-only validation for this planning batch:
+Docs-only validation for this planning Work Area:
 
 ```powershell
 git diff --check -- local/goal_136_plan
 ```
 
-Implementation validation for Batch 02:
+Implementation validation for Work Area 02:
 
 ```powershell
 cd codex-rs
@@ -696,11 +703,11 @@ cargo test -p codex-core --test suite retry_before_created
 
 Do not run broad workspace suites by default on this workstation.
 
-## Acceptance Criteria
+## Target State
 
-Batch 02 is complete when:
+This Work Area's target state is:
 
-- `goal_cadence.rs` owns final request-input shaping and commit metadata
+- `core/src/goal_cadence/` owns final request-input shaping and commit metadata
 - `run_sampling_request(...)` invokes shaping for every attempt inside its
   retry loop before `build_prompt(...)`
 - `try_run_sampling_request(...)` commits selected Goal delivery on
@@ -714,7 +721,7 @@ Batch 02 is complete when:
   exact key only after Created
 - retry before Created leaves pending intent intact
 - retry after Created does not duplicate pending intent delivery
-- current-turn carry for finalizer-owned Goal delivery stores committed
+- current-turn carry for request-shaped Goal delivery stores committed
   metadata, not pre-finalizer model input
 - core Initial, ObjectiveUpdated, and BudgetLimit producers no longer depend on
   active `GoalContext` construction or concrete Goal `ResponseInputItem`
@@ -723,7 +730,7 @@ Batch 02 is complete when:
 
 ## Non-Goals
 
-This batch does not:
+This Work Area does not:
 
 - implement automatic idle Continuation selection
 - define the full `model_visible_history_key` projection for Continuation
@@ -738,22 +745,22 @@ This batch does not:
 
 ## Continuation Constraints
 
-Batch 02 may be developed after Batch 01 state support exists.
+Work Area 02 may be developed after Work Area 01 state support exists.
 
-Batch 02 may be completed before Batches 03-06 only if the branch clearly
-tracks the remaining work and does not present the active Goal path as fully
-accepted.
+Work Area 02 may be implemented before Work Areas 03-06 only while the branch
+clearly tracks the remaining work and does not present the active Goal path as
+final rewrite behavior.
 
 Allowed continuation state:
 
-- finalizer module wired for Initial, ObjectiveUpdated, and BudgetLimit
+- `core/src/goal_cadence/` wired for Initial, ObjectiveUpdated, and BudgetLimit
 - Created commit for durable pending intent
 - committed metadata carry introduced
-- old Continuation implementation still awaiting Batch 03
-- `ext/goal` still awaiting Batch 04
-- projection/compaction cleanup still awaiting Batch 05
+- old Continuation implementation still awaiting Work Area 03
+- `ext/goal` still awaiting Work Area 04
+- projection/compaction cleanup still awaiting Work Area 05
 
-Not allowed in a completed Batch 02 implementation:
+Not allowed for this Work Area's target state:
 
 - converted core Initial, ObjectiveUpdated, or BudgetLimit producers still
   injecting active `GoalContext` / `<goal_context>` items

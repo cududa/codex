@@ -1,18 +1,29 @@
-# Batch 05: Repair Classifiers And Projections
+# Work Area 05: Repair Classifiers And Projections
 
-This batch consolidates Goal artifact classification and converts the
+This Work Area consolidates Goal artifact classification and converts the
 projection, compaction, reconstruction, and raw-notification callsites that
 still depend on the old active Goal context shim.
 
 It does not decide when Goal speaks. It does not own active Goal model-input
-construction. Active repair remains owned by the Batch 02 final request-input
-finalizer in `codex-rs/core/src/goal_cadence.rs`.
+construction. Active repair remains owned by the Work Area 02 final request-input
+shaping path in `codex-rs/core/src/goal_cadence/`.
+
+## Realignment Note
+
+Read this Work Area with
+`goal-work-area-coordination-note.md#accepted-v136-placement-default`.
+Classifiers and internal-context helpers are cleanup/projection infrastructure
+only. They may help identify source-tagged Goal text, wrong-role current Goal
+items, or legacy `<goal_context>` artifacts, but they do not prove authority,
+select cadence, recover durable Goal facts, or construct active model input.
+Any remaining reference to `goal_cadence.rs` means the private
+`core/src/goal_cadence/` module directory.
 
 ## Direction Lock
 
 Request:
 
-- author Batch 05 as an execution-ready doc for repair classifiers and
+- author Work Area 05 as an execution-ready doc for repair classifiers and
   projections
 - ground the plan in direct code reads around the relevant classifier,
   projection, compaction, reconstruction, and raw-notification paths
@@ -28,10 +39,10 @@ Authority:
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
 - `local/goal_research/goal-test-deletion-map.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
-- `local/goal_136_plan/batches/AGENTS.md`
-- `local/goal_136_plan/batches/02-final-request-input-shaping-and-commit.md`
-- `local/goal_136_plan/batches/03-history-key-and-idle-continuation.md`
-- `local/goal_136_plan/batches/04-ext-goal-conversion.md`
+- `local/goal_136_plan/work-areas/AGENTS.md`
+- `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
+- `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 
 Terrain:
 
@@ -121,13 +132,13 @@ Exclusions:
 - no durable cadence state changes
 - no extension mutation conversion
 - no app-server Goal product API redesign
-- no final deletion sweep of every old Goal shim symbol; Batch 06 owns final
+- no final deletion sweep of every old Goal shim symbol; Work Area 06 owns final
   dead-code deletion and global acceptance
 - no user-role active Goal steering compatibility
 
 ## Bounded Code Terrain Read
 
-Files read directly for this batch:
+Files read directly for this Work Area:
 
 - `codex-rs/core/src/context/goal_context.rs`
 - `codex-rs/core/src/context/contextual_user_message.rs`
@@ -171,10 +182,10 @@ Findings:
   v136 tree. Current code uses the contextual user fragment framework and the
   Goal-specific `<goal_context>` shim.
 - `GoalContext` is both active steering renderer and legacy artifact
-  classifier today. Batch 05 must split those responsibilities instead of
+  classifier today. Work Area 05 must split those responsibilities instead of
   keeping `GoalContext` as shared infrastructure.
 - `ContextualUserFragment::matches_text(...)` uses trimmed start/end marker
-  matching, and current Goal detection inherits that behavior. Batch 05 must
+  matching, and current Goal detection inherits that behavior. Work Area 05 must
   require whole-message purity at the `ResponseItem` / content-list level, not
   only marker substring matching.
 - `event_mapping::parse_turn_item(...)` already ignores developer messages.
@@ -202,15 +213,15 @@ Findings:
   projection behavior.
 - current tests contain local-only assertions that preserve active
   `<goal_context>`, `GoalContextRole`, raw suppression, and concrete carry.
-  Batch 05 should replace only the projection/classifier/repair-support
-  coverage, leaving final dead-code deletion to Batch 06.
+  Work Area 05 should replace only the projection/classifier/repair-support
+  coverage, leaving final dead-code deletion to Work Area 06.
 
-## Ownership Split For This Batch
+## Ownership Split For This Work Area
 
-Batch 05 adds shared cleanup infrastructure. It must not create a competing
+Work Area 05 adds shared cleanup infrastructure. It must not create a competing
 Goal authority module.
 
-- `codex-rs/core/src/goal_cadence.rs` remains the active Goal authority seam.
+- `codex-rs/core/src/goal_cadence/` remains the active Goal authority seam.
   It owns final request-input cleanup, repair decisions, selected current
   developer-role Goal item construction, and repair reports.
 - `codex-rs/core/src/context/internal_context.rs` or an equivalent new private
@@ -220,9 +231,9 @@ Goal authority module.
   owns Goal artifact classification over `ResponseItem`s. It may call generic
   internal-context parsing and legacy marker detection. It does not choose
   cadence or construct active model input.
-- `codex-rs/core/src/context/goal_context.rs` is legacy terrain after Batches
+- `codex-rs/core/src/context/goal_context.rs` is legacy terrain after Work Areas
   02-04. If it still exists, it is limited to old `<goal_context>` artifact
-  detection until Batch 06 deletes or reduces it. It must not stay as an active
+  detection until Work Area 06 deletes or reduces it. It must not stay as an active
   steering renderer.
 - `codex-rs/core/src/event_mapping.rs`,
   `context/contextual_user_message.rs`, `context_manager/history.rs`,
@@ -237,8 +248,8 @@ Goal authority module.
   add a second Goal classifier in app-server.
 - `codex-rs/core/src/session/input_queue.rs` and
   `codex-rs/core/src/state/turn.rs` should no longer provide concrete Goal
-  carry to compaction paths. If Batch 02/03 committed carry metadata exists,
-  Batch 05 may consume only that metadata as repair context through the
+  carry to compaction paths. If Work Area 02/03 committed carry metadata exists,
+  Work Area 05 may consume only that metadata as repair context through the
   finalizer.
 
 ## Required Edits
@@ -249,7 +260,7 @@ Edit:
 
 - `codex-rs/core/src/context/mod.rs`
 - add `codex-rs/core/src/context/internal_context.rs`, or use the equivalent
-  module introduced by Batch 02 if it already exists
+  module introduced by Work Area 02 if it already exists
 
 Add a small internal-context module for source-tagged internal text. Suggested
 logical shape:
@@ -393,10 +404,10 @@ That would invite callers to treat classification as authority.
 
 Edit:
 
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 - `codex-rs/core/src/goal_artifacts.rs`
 
-Replace any Batch 02 private Goal-looking cleanup predicates with the shared
+Replace any Work Area 02 private Goal-looking cleanup predicates with the shared
 classifier.
 
 `goal_cadence.rs` remains the only caller that may use classifier output to
@@ -415,9 +426,9 @@ Required behavior:
   a classifier found an artifact
 - never consume pending intent because a classifier found an artifact
 
-If Batch 02 has a narrow private internal-context renderer in
+If Work Area 02 has a narrow private internal-context renderer in
 `goal_cadence.rs`, move it behind the generic internal-context module in this
-batch. `goal_cadence.rs` should call the generic renderer; it still constructs
+Work Area. `goal_cadence.rs` should call the generic renderer; it still constructs
 the developer-role `ResponseItem`.
 
 ### 4. Convert Contextual User Parsing
@@ -548,7 +559,7 @@ Replace direct imports or calls to:
 with:
 
 - shared classifier calls for filtering pure Goal artifacts
-- committed Goal carry metadata from Batch 02/03 as repair context, when
+- committed Goal carry metadata from Work Area 02/03 as repair context, when
   needed
 - `goal_cadence.rs` finalizer repair for any active request that actually
   needs a current Goal item after compaction
@@ -572,9 +583,9 @@ Required behavior:
   goal id, status, facts version, pending intent, or watermark data
 
 If implementation cannot remove `sess.current_turn_goal_steering_items()` from
-both local and remote compaction in this batch because prior batches have not
+both local and remote compaction in this Work Area because prior Work Areas have not
 established committed carry metadata yet, stop and fix the dependency ordering. Do
-not keep concrete carry as a Batch 05 continuation state.
+not keep concrete carry as a Work Area 05 continuation state.
 
 Add focused tests:
 
@@ -620,11 +631,11 @@ Add tests:
 - `goal_artifact_reconstruction_preserves_mixed_marker_like_messages`
 - `goal_artifact_reconstruction_does_not_recover_goal_state_from_legacy_text`
 - `goal_artifact_reconstruction_uses_committed_metadata_for_recorded_repair`
-  if Batch 02/03 exposes structured committed metadata to this path
+  if Work Area 02/03 exposes structured committed metadata to this path
 
-If committed metadata is not yet available to reconstruction, Batch 05 should
+If committed metadata is not yet available to reconstruction, Work Area 05 should
 still filter artifacts and should leave recorded-history reconstruction repair
-as a Batch 06 acceptance item. Do not fall back to rendered text parsing.
+as a Work Area 06 acceptance item. Do not fall back to rendered text parsing.
 
 ### 9. Remove App-Server Raw Goal Suppression
 
@@ -694,25 +705,25 @@ logic.
 
 ### 11. Update Tests That Still Assert Active `<goal_context>` Or Concrete Carry
 
-Edit as needed after Batches 00-04:
+Edit as needed after Work Areas 00-04:
 
 - `codex-rs/core/src/session/tests.rs`
 - `codex-rs/app-server/tests/suite/v2/thread_resume.rs`
 - `codex-rs/ext/goal/tests/goal_extension_backend.rs`
 
-Batch 05 should not reimplement Batches 02-04, but it must not leave tests
+Work Area 05 should not reimplement Work Areas 02-04, but it must not leave tests
 that force old projection/repair behavior to survive.
 
 Required treatment:
 
 - tests that assert final active steering is `<goal_context>` belong to
-  Batches 02-04 replacement payload tests or Batch 06 deletion
+  Work Areas 02-04 replacement payload tests or Work Area 06 deletion
 - tests that assert user-role Goal steering remains valid must be deleted or
-  rewritten under Batch 00/04 posture
+  rewritten under Work Area 00/04 posture
 - tests that assert concrete `ResponseInputItem` carry is persisted or
   reinserted by compaction must be rewritten to committed metadata plus
   finalizer behavior
-- tests that assert raw Goal suppression must be replaced in this batch
+- tests that assert raw Goal suppression must be replaced in this Work Area
 
 Do not convert every old active steering test into a classifier test. Classifier
 coverage is not authority coverage.
@@ -836,13 +847,13 @@ Required tests:
 
 ## Verification
 
-Docs-only validation for this planning batch:
+Docs-only validation for this planning Work Area:
 
 ```powershell
 git diff --check -- local/goal_research local/goal_136_plan
 ```
 
-Implementation validation for Batch 05:
+Implementation validation for Work Area 05:
 
 ```powershell
 cd codex-rs
@@ -890,9 +901,9 @@ cargo test -p codex-app-server --test suite goal_artifact
 Do not run broad workspace or full crate suites by default on this
 workstation.
 
-## Acceptance Criteria
+## Target State
 
-Batch 05 is complete when:
+This Work Area's target state is:
 
 - a shared classifier distinguishes pure current Goal internal-context items,
   pure legacy `<goal_context>` artifacts, non-Goal internal context, and mixed
@@ -924,7 +935,7 @@ Batch 05 is complete when:
 
 ## Non-Goals
 
-This batch does not:
+This Work Area does not:
 
 - decide whether Initial, ObjectiveUpdated, BudgetLimit, or Continuation is due
 - construct active Goal model input outside `goal_cadence.rs`
@@ -941,25 +952,25 @@ This batch does not:
 
 ## Continuation Constraints
 
-Batch 05 should be implemented after Batches 02-04 because it depends on:
+Work Area 05 should be implemented after Work Areas 02-04 because it depends on:
 
 - final request-input cleanup and commit ownership in `goal_cadence.rs`
 - committed Goal carry metadata replacing pre-finalizer concrete carry
 - extension/app-server producers no longer depending on active
   `GoalContext` injection
 
-Allowed continuation state while Batch 06 remains:
+Allowed continuation state while Work Area 06 remains:
 
 - legacy `<goal_context>` pure-artifact detection still exists behind the
   shared classifier
 - some old symbols remain if they are unreachable active steering terrain and
-  Batch 06 is explicitly removing them
+  Work Area 06 is explicitly removing them
 - app-server typed projection remains implemented through
   `codex_core::parse_turn_item(...)`
 - finalizer cleanup uses classifier output, but final global grep/audit is left
-  to Batch 06
+  to Work Area 06
 
-Not allowed in a completed Batch 05 implementation:
+Not allowed for this Work Area's target state:
 
 - `GoalContext` or `GoalContextRole` retained as active steering architecture
 - classifier output treated as proof of active Goal authority

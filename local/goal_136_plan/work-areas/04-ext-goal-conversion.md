@@ -1,19 +1,19 @@
-# Batch 04: `ext/goal` Conversion
+# Work Area 04: `ext/goal` Conversion
 
-This batch converts reachable `codex-rs/ext/goal` Goal steering producers away
+This Work Area converts reachable `codex-rs/ext/goal` Goal steering producers away
 from active `GoalContext`, `<goal_context>`, `GoalContextRole`, and concrete
 pre-finalizer model-input injection.
 
-After this batch, extension-origin Goal changes may still own tools, lifecycle,
+After this Work Area, extension-origin Goal changes may still own tools, lifecycle,
 accounting, events, and mutation entry points. They must not construct active
 Goal model input. Any active steering they cause must be expressed as durable
-cadence state and selected by the Batch 02 final request-input shaping path.
+cadence state and selected by the Work Area 02 final request-input shaping path.
 
 ## Direction Lock
 
 Request:
 
-- author the Batch 04 execution plan for `ext/goal` conversion
+- author the Work Area 04 execution plan for `ext/goal` conversion
 - ground the plan in current extension, core, app-server, and upstream terrain
 - do not implement Rust code in this planning pass
 
@@ -24,9 +24,9 @@ Authority:
 - `local/goal_research/goal-authority-open-design-deliverables.md`
 - `local/goal_research/goal-authority-ext-goal-ownership.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
-- `local/goal_136_plan/batches/01-durable-cadence-state.md`
-- `local/goal_136_plan/batches/02-final-request-input-shaping-and-commit.md`
-- `local/goal_136_plan/batches/03-history-key-and-idle-continuation.md`
+- `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
+- `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
 
 Terrain:
 
@@ -53,21 +53,27 @@ Code-shape temptation:
 
 Locked direction:
 
-- add or adopt an extension-owned `GoalService` style interface in
-  `codex-rs/ext/goal/src/api.rs`
-- route app-server and extension Goal mutations through that interface so the
-  external mutation ordering is shared
-- use Batch 01 cadence-aware state APIs to persist durable facts and pending
+- default to converting the existing v136 `GoalExtension` /
+  `GoalRuntimeHandle` adapter-runtime topology
+- do not add an `ext/goal/src/api.rs` service facade unless this Work Area's
+  code walk proves adapter/runtime conversion cannot carry shared app-server,
+  extension, and tool mutation ordering
+- use Work Area 01 cadence-aware state APIs to persist durable facts and pending
   Initial, ObjectiveUpdated, or BudgetLimit intent
-- use Batch 02 final request-input shaping as the only active Goal model-input
+- use Work Area 02 final request-input shaping as the only active Goal model-input
   construction and commit path
-- use Batch 03 idle/pending-cadence delivery when same-turn delivery cannot be
+- use Work Area 03 idle/pending-cadence delivery when same-turn delivery cannot be
   accepted without concrete model-input injection
+- keep v139/v140 migration compatibility by preventing new long-lived ownership
+  in `core/src/goals.rs`, not by prematurely recreating the full later service
+  topology
 
 Exclusions:
 
 - no Rust implementation in this planning pass
 - no app-server product redesign
+- no mandatory v139/v140-style `GoalService` move in v136 without a
+  code-grounded reason
 - no user-role active Goal steering compatibility
 - no repair or classifier expansion beyond the conversion needed here
 - no broad projection, raw-response, compaction, or reconstruction cleanup
@@ -75,7 +81,7 @@ Exclusions:
 
 ## Bounded Code Terrain Read
 
-Files read for this batch:
+Files read for this Work Area:
 
 - `codex-rs/ext/goal/src/tool.rs`
 - `codex-rs/ext/goal/src/runtime.rs`
@@ -140,33 +146,37 @@ Findings:
   runtime effects.
 - `codex-rs/app-server/tests/suite/v2/thread_resume.rs` has a test named
   `thread_goal_set_active_schedules_developer_role_goal_steering`, but it
-  currently asserts `<goal_context>` text. Batch 04 should keep the product
+  currently asserts `<goal_context>` text. Work Area 04 should keep the product
   scenario and change the assertion to final request input with current
   internal-context shape.
 - upstream/main and rust-v0.140.0 remove extension `GoalContextRole` config and
-  add a `GoalService` ownership shape. That direction is useful for reducing
-  duplicated app-server/extension mutation ordering, but upstream still
-  constructs user-role internal-context `ResponseItem`s in `steering.rs` and
-  injects them through active-turn APIs. This fork must not copy that authority
-  mistake.
+  add a `GoalService` ownership shape. That direction is useful migration
+  terrain, but upstream still constructs user-role internal-context
+  `ResponseItem`s in `steering.rs` and injects them through active-turn APIs.
+  This fork must not copy that authority mistake, and Work Area 04 should not
+  install the later service topology unless the v136 adapter/runtime route is
+  proven insufficient.
 
-## Ownership Split For This Batch
+## Ownership Split For This Work Area
 
-Batch 04 moves mutation/accounting ownership toward `ext/goal` without moving
-active model-input authority there. Use this file split while implementing:
+Work Area 04 moves mutation/accounting behavior toward extension ownership
+without moving active model-input authority there. Use this split while
+implementing:
 
-- `codex-rs/ext/goal/src/api.rs` owns the `GoalService` style interface for
-  external Goal mutation ordering, accounting effects, event facts, and typed
-  cadence delivery requests.
-- `codex-rs/ext/goal/src/tool.rs`, `runtime.rs`, and `extension.rs` are
-  adapters into `GoalService` and runtime accounting. They no longer own
-  independent Goal mutation sequencing or active-steering injection chains.
+- `codex-rs/ext/goal/src/tool.rs`, `runtime.rs`, and `extension.rs` remain the
+  default v136 adapter/runtime topology. They own lifecycle, tools, runtime
+  accounting, metrics, events, durable state calls, and typed cadence requests
+  where useful. They no longer own active-steering injection chains.
+- `codex-rs/ext/goal/src/api.rs`, if introduced, is an optional thin facade
+  for shared app-server/tool/extension mutation ordering, accounting effects,
+  event facts, and typed cadence delivery requests. It must be justified by a
+  code-grounded reason why the adapter/runtime route is insufficient.
 - `codex-rs/app-server/src/request_processors/thread_goal_processor.rs` is a
-  product API adapter. It calls `GoalService` and emits the same response and
-  notification shapes; it does not directly sequence durable Goal mutation or
-  model-input delivery.
-- Batch 01 state APIs own durable facts and pending intent writes for the
-  service. Batch 02 `goal_cadence.rs` remains the only owner of active
+  product API adapter. It preserves the same response and notification shapes
+  while routing through the selected Work Area 04 ordering path. It does not
+  construct or deliver active model input.
+- Work Area 01 state APIs own durable facts and pending intent writes.
+  Work Area 02 `core/src/goal_cadence/` remains the only owner of active
   developer-role Goal `ResponseItem` construction and commit metadata.
 - `codex-rs/core/src/session/input_queue.rs`, `codex-rs/core/src/state/turn.rs`,
   `codex-rs/core/src/session/mod.rs`, and `codex-rs/core/src/codex_thread.rs`
@@ -179,189 +189,117 @@ active model-input authority there. Use this file split while implementing:
 
 ## Required Edits
 
-### 1. Add Extension-Owned Goal Service Interface
+### 1. Choose The Work Area 04 Ordering Shape
 
-Edit:
+Edit, depending on the selected shape:
 
-- `codex-rs/ext/goal/src/api.rs`
-- `codex-rs/ext/goal/src/lib.rs`
+- `codex-rs/ext/goal/src/tool.rs`
+- `codex-rs/ext/goal/src/runtime.rs`
 - `codex-rs/ext/goal/src/extension.rs`
-- `codex-rs/ext/goal/Cargo.toml`
-- `codex-rs/app-server/Cargo.toml`
+- `codex-rs/ext/goal/src/lib.rs`
+- `codex-rs/ext/goal/src/api.rs`, only if a facade is justified
+- `codex-rs/app-server/src/request_processors/thread_goal_processor.rs`
+- `codex-rs/app-server/src/message_processor.rs`, only if app-server wiring
+  needs a new shared facade
+- `codex-rs/app-server/Cargo.toml`, only if app-server must depend on
+  `codex-goal-extension`
 
-Add `codex-rs/ext/goal/src/api.rs`, following the upstream ownership direction
-but changing its output and runtime effects to structured cadence intent.
+Before implementing the mutation conversion, the pass must choose one of these
+shapes and record the code-grounded reason:
 
-Required public types, equivalent names acceptable:
+1. Adapter/runtime default:
+   - keep current v136 `GoalExtension` and `GoalRuntimeHandle` topology
+   - convert their active steering effects to durable pending intent plus
+     metadata-only cadence requests
+   - keep app-server ordered responses/notifications on its current processor
+     path, while using the same cadence-aware state APIs and core wake/recheck
+     adapters
+   - this is the default because it matches upstream v136 topology and avoids
+     premature service churn
+2. Thin extension facade:
+   - add a small `codex-rs/ext/goal/src/api.rs` facade only for shared
+     mutation/accounting ordering that the adapter/runtime route cannot express
+     cleanly
+   - return durable facts, previous facts, pending intent summaries, runtime
+     effects, event facts, or typed cadence requests
+   - do not return active `ResponseItem` / `ResponseInputItem`
+3. Full service adoption:
+   - adopt a broader v139/v140-style service shape before migration
+   - still route active model input through Work Area 02 final request-input
+     shaping
+   - require an explicit explanation of why shapes 1 and 2 cannot carry the
+     v136 fix
 
-```rust
-pub enum GoalServiceError {
-    InvalidRequest(String),
-    Internal(String),
-}
+No selected shape may construct active model input, choose the active steering
+role, consume pending intent, or advance Continuation suppression.
 
-pub enum GoalObjectiveUpdate<'a> {
-    Keep,
-    Set(&'a str),
-}
+If a thin facade is introduced, acceptable public types are request/outcome
+types that carry:
 
-pub enum GoalTokenBudgetUpdate {
-    Keep,
-    Set(Option<i64>),
-}
+- durable `ThreadGoal` facts
+- previous facts needed for metrics or product responses
+- pending Initial/ObjectiveUpdated/BudgetLimit intent summaries
+- runtime accounting effects
+- event facts
+- typed cadence delivery or wake requests
 
-pub struct GoalSetRequest<'a> {
-    pub thread_id: ThreadId,
-    pub objective: GoalObjectiveUpdate<'a>,
-    pub status: Option<ThreadGoalStatus>,
-    pub token_budget: GoalTokenBudgetUpdate,
-}
+The facade must not become a shallow coordinator that merely renames existing
+calls. It must earn its interface by removing duplicated mutation/accounting
+ordering that would otherwise spread across app-server, extension tools, and
+runtime contributors.
 
-pub struct GoalCreateRequest<'a> {
-    pub thread_id: ThreadId,
-    pub objective: &'a str,
-    pub token_budget: Option<i64>,
-}
-
-pub struct GoalCreateOutcome {
-    pub goal: ThreadGoal,
-    pub state_goal: codex_state::ThreadGoal,
-    pub pending_intent: codex_state::ThreadGoalPendingIntent,
-}
-
-pub struct GoalSetOutcome {
-    pub goal: ThreadGoal,
-    pub state_goal: codex_state::ThreadGoal,
-    pub previous_goal: Option<PreviousGoalSnapshot>,
-    pub pending_intent: Option<codex_state::ThreadGoalPendingIntent>,
-}
-
-pub struct GoalSetRuntimeEffect {
-    pub goal_id: String,
-    pub status: codex_state::ThreadGoalStatus,
-    pub previous_goal: Option<PreviousGoalSnapshot>,
-    pub pending_intent: Option<codex_state::ThreadGoalPendingIntent>,
-}
-
-pub struct GoalService {
-    // registered runtime handles by thread id
-}
-```
-
-Required methods, equivalent names acceptable:
-
-```rust
-impl GoalService {
-    pub fn new() -> Self;
-
-    pub async fn get_thread_goal(
-        &self,
-        state_db: &codex_state::StateRuntime,
-        thread_id: ThreadId,
-    ) -> Result<Option<ThreadGoal>, GoalServiceError>;
-
-    pub async fn create_thread_goal_from_tool(
-        &self,
-        state_db: &codex_state::StateRuntime,
-        request: GoalCreateRequest<'_>,
-    ) -> Result<GoalCreateOutcome, GoalServiceError>;
-
-    pub async fn set_thread_goal(
-        &self,
-        state_db: &codex_state::StateRuntime,
-        request: GoalSetRequest<'_>,
-    ) -> Result<GoalSetOutcome, GoalServiceError>;
-
-    pub async fn clear_thread_goal(
-        &self,
-        state_db: &codex_state::StateRuntime,
-        thread_id: ThreadId,
-    ) -> Result<bool, GoalServiceError>;
-
-    pub(crate) fn register_runtime(&self, runtime: &Arc<GoalRuntimeHandle>);
-    pub(crate) fn unregister_runtime(&self, runtime: &Arc<GoalRuntimeHandle>);
-}
-```
-
-`GoalService` must own external Goal mutation ordering for app-server and
-extension callers:
-
-```text
-acquire runtime goal-state permit when a live runtime exists
-account in-flight usage if needed
-persist durable Goal mutation through Batch 01 cadence-aware state API
-persist pending Initial / ObjectiveUpdated / BudgetLimit intent when due
-emit or expose ordered Goal event data to the caller
-apply runtime bookkeeping
-request cadence delivery or idle recheck without model-input injection
-```
-
-Do not make `GoalService` construct `ResponseItem` or `ResponseInputItem`.
-Do not make it choose model role. Do not make it consume pending intent.
-Do not split the same ordering across app-server and extension callers; the
-service interface is the shared seam for that mutation/accounting behavior.
-
-`GoalExtension::new_with_host_capabilities(...)` and `install_with_backend(...)`
-must receive `Arc<GoalService>`. The extension must register each
-`GoalRuntimeHandle` on thread start and unregister it on thread stop so
-app-server `GoalService` calls can find live runtime accounting/cadence hooks.
-
-Add `codex-goal-extension` as an app-server dependency if app-server does not
-already depend on it. Because this changes `Cargo.toml`, the implementation
-must run the repository dependency-lock workflow required by the root
-`AGENTS.md`.
-
-### 2. Convert App-Server Goal Mutation To `GoalService`
+### 2. Convert App-Server Goal Mutation Through The Selected Ordering Path
 
 Edit:
 
 - `codex-rs/app-server/src/request_processors/thread_goal_processor.rs`
-- `codex-rs/app-server/src/message_processor.rs`
-- `codex-rs/app-server/Cargo.toml`
-- `codex-rs/app-server/BUILD.bazel`, if the Bazel macro does not infer the
-  new crate dependency
+- `codex-rs/app-server/src/message_processor.rs`, only if the selected shape
+  requires new construction/injection
+- `codex-rs/app-server/Cargo.toml`, only if a justified facade requires a new
+  crate dependency
+- `codex-rs/app-server/BUILD.bazel`, if dependency metadata changes
 
-Replace the current local app-server mutation sequence with `GoalService`.
+App-server Goal mutation must preserve product-equivalent ordered responses and
+notifications while switching to cadence-aware durable state operations.
 
 Required behavior:
 
-- `thread/goal/get` calls `GoalService::get_thread_goal(...)`.
-- `thread/goal/set` calls `GoalService::set_thread_goal(...)`.
-- `thread/goal/clear` calls `GoalService::clear_thread_goal(...)`.
-- ordered app-server responses and notifications remain product-equivalent.
-- `message_processor.rs` creates or receives an `Arc<GoalService>` and passes
-  it into `ThreadGoalRequestProcessor::new(...)`.
-- app-server no longer calls:
-  - `thread.prepare_external_goal_mutation()`
-  - direct `state_db.thread_goals().replace_thread_goal(...)`
-  - direct `state_db.thread_goals().update_thread_goal(...)`
-  - direct `thread.apply_external_goal_set(...)`
-  - direct `thread.apply_external_goal_clear()`
+- `thread/goal/get` remains a product read path and does not construct model
+  input.
+- `thread/goal/set` for a new active Goal writes durable facts plus pending
+  Initial intent in one state transaction.
+- `thread/goal/set` for an active objective edit writes durable facts plus
+  pending ObjectiveUpdated intent in one state transaction.
+- `thread/goal/set` for a non-active status clears or supersedes stale active
+  pending intent as specified by Work Area 01.
+- `thread/goal/clear` deletes durable facts and pending intent.
+- app-server requests metadata-only cadence delivery or idle recheck when
+  appropriate; it does not inject prebuilt Goal model input.
 
-The service result must still let app-server emit the same response and
-`thread/goal/updated` or `thread/goal/cleared` notifications. This is product
-surface preservation, not model authority.
+If the selected shape is adapter/runtime default, app-server may keep its local
+processor structure and call state plus core thread/runtime adapters directly,
+as long as the ordering is explicit and no concrete Goal model input is built.
+
+If the selected shape is a thin facade, app-server calls that facade for
+`get`, `set`, and `clear`, but the facade still returns product/event facts and
+typed cadence data only.
 
 The `thread_goal_set_active_schedules_developer_role_goal_steering` test must
 remain as an app-server integration scenario, but its payload assertion must be
-updated from `<goal_context>` to the current developer-role Goal
-internal-context item in final `/responses` input.
+updated from `<goal_context>` to final `/responses` input containing exactly
+one current developer-role Goal `ResponseItem`.
 
 ### 3. Convert Extension Tool Mutations To Cadence-Aware State
 
 Edit:
 
 - `codex-rs/ext/goal/src/tool.rs`
-- `codex-rs/ext/goal/src/api.rs`
+- `codex-rs/ext/goal/src/api.rs`, only if a facade is the selected ordering
+  shape
 - `codex-rs/ext/goal/tests/goal_extension_backend.rs`
 
-Route `create_goal` through:
-
-```rust
-GoalService::create_thread_goal_from_tool(...)
-```
-
-Inside that service method, use the Batch 01 cadence-aware insert API:
+Route `create_goal` through the selected Work Area 04 ordering path. That path
+must use the Work Area 01 cadence-aware insert API:
 
 ```text
 insert_thread_goal_with_initial_intent(...)
@@ -388,7 +326,8 @@ final usage reporting behavior.
 Edit:
 
 - `codex-rs/ext/goal/src/runtime.rs`
-- `codex-rs/ext/goal/src/api.rs`
+- `codex-rs/ext/goal/src/api.rs`, only if a facade is the selected ordering
+  shape
 - `codex-rs/core/src/codex_thread.rs`
 - `codex-rs/core/src/session/mod.rs`
 - `codex-rs/core/src/state/turn.rs`
@@ -457,13 +396,14 @@ Edit:
 
 - `codex-rs/ext/goal/src/extension.rs`
 - `codex-rs/ext/goal/src/runtime.rs`
-- `codex-rs/ext/goal/src/api.rs`
+- `codex-rs/ext/goal/src/api.rs`, only if a facade is the selected ordering
+  shape
 - `codex-rs/core/src/codex_thread.rs`
 - `codex-rs/core/src/session/mod.rs`
 - `codex-rs/core/src/state/turn.rs`
 
 Change post-tool BudgetLimit handling to persist BudgetLimit pending intent
-through the Batch 01 accounting API:
+through the Work Area 01 accounting API:
 
 ```text
 account_thread_goal_usage_with_budget_intent(...)
@@ -489,7 +429,7 @@ budget_limit prompt
   -> active-turn injection
 ```
 
-BudgetLimit delivery and supersedence remain owned by the Batch 02 finalizer.
+BudgetLimit delivery and supersedence remain owned by the Work Area 02 finalizer.
 
 ### 6. Add Non-Model-Input Cadence Delivery Request
 
@@ -501,7 +441,7 @@ Edit:
 - `codex-rs/core/src/state/turn.rs`
 - `codex-rs/core/src/tasks/regular.rs`
 - `codex-rs/core/src/session/turn.rs`
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 
 Add a core request interface for same-turn cadence delivery that carries
 metadata, not model input.
@@ -530,7 +470,7 @@ request_goal_cadence_delivery_for_active_turn(
 ) -> GoalCadenceDeliveryRequestOutcome;
 ```
 
-The implementation may choose names that fit Batch 02/03 types, but the
+The implementation may choose names that fit Work Area 02/03 types, but the
 interface must:
 
 - store request metadata on the active `TurnState`
@@ -543,7 +483,7 @@ interface must:
   cadence delivery is accepted and no other model follow-up is already pending
 
 If the active turn cannot accept same-turn delivery, the request outcome is not
-a loss. The durable pending intent remains and Batch 03 idle Stage 2 delivers
+a loss. The durable pending intent remains and Work Area 03 idle Stage 2 delivers
 it later.
 
 `run_turn(...)` and `RegularTask` must treat accepted cadence-delivery metadata
@@ -558,7 +498,8 @@ Edit:
 
 - `codex-rs/ext/goal/src/extension.rs`
 - `codex-rs/ext/goal/src/runtime.rs`
-- `codex-rs/ext/goal/src/api.rs`
+- `codex-rs/ext/goal/src/api.rs`, only if a facade is the selected ordering
+  shape
 - `codex-rs/ext/goal/src/lib.rs`
 - `codex-rs/ext/goal/tests/goal_extension_backend.rs`
 - `codex-rs/core/src/config/mod.rs`
@@ -578,9 +519,9 @@ Required behavior:
 - any remaining `goals.steering_role` config key must not affect active Goal
   steering
 
-If the broader config key cannot be removed in this batch because core still
-has old producer paths awaiting Batch 06 cleanup, hard-map it in converted
-Batch 04 paths:
+If the broader config key cannot be removed in this Work Area because core still
+has old producer paths awaiting Work Area 06 cleanup, hard-map it in converted
+Work Area 04 paths:
 
 ```text
 config may parse old values for compatibility
@@ -601,9 +542,9 @@ Edit:
 
 After extension producers no longer construct model input, `steering.rs`
 should either be deleted or reduced to prompt-body rendering helpers used by
-the Batch 02 finalizer.
+the Work Area 02 finalizer.
 
-Preferred Batch 04 outcome:
+Preferred Work Area 04 outcome:
 
 - delete active `goal_steering_item(...)`
 - delete `GoalSteeringFrame`
@@ -612,7 +553,7 @@ Preferred Batch 04 outcome:
   - `codex_core::context::GoalContextRole`
   - `codex_protocol::models::ResponseInputItem`
 - move any prompt-body helpers that remain useful to the shared prompt body
-  owner selected by Batch 02
+  owner selected by Work Area 02
 
 If prompt templates from upstream are adopted later, they still render prompt
 body text only. The finalizer owns the developer-role `ResponseItem`.
@@ -626,7 +567,7 @@ Edit:
 - `codex-rs/core/src/session/input_queue.rs`
 - `codex-rs/core/src/state/turn.rs`
 
-Batch 04 must remove the extension caller from:
+Work Area 04 must remove the extension caller from:
 
 ```text
 CodexThread::inject_goal_steering_items_into_active_turn(...)
@@ -636,10 +577,10 @@ TurnState::append_current_turn_goal_steering_items(...)
 ```
 
 These old APIs may still exist temporarily if core old producers or compaction
-cleanup are not fully removed until Batch 05/06. Batch 04 must make them
+cleanup are not fully removed until Work Area 05/06. Work Area 04 must make them
 unreachable from `ext/goal` and from app-server external mutation paths.
 
-If no non-extension reachable producer remains after Batches 02 and 03, Batch
+If no non-extension reachable producer remains after Work Areas 02 and 03, Work Area
 04 should delete these APIs immediately instead of leaving dead active shim
 terrain.
 
@@ -668,14 +609,14 @@ final request-input shaping owns active Goal model input.
 
 ## Reachable Producers And Required Outcome
 
-| Producer | Current path | Required Batch 04 outcome |
+| Producer | Current path | Required Work Area 04 outcome |
 | --- | --- | --- |
 | `create_goal` tool | `insert_thread_goal(...)`, mark accounting active, no pending Initial | convert to cadence-aware create/insert with pending Initial intent; no model input |
-| app-server `thread/goal/set` new active Goal | direct state mutation, core `ExternalSet`, old steering runtime effects | route through `GoalService`; persist Initial intent; finalizer delivers |
-| app-server `thread/goal/set` objective update | direct state mutation, core `ExternalSet`, active-turn injection if possible | route through `GoalService`; persist ObjectiveUpdated intent; request metadata/wake only |
+| app-server `thread/goal/set` new active Goal | direct state mutation, core `ExternalSet`, old steering runtime effects | route through the selected ordering path; persist Initial intent; final request-input shaper delivers |
+| app-server `thread/goal/set` objective update | direct state mutation, core `ExternalSet`, active-turn injection if possible | route through the selected ordering path; persist ObjectiveUpdated intent; request metadata/wake only |
 | extension `apply_external_goal_set` | metrics/accounting plus `GoalContextRole` ObjectiveUpdated injection | structured runtime effect only; no role or model input |
 | extension post-tool BudgetLimit | `account_thread_goal_usage(...)`, `goal_steering_item(...)`, active-turn injection | cadence-aware accounting with pending BudgetLimit intent; request metadata/wake only |
-| extension Continuation | local v136 extension has no extension-owned idle Continuation; upstream/main has `continue_if_idle()` with `ResponseItem` | do not add extension-owned Continuation in Batch 04; Batch 03 core idle lifecycle remains owner unless a later version explicitly moves it |
+| extension Continuation | local v136 extension has no extension-owned idle Continuation; upstream/main has `continue_if_idle()` with `ResponseItem` | do not add extension-owned Continuation in Work Area 04; Work Area 03 core idle lifecycle remains owner unless a later version explicitly moves it |
 
 ## Tests
 
@@ -731,7 +672,7 @@ Update:
 - `thread_goal_set_active_schedules_developer_role_goal_steering`
   - keep the app-server scenario
   - assert captured `/responses` input contains exactly one developer-role
-    current Goal internal-context item
+    current Goal `ResponseItem`
   - assert no `<goal_context>` item reaches final request input
   - assert no user-role active Goal item is present
 
@@ -765,13 +706,13 @@ Assertions must target final request payloads, not prompt helper output.
 
 ## Verification
 
-Docs-only validation for this planning batch:
+Docs-only validation for this planning Work Area:
 
 ```powershell
 git diff --check -- local/goal_136_plan
 ```
 
-Implementation validation for Batch 04:
+Implementation validation for Work Area 04:
 
 ```powershell
 cd codex-rs
@@ -809,9 +750,9 @@ just bazel-lock-check
 
 Do not run broad workspace or full crate suites by default on this workstation.
 
-## Acceptance Criteria
+## Target State
 
-Batch 04 is complete when:
+This Work Area's target state is:
 
 - reachable `ext/goal` active steering producers no longer import or use
   `GoalContext`
@@ -819,15 +760,16 @@ Batch 04 is complete when:
   `GoalContextRole`
 - reachable `ext/goal` active steering producers no longer construct
   `ResponseInputItem` or `ResponseItem` for active Goal steering
-- app-server and extension external Goal mutations share one service-style
-  mutation ordering path through `GoalService`
+- app-server and extension external Goal mutations use the selected Work Area
+  04 mutation ordering path, defaulting to adapter/runtime conversion unless a
+  thin facade is justified
 - creating an active Goal through extension-owned tools writes pending Initial
   intent
 - app-server new active Goal writes pending Initial intent
 - app-server or extension objective updates write pending ObjectiveUpdated
   intent
 - extension BudgetLimit accounting writes pending BudgetLimit intent
-- same-turn delivery, when possible, uses metadata/wake behavior and the Batch
+- same-turn delivery, when possible, uses metadata/wake behavior and the Work Area
   02 finalizer, not concrete model-input injection
 - unavailable same-turn delivery leaves pending intent intact for idle
   delivery
@@ -842,16 +784,16 @@ Batch 04 is complete when:
 
 ## Non-Goals
 
-This batch does not:
+This Work Area does not:
 
 - redesign app-server Goal APIs, wire payloads, or notification names
 - remove upstream Goal product behavior such as `/goal`, status/footer
   projection, pause/edit/clear, budget, or usage
-- implement automatic idle Continuation; Batch 03 owns that
+- implement automatic idle Continuation; Work Area 03 owns that
 - create persisted pending Continuation intent
-- complete broad repair/classifier/projection cleanup; Batch 05 owns that
+- complete broad repair/classifier/projection cleanup; Work Area 05 owns that
 - finish compaction carry or rollout reconstruction cleanup
-- delete every old `GoalContext` helper if other later-batch cleanup still
+- delete every old `GoalContext` helper if other later-Work Area cleanup still
   needs legacy artifact detection
 - parse rendered Goal text to recover active Goal state
 - preserve user-role active Goal steering compatibility
@@ -860,20 +802,20 @@ This batch does not:
 
 ## Continuation Constraints
 
-Batch 04 should be implemented after Batch 01 durable cadence state and Batch
+Work Area 04 should be implemented after Work Area 01 durable cadence state and Work Area
 02 final request-input shaping/Created commit exist. It should also follow
-Batch 03 if same-turn delivery fallback depends on idle Stage 2 pending durable
+Work Area 03 if same-turn delivery fallback depends on idle Stage 2 pending durable
 cadence delivery.
 
-Allowed continuation state while Batch 05/06 remain:
+Allowed continuation state while Work Area 05/06 remain:
 
 - app-server and extension mutation paths route through cadence-aware state
 - extension-origin pending intent is delivered by the finalizer
-- legacy artifact classifiers still await Batch 05
+- legacy artifact classifiers still await Work Area 05
 - dead old core injection APIs remain only if still required by unconverted
-  later-batch cleanup terrain
+  later-Work Area cleanup terrain
 
-Not allowed in a completed Batch 04 implementation:
+Not allowed for this Work Area's target state:
 
 - any reachable `ext/goal` path constructing active `GoalContext`
 - any reachable `ext/goal` path accepting or applying `GoalContextRole` for

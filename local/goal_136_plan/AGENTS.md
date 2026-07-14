@@ -13,8 +13,8 @@ Before implementing work from this directory, read:
 5. `local/goal_research/goal-authority-fake-shim-removal-map.md`
 6. `local/goal_research/goal-test-deletion-map.md`
 7. `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
-8. `local/goal_136_plan/batches/AGENTS.md` when executing or editing a batch
-   under `local/goal_136_plan/batches/`
+8. `local/goal_136_plan/work-areas/AGENTS.md` when executing or editing a Work Area
+   under `local/goal_136_plan/work-areas/`
 
 If any plan file here conflicts with the authority docs, stop and name the
 conflict. The authority docs win. Do not silently weaken the authority docs to
@@ -24,29 +24,37 @@ fit this plan.
 
 Use `goal-authority-implementation-execution-plan.md` as the v136 execution
 spine. It is the control document for ordering, dependencies, invariant lock,
-and acceptance gates.
+and final rewrite acceptance targets.
 
 Do not implement from the spine alone. File-specific implementation work must
-come from approved batch docs under `local/goal_136_plan/batches/`.
+come from approved Work Area docs under `local/goal_136_plan/work-areas/`.
 
-Batch docs are grouped by implementation dependency, not by source authority
-doc, so the durable cadence state, final request-input shaping, idle
-Continuation, extension conversion, repair/projection work, and replacement
-tests can be planned without reopening the core architecture.
+`work-areas/` is the directory for coarse planning regions. A Work Area is a
+topic and dependency region for the rewrite, not a checkpoint, release phase,
+PR boundary, or promise that the branch builds after that region alone. Work
+Area docs are grouped by implementation dependency, not by source authority
+doc, so durable cadence state, final request-input shaping, idle Continuation,
+extension conversion, repair/projection work, and replacement tests can be
+planned without reopening the core architecture.
 
-Slices are ordered work packets on one branch. They exist so agents can pick
-up the rewrite in succession across compactions with a clear local task,
-handoff state, and validation target. They are not individual PRs, release
-units, or promises of independent mergeability. Do not distort module
-boundaries, add no-op architecture, or create test-only seams just to make a
-slice appear independently complete.
+Implementation passes are the ordered units of work inside or across those
+regions. They exist because some Work Area docs are too large for one agent
+window, while a split by headings or word count creates fake work units. They
+are not individual PRs, release units, or promises of independent
+mergeability. Do not distort module boundaries, add no-op architecture, or
+create test-only seams just to make a pass look self-contained.
 
-When creating or revising slice docs, follow
-`local/goal_136_plan/batches/slice-planning-rules.md`. Slice boundaries must
-come from the relevant authority docs plus a direct code walk of the batch
-terrain, not from document length or plausible implementation guesses.
+When creating or revising implementation pass docs, follow
+`local/goal_136_plan/work-areas/implementation-pass-planning-rules.md`. Pass
+boundaries must come from the relevant authority docs plus a direct code walk
+of the Work Area terrain, not from document length or plausible implementation
+guesses. Default to direct pass planning when the implementation seams are
+already clear. Use a prep or appendage map only for genuinely sprawling
+Work Areas where it helps the next agent avoid rereading the whole terrain before
+doing useful work. Work Area 02 is expected to use direct implementation pass
+planning from targeted request-construction reads, not a prep-map layer.
 
-The producer behavior switch is atomic. After that switch is accepted, no
+The producer behavior switch is atomic. After that switch lands, no
 active Goal steering producer may remain on `GoalContext`, `GoalContextRole`,
 active `<goal_context>` emission, user-role Goal steering, or Goal-only fake
 provenance machinery.
@@ -62,10 +70,10 @@ input.
 
 ## Plan Boundaries
 
-The batch docs and slice docs are ordered execution guidance for one rewrite
-branch. They are not permission to present known-broken active Goal behavior
-as accepted, and they are not pressure to make every intermediate packet a
-standalone build or merge point.
+The Work Area docs and implementation pass docs are ordered execution guidance
+for one rewrite branch. They are not permission to present known-broken active
+Goal behavior as accepted, and they are not pressure to make any intermediate
+area or pass a standalone build, merge point, or acceptance checkpoint.
 
 - Test prep may remove false pressure but must not weaken upstream Goal product
   baseline obligations.
@@ -87,4 +95,4 @@ git diff --check -- local/goal_research local/goal_136_plan
 ```
 
 For Rust implementation, follow the root `AGENTS.md` validation rules and the
-focused validation listed in the active slice.
+focused validation listed in the active implementation pass.

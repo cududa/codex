@@ -1,6 +1,6 @@
-# Batch 01: Durable Cadence State
+# Work Area 01: Durable Cadence State
 
-This batch adds the durable state primitives required by Goal cadence:
+This Work Area adds the durable state primitives required by Goal cadence:
 
 - monotonic Goal facts versioning
 - structured pending Initial, ObjectiveUpdated, and BudgetLimit intent
@@ -9,12 +9,12 @@ This batch adds the durable state primitives required by Goal cadence:
 
 It does not change active Goal steering behavior. It does not switch producers
 to consume or emit pending cadence intent. Those changes depend on the final
-request-input shaping batch.
+request-input shaping Work Area.
 
-## Slice Index
+## Implementation Pass Index
 
-Implement Batch 01 through these principled slices rather than as one large
-state change:
+Implement Work Area 01 through these principled implementation passes rather than
+as one large state change:
 
 - `01a-durable-facts-version-plumbing.md`
   - schema/model/query plumbing for `facts_version`
@@ -26,16 +26,17 @@ state change:
   - atomic facts-plus-intent store operations
   - focused state tests for the complete durable cadence state contract
 
-The parent Batch 01 file remains the overview contract. The slice docs are
-ordered work packets for the same rewrite branch. They should identify what
-they add, what remains intentionally incomplete, and what the next packet must
-inherit. They are not standalone acceptance or release contracts.
+The parent Work Area 01 file remains the overview contract. The implementation
+pass docs are ordered units of work for the same rewrite branch. They should
+identify what they add, what remains intentionally incomplete, and what the
+next pass must inherit. They are not standalone acceptance or release
+contracts.
 
 ## Direction Lock
 
 Request:
 
-- translate the durable cadence state contract into an execution-ready batch
+- translate the durable cadence state contract into an execution-ready Work Area
 - ground the plan in current state code
 - do not implement code in this planning pass
 
@@ -74,9 +75,9 @@ Locked direction:
 - state exposes facts snapshots and exact-key mutation operations
 - state does not construct model input or decide when a request should carry
   Goal steering
-- Batch 01 may add cadence-capable APIs and tests, but production callers that
+- Work Area 01 may add cadence-capable APIs and tests, but production callers that
   would create pending intent should be switched in later producer/conversion
-  batches
+  Work Areas
 
 Exclusions:
 
@@ -89,7 +90,7 @@ Exclusions:
 
 ## Bounded Code Terrain Read
 
-Files read for this batch:
+Files read for this Work Area:
 
 - `codex-rs/state/goals_migrations/0001_thread_goals.sql`
 - `codex-rs/state/src/model/thread_goal.rs`
@@ -120,13 +121,13 @@ Findings:
   - `delete_thread_goal`
   - `account_thread_goal_usage`
 - `GoalStore` tests already live in `codex-rs/state/src/runtime/goals.rs` and
-  are the right home for Batch 01 state tests.
+  are the right home for Work Area 01 state tests.
 - current production callers are not ready to create pending cadence intent
   because final request-input shaping and commit do not exist yet.
 
-## Ownership Split For This Batch
+## Ownership Split For This Work Area
 
-Batch 01 adds durable primitives only. Use this file split while implementing:
+Work Area 01 adds durable primitives only. Use this file split while implementing:
 
 - `codex-rs/state/src/runtime/goals.rs` owns SQL-backed Goal facts,
   `facts_version`, pending Initial/ObjectiveUpdated/BudgetLimit intent,
@@ -136,7 +137,7 @@ Batch 01 adds durable primitives only. Use this file split while implementing:
 - `codex-rs/state/goals_migrations/*` owns schema changes for facts version
   and pending intent tables.
 - Core, app-server, and extension callers remain facts-only until later
-  batches switch producers. Do not add request cadence selection, model role
+  Work Areas switch producers. Do not add request cadence selection, model role
   choice, prompt rendering, or `ResponseItem` / `ResponseInputItem`
   construction to state.
 
@@ -265,7 +266,7 @@ Every existing facts mutation that actually writes Goal facts should maintain
   - increment `facts_version` only when it returns `Updated`
   - leave unchanged outcomes unchanged
 
-Batch 01 should keep existing facts-only methods available so current product
+Work Area 01 should keep existing facts-only methods available so current product
 callers keep compiling before producer conversion. Do not make existing
 production callers create pending Initial / ObjectiveUpdated / BudgetLimit
 intent merely by calling their current methods.
@@ -404,7 +405,7 @@ Return `true` only when one row was deleted.
 
 ### 6. Production Caller Policy
 
-Do not switch these production callers in Batch 01:
+Do not switch these production callers in Work Area 01:
 
 - `codex-rs/core/src/goals.rs`
 - `codex-rs/app-server/src/request_processors/thread_goal_processor.rs`
@@ -417,7 +418,7 @@ Reason:
 - creating durable pending intent before final request-input shaping and commit
   exist can leave stale pending rows that later look undelivered
 
-Later batches must switch callers deliberately:
+Later Work Areas must switch callers deliberately:
 
 - core Goal mutation and tool paths switch when final request-input shaping can
   consume pending intent
@@ -426,7 +427,7 @@ Later batches must switch callers deliberately:
 - `ext/goal` switches when extension steering is converted away from concrete
   Goal item injection
 
-Batch 01 may add comments near new APIs saying they are for cadence-aware
+Work Area 01 may add comments near new APIs saying they are for cadence-aware
 producer conversion, but it should not scatter deferred-work notes through
 production callers.
 
@@ -437,7 +438,7 @@ Add tests in:
 - `codex-rs/state/src/runtime/goals.rs`
 
 Use a shared prefix such as `goal_cadence_` so focused local validation can run
-all Batch 01 tests with one Cargo filter.
+all Work Area 01 tests with one Cargo filter.
 
 Required tests:
 
@@ -471,13 +472,13 @@ without weakening budget, usage, status, or concurrency behavior.
 
 ## Verification
 
-Docs-only validation for this planning batch:
+Docs-only validation for this planning Work Area:
 
 ```powershell
 git diff --check -- local/goal_136_plan
 ```
 
-Implementation validation for Batch 01:
+Implementation validation for Work Area 01:
 
 ```powershell
 cd codex-rs
@@ -500,9 +501,9 @@ cargo check -p codex-state --lib
 
 Do not run broad workspace or full crate suites by default on this workstation.
 
-## Acceptance Criteria
+## Target State
 
-Batch 01 is complete when:
+This Work Area's target state is:
 
 - `0002_goal_cadence_state.sql` exists and migrates goals DB state
 - `ThreadGoal` exposes `facts_version`
@@ -515,14 +516,14 @@ Batch 01 is complete when:
 - delete/replace/terminal mutations clear stale pending intent as required
 - existing product behavior tests remain product-equivalent after
   `facts_version` expectations are updated
-- Batch 01 tests prove state behavior without relying on rendered Goal text,
+- Work Area 01 tests prove state behavior without relying on rendered Goal text,
   model roles, prompt construction, or rollout history
 - production callers are not switched to create pending intent until a later
-  batch owns final request-input shaping and commit
+  Work Area owns final request-input shaping and commit
 
 ## Non-Goals
 
-This batch does not:
+This Work Area does not:
 
 - decide which pending intent is selected for a request
 - render Goal steering prompt text
@@ -537,7 +538,7 @@ This batch does not:
 
 ## Continuation Constraints
 
-Batch 01 may be implemented before active steering is rewritten only while it
+Work Area 01 may be implemented before active steering is rewritten only while it
 remains state-additive:
 
 - migrations and facts versioning are allowed
@@ -545,9 +546,9 @@ remains state-additive:
 - existing facts-only methods may maintain `facts_version` and cleanup stale
   pending rows
 - existing production callers must not begin writing pending cadence intent
-  until a later batch can consume it at the final request-input commit point
+  until a later Work Area can consume it at the final request-input commit point
 
 If implementation pressure makes production caller conversion appear necessary
-inside Batch 01, stop and move that conversion to the later final
-request-input/producers packet instead of creating a half-connected pending
+inside Work Area 01, stop and move that conversion to the later final
+request-input/producers pass instead of creating a half-connected pending
 intent path.

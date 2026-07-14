@@ -1,6 +1,6 @@
-# Batch 00: Test Prep And Baseline Reset
+# Work Area 00: Test Prep And Baseline Reset
 
-This batch prepares the test suite for the Goal authority rewrite.
+This Work Area prepares the test suite for the Goal authority rewrite.
 
 It does not implement the new Goal authority path. It removes local test
 pressure that protects the broken active steering overlay and restores upstream
@@ -10,7 +10,7 @@ Goal product behavior to the `rust-v0.136.0` baseline.
 
 Request:
 
-- author the first execution-ready batch doc for test prep and baseline reset
+- author the first execution-ready Work Area doc for test prep and baseline reset
 - do not implement code in this planning pass
 - ground the plan in actual code reads
 
@@ -30,7 +30,7 @@ Authority:
 
 Terrain:
 
-- `rust-v0.136.0` exists locally and is the baseline tag for this batch.
+- `rust-v0.136.0` exists locally and is the baseline tag for this Work Area.
 - The listed Goal test files all differ from `rust-v0.136.0`.
 - `codex-rs/core/src/goals.rs` also contains a local in-file test that pins
   configured user-role Goal steering and active `<goal_context>` emission.
@@ -52,7 +52,7 @@ Locked direction:
   pause/edit/clear, and upstream extension baseline behavior as product
   obligations
 - add replacement authority/cadence tests only after the relevant replacement
-  implementation slices exist
+  implementation passes exist
 
 Exclusions:
 
@@ -60,12 +60,12 @@ Exclusions:
 - no final request-input shaping implementation
 - no production deletion of `GoalContext`, `GoalContextRole`,
   `GoalSteeringRole`, concrete Goal injection, or extension steering
-- no new replacement tests in this batch unless needed only to preserve an
+- no new replacement tests in this Work Area unless needed only to preserve an
   upstream baseline assertion
 
 ## Bounded Code Terrain Read
 
-Commands and reads used to ground this batch:
+Commands and reads used to ground this Work Area:
 
 - `git tag --list rust-v0.136.0`
 - `git diff --name-status rust-v0.136.0 -- ...` for the test files named in
@@ -88,8 +88,8 @@ Findings:
   `suppresses_goal_context_raw_response_item_notifications`, which preserves
   the local raw-response suppression behavior rejected by the authority docs.
 - No `emits_goal_context_raw_response_item_notifications` test was found by
-  `rg`; batch 00 therefore deletes the suppression test and leaves raw
-  replacement coverage to the classifier/projection batch.
+  `rg`; Work Area 00 therefore deletes the suppression test and leaves raw
+  replacement coverage to the classifier/projection Work Area.
 - `codex-rs/app-server/tests/suite/v2/thread_resume.rs` has
   `thread_goal_set_active_schedules_developer_role_goal_steering`, and the
   test body searches for `<goal_context>`.
@@ -102,7 +102,7 @@ Findings:
 
 1. Create a baseline audit before editing.
 
-   Use `git diff rust-v0.136.0 -- <file>` for each file in this batch. Do not
+   Use `git diff rust-v0.136.0 -- <file>` for each file in this Work Area. Do not
    blindly reset files that contain unrelated local work. The goal is to remove
    Goal overlay hunks while preserving unrelated user changes.
 
@@ -133,7 +133,7 @@ Findings:
 
 6. Run diff-focused verification.
 
-   Batch 00 is mostly test deletion and baseline reset. Per
+   Work Area 00 is mostly test deletion and baseline reset. Per
    `local/how-we-test.md`, diff inspection is the default proof. Compile checks
    are optional and should be scoped only if import or helper churn creates
    real compile risk.
@@ -171,7 +171,7 @@ Remove these tests:
 | `codex-rs/core/src/session/tests.rs` | `resumed_active_goal_emits_initial_steering_independent_of_resumed_metric`; `late_goal_steering_injection_is_not_persisted_unsampled`; `configured_goal_objective_limit_allows_longer_goals` |
 | `codex-rs/core/src/goals.rs` | `goal_steering_message_uses_configured_role_for_all_kinds` |
 
-The `goals.rs` test is a batch-00 terrain correction. It was not named in
+The `goals.rs` test is a Work Area-00 terrain correction. It was not named in
 `goal-test-deletion-map.md`, but the code read shows it pins both rejected
 active steering behaviors:
 
@@ -180,7 +180,7 @@ active steering behaviors:
 
 Remove the test and any test-module imports that were used only by that test.
 Do not remove production `GoalSteeringMessage` or `GoalSteeringRole` in this
-batch.
+Work Area.
 
 ### Delete Local-Only App-Server Steering Overlay
 
@@ -192,7 +192,7 @@ Remove this test:
 
 This test has the right product instinct but pins the wrong transport shape. It
 asserts developer-role steering through the old marker path. Replacement
-coverage belongs to the final request-input shaping batch.
+coverage belongs to the final request-input shaping Work Area.
 
 ### Delete Local-Only TUI Overlay Tests
 
@@ -218,8 +218,8 @@ In `codex-rs/core/src/config/config_tests.rs`:
 - remove mixed `objective_max_chars` plus `steering_role` assertions
 - remove `GoalSteeringRole` imports if no longer used by the tests
 
-Do not remove production config parsing in this batch. Production config
-removal or compatibility mapping belongs to the implementation slice that
+Do not remove production config parsing in this Work Area. Production config
+removal or compatibility mapping belongs to the implementation pass that
 removes active user-role Goal steering behavior.
 
 ### Restore Existing Test Files To Upstream Baseline
@@ -243,9 +243,9 @@ APIs have already diverged, record the exact compile issue in the implementation
 PR and make the smallest test-side adaptation that preserves upstream product
 behavior. Do not adapt the test back toward the old active steering overlay.
 
-## Replacement Tests Reserved For Later Batches
+## Replacement Tests Reserved For Later Work Areas
 
-Do not add these in batch 00. They belong after the implementation shape they
+Do not add these in Work Area 00. They belong after the implementation shape they
 test exists:
 
 - final request input contains exactly one selected current developer-role Goal
@@ -262,7 +262,7 @@ test exists:
 
 ## Verification
 
-Required for the batch implementation:
+Required for the Work Area implementation:
 
 ```powershell
 git diff --check -- `
@@ -324,9 +324,9 @@ Per `local/how-we-test.md`, test deletion and hunk-level baseline restoration
 can be validated by diff inspection unless the implementation introduces real
 compile risk.
 
-## Acceptance Criteria
+## Target State
 
-Batch 00 is complete when:
+This Work Area's target state is:
 
 - every local-only test named above is deleted
 - `codex-rs/core/src/goals.rs` no longer has a test that accepts
@@ -342,13 +342,13 @@ Batch 00 is complete when:
 - snapshots are deleted only with their local-only owner tests or restored to
   upstream baseline
 - no replacement authority/cadence tests are added before their implementation
-  slice exists
-- no production Goal authority code is removed in this batch except incidental
+  implementation pass exists
+- no production Goal authority code is removed in this Work Area except incidental
   test-only import/helper cleanup
 
 ## Non-Goals
 
-This batch does not:
+This Work Area does not:
 
 - implement durable pending cadence intent
 - implement final request-input shaping or commit
@@ -363,7 +363,7 @@ This batch does not:
 
 ## Continuation Constraints
 
-This batch may be implemented before the behavior rewrite only if it remains a prep
+This Work Area may be implemented before the behavior rewrite only if it remains a prep
 change:
 
 - deleting false local tests is allowed
@@ -373,4 +373,4 @@ change:
 
 If hunk-level restoration exposes a concrete source/test API mismatch, stop and
 name the file and symbol. Do not preserve the old active Goal overlay just to
-make the batch compile.
+make the Work Area compile.

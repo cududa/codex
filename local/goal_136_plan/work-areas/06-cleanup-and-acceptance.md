@@ -1,20 +1,30 @@
-# Batch 06: Cleanup And Acceptance
+# Work Area 06: Cleanup And Acceptance
 
-This batch is the final Goal authority cleanup slice.
+This Work Area is the final Goal authority cleanup pass.
 
-It removes dead active shim terrain left after Batches 01-05 and proves the
+It removes dead active shim terrain left after Work Areas 01-05 and proves the
 completed rewrite against final request payloads, recorded cadence state, raw
 notifications, and typed/materialized projections.
 
 It does not introduce a new architecture. If an implementation reaches this
-batch and still needs new cadence policy, new classifier semantics, or new
-extension ownership, stop and finish the earlier batch that owns that work.
+Work Area and still needs new cadence policy, new classifier semantics, or new
+extension ownership, stop and finish the earlier Work Area that owns that work.
+
+## Realignment Note
+
+Read this Work Area with
+`goal-work-area-coordination-note.md#accepted-v136-placement-default`.
+Final acceptance should look for `core/src/goal_cadence/` as the request-input
+shaping module directory, not a single required `goal_cadence.rs` file.
+`ext/goal` service adoption is not mandatory for v136 unless Work Area 04
+selected and justified it. The final active Goal proof remains one current
+developer-role `ResponseItem` in final `/responses` input.
 
 ## Direction Lock
 
 Request:
 
-- author the final cleanup and acceptance batch doc
+- author the final cleanup and acceptance Work Area doc
 - use `goal-test-deletion-map.md` heavily
 - ground the plan in direct code reads around old active Goal terrain and the
   tests that still defend it
@@ -29,13 +39,13 @@ Authority:
 - `local/goal_research/goal-authority-fake-shim-removal-map.md`
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
-- `local/goal_136_plan/batches/AGENTS.md`
-- `local/goal_136_plan/batches/00-test-prep-and-baseline-reset.md`
-- `local/goal_136_plan/batches/01-durable-cadence-state.md`
-- `local/goal_136_plan/batches/02-final-request-input-shaping-and-commit.md`
-- `local/goal_136_plan/batches/03-history-key-and-idle-continuation.md`
-- `local/goal_136_plan/batches/04-ext-goal-conversion.md`
-- `local/goal_136_plan/batches/05-repair-classifiers-and-projections.md`
+- `local/goal_136_plan/work-areas/AGENTS.md`
+- `local/goal_136_plan/work-areas/00-test-prep-and-baseline-reset.md`
+- `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
+- `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
+- `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
+- `local/goal_136_plan/work-areas/05-repair-classifiers-and-projections.md`
 
 Terrain:
 
@@ -62,18 +72,18 @@ Code-shape temptation:
   compile against them
 - treat a private `GoalContext` or `GoalSteeringRole::Developer` hard-map as
   harmless once the finalizer exists
-- let Batch 06 add missing classifier or cadence behavior because the old
+- let Work Area 06 add missing classifier or cadence behavior because the old
   callsites are still visible
 - preserve local tests that pass today by rewriting them around the old marker
   transport
 
 Locked direction:
 
-- require Batches 01-05 replacement surfaces to exist before this batch starts
+- require Work Areas 01-05 replacement surfaces to exist before this Work Area starts
 - delete reachable active producers and public exports for `GoalContext`,
   `GoalContextRole`, active `<goal_context>`, `GoalSteeringRole`, concrete
   Goal injection, concrete Goal carry, and raw Goal suppression
-- leave legacy `<goal_context>` handling only behind the Batch 05 shared
+- leave legacy `<goal_context>` handling only behind the Work Area 05 shared
   classifier and only for cleanup/projection/raw-contract tests
 - keep active authority in `goal_cadence.rs` final request-input shaping and
   Created-event commit
@@ -82,9 +92,9 @@ Locked direction:
 
 Exclusions:
 
-- no new durable state shape beyond Batches 01 and 03
-- no new cadence policy beyond Batches 02 and 03
-- no new classifier architecture beyond Batch 05
+- no new durable state shape beyond Work Areas 01 and 03
+- no new cadence policy beyond Work Areas 02 and 03
+- no new classifier architecture beyond Work Area 05
 - no app-server Goal product API redesign
 - no persisted pending Continuation intent
 - no rendered-text parsing to recover active Goal state, objective, pending
@@ -93,7 +103,7 @@ Exclusions:
 
 ## Bounded Code Terrain Read
 
-Files read directly for this batch:
+Files read directly for this Work Area:
 
 - `codex-rs/core/src/context/goal_context.rs`
 - `codex-rs/core/src/context/mod.rs`
@@ -151,8 +161,8 @@ Findings:
   Vec<ResponseInputItem> }` and extends pending input with
   `extend_goal_pending_input_for_turn_state(...)`.
 - `run_sampling_request(...)` currently builds `Prompt` directly from the
-  per-attempt `Vec<ResponseItem>`. Batch 02 must have inserted the finalizer at
-  this seam before Batch 06 can remove old active paths.
+  per-attempt `Vec<ResponseItem>`. Work Area 02 must have inserted the finalizer at
+  this seam before Work Area 06 can remove old active paths.
 - `TurnState` still stores `GoalSteeringCarryItem { purpose, item:
   ResponseInputItem }` and exposes `current_turn_goal_steering_items()`.
 - `InputQueue`, `Session`, and `CodexThread` still expose Goal-specific
@@ -181,26 +191,26 @@ Findings:
   `goal_steering_item(...)`, and injects through
   `ThreadManager::inject_goal_steering_items_into_active_turn(...)`.
 - `ext/goal/src/tool.rs` still creates active Goals through facts-only
-  `insert_thread_goal(...)`; Batch 04 must have converted this to
+  `insert_thread_goal(...)`; Work Area 04 must have converted this to
   cadence-aware service/state APIs before final cleanup.
 - `ResponsesRequest` test helpers already expose `input()`,
   `message_input_texts(...)`, and `message_input_text_groups(...)`, so final
   acceptance tests can inspect captured `/responses` payloads structurally.
 
-## Ownership Split For This Batch
+## Ownership Split For This Work Area
 
-Batch 06 deletes dead ownership. It does not move behavior into new owners.
+Work Area 06 deletes dead ownership. It does not move behavior into new owners.
 
-- `codex-rs/core/src/goal_cadence.rs` remains the deep module for active Goal
-  authority. Batch 06 may update imports or tests around it, but must not split
+- `codex-rs/core/src/goal_cadence/` remains the deep module for active Goal
+  authority. Work Area 06 may update imports or tests around it, but must not split
   cadence selection, developer-role item construction, request cleanup, commit
   metadata, or Continuation watermark commit into new helper owners.
-- `codex-rs/core/src/goal_artifacts.rs` or the Batch 05 equivalent remains the
-  classifier module. Batch 06 may move the last legacy marker constants into it
+- `codex-rs/core/src/goal_artifacts.rs` or the Work Area 05 equivalent remains the
+  classifier module. Work Area 06 may move the last legacy marker constants into it
   if needed, but must not add cadence decisions there.
-- `codex-rs/core/src/context/internal_context.rs` or the Batch 05 equivalent
+- `codex-rs/core/src/context/internal_context.rs` or the Work Area 05 equivalent
   owns source-tagged internal-context rendering and parsing.
-- `codex-rs/ext/goal/src/api.rs` or the Batch 04 equivalent owns extension-side
+- `codex-rs/ext/goal/src/api.rs` or the Work Area 04 equivalent owns extension-side
   mutation/accounting service outcomes. It must not construct active model
   input.
 - `codex-rs/core/src/goals.rs` remains transitional lifecycle/tool/runtime
@@ -208,14 +218,14 @@ Batch 06 deletes dead ownership. It does not move behavior into new owners.
   but it must not retain active model-input construction or role choice.
 - `codex-rs/core/src/session/input_queue.rs` and
   `codex-rs/core/src/state/turn.rs` may retain non-Goal pending input and
-  committed Goal metadata introduced by Batches 02-04. They must not retain
+  committed Goal metadata introduced by Work Areas 02-04. They must not retain
   concrete Goal `ResponseInputItem` carry as authority.
 
 ## Required Preconditions
 
-Do this batch only after the following are true in code:
+Do this Work Area only after the following are true in code:
 
-1. Batch 01 durable cadence state exists.
+1. Work Area 01 durable cadence state exists.
 
    Required evidence:
 
@@ -223,16 +233,16 @@ Do this batch only after the following are true in code:
    - pending Initial, ObjectiveUpdated, and BudgetLimit intent is structured
    - exact-key pending intent consumption exists
 
-2. Batch 02 final request-input shaping exists.
+2. Work Area 02 final request-input shaping exists.
 
    Required evidence:
 
-   - `codex-rs/core/src/goal_cadence.rs` or the accepted equivalent is wired
+   - `codex-rs/core/src/goal_cadence/` or the accepted equivalent is wired
      into every sampling attempt before `build_prompt(...)`
    - commit metadata refers to the exact final `ResponseItem`
    - commit happens on `ResponseEvent::Created`
 
-3. Batch 03 idle Continuation is converted.
+3. Work Area 03 idle Continuation is converted.
 
    Required evidence:
 
@@ -241,7 +251,7 @@ Do this batch only after the following are true in code:
    - Continuation watermark commits only after Created
    - resume hydrates pending intent and does not fabricate Initial
 
-4. Batch 04 extension/app-server producers are converted.
+4. Work Area 04 extension/app-server producers are converted.
 
    Required evidence:
 
@@ -251,19 +261,19 @@ Do this batch only after the following are true in code:
      shared service/state path
    - same-turn delivery requests carry metadata or wake/recheck intent only
 
-5. Batch 05 classifier/projection cleanup exists.
+5. Work Area 05 classifier/projection cleanup exists.
 
    Required evidence:
 
    - shared classifier distinguishes current Goal internal context, legacy
      `<goal_context>`, non-Goal internal context, and mixed ordinary content
    - raw app-server Goal suppression has been removed or is explicitly being
-     removed in this batch
+     removed in this Work Area
    - compaction and reconstruction no longer use concrete pre-finalizer Goal
      carry
 
-If any precondition is missing, do not land Batch 06. Finish the owning earlier
-batch instead.
+If any precondition is missing, do not land Work Area 06. Finish the owning earlier
+Work Area instead.
 
 ## Required Edits
 
@@ -291,7 +301,7 @@ Required outcome:
 - remove crate exports of `is_goal_context_text(...)` and
   `is_goal_context_response_item(...)`
 - move any remaining legacy marker constants or pure legacy artifact detection
-  into the Batch 05 classifier module, not into `context`
+  into the Work Area 05 classifier module, not into `context`
 
 Allowed remaining behavior:
 
@@ -382,13 +392,13 @@ Delete these active old-path symbols when no replacement caller needs them:
 - `CodexThread::inject_goal_steering_items_into_active_turn(...)`
 - `pub use state::GoalSteeringCarryPurpose`
 
-Replace old behavior with already-landed batch surfaces:
+Replace old behavior with already-landed Work Area surfaces:
 
 - Initial, ObjectiveUpdated, and BudgetLimit creation use durable pending
-  cadence intent from Batch 01 and producer conversions from Batches 02/04.
+  cadence intent from Work Area 01 and producer conversions from Work Areas 02/04.
 - idle pending delivery and automatic Continuation use typed request metadata
-  from Batch 03.
-- same-turn delivery requests use Batch 04 metadata/wake/recheck plumbing.
+  from Work Area 03.
+- same-turn delivery requests use Work Area 04 metadata/wake/recheck plumbing.
 - committed carry, if still needed for compaction or diagnostics, is metadata
   about the finalized item, not `ResponseInputItem`.
 - prompt body helpers may remain in `goals.rs` only when they return body text
@@ -405,7 +415,7 @@ Audit carefully before deleting:
 Not allowed:
 
 - constructing a Goal `ResponseItem` or `ResponseInputItem` before the
-  Batch 02 finalizer
+  Work Area 02 finalizer
 - appending a rendered Goal prompt to turn pending input
 - keeping current-turn concrete Goal items as compaction authority
 - marking Initial pending in runtime because a durable active Goal exists on
@@ -432,7 +442,7 @@ Preferred outcome:
 Allowed fallback:
 
 - reduce `steering.rs` to prompt-body helpers only if those helpers are still
-  used by the Batch 02 finalizer or a shared prompt-body module
+  used by the Work Area 02 finalizer or a shared prompt-body module
 
 Required deletion:
 
@@ -451,16 +461,16 @@ Required deletion:
 
 Required replacement posture:
 
-- extension tool, runtime, and app-server adapters call the Batch 04
+- extension tool, runtime, and app-server adapters call the Work Area 04
   `GoalService`-style interface
 - service outcomes carry durable facts, previous facts, pending intent
   metadata, accounting effects, and cadence delivery requests
 - extension-origin active Goal steering is proven only by final `/responses`
   payload tests through `goal_cadence.rs`
 
-### 5. Finish Batch 05 Consumer Cleanup Audit
+### 5. Finish Work Area 05 Consumer Cleanup Audit
 
-Edit only if earlier batches left reachable old callsites:
+Edit only if earlier Work Areas left reachable old callsites:
 
 - `codex-rs/core/src/context/contextual_user_message.rs`
 - `codex-rs/core/src/event_mapping.rs`
@@ -477,7 +487,7 @@ Required outcome:
 - no consumer imports `crate::context::is_goal_context_*`
 - no consumer calls a Goal-only marker predicate outside the shared classifier
 - typed/materialized projection hides pure current Goal internal context and
-  pure legacy artifacts through Batch 05 classifier behavior
+  pure legacy artifacts through Work Area 05 classifier behavior
 - raw response item notifications stay raw
 - mixed marker-like ordinary prose remains ordinary visible content
 - compaction and rollout reconstruction never parse rendered Goal text to
@@ -571,7 +581,7 @@ Do not delete upstream baseline Goal product tests from:
 
 If these files still contain local overlay hunks, restore only those hunks to
 the `rust-v0.136.0` baseline or rewrite them to the replacement contract from
-Batches 02-05. Do not reset unrelated work.
+Work Areas 02-05. Do not reset unrelated work.
 
 ### 8. Add Final Acceptance Tests
 
@@ -723,7 +733,7 @@ for active authority.
 ## Focused Tests
 
 Implementation validation should reuse the focused tests introduced by earlier
-batches plus the final cleanup tests added here.
+Work Areas plus the final cleanup tests added here.
 
 Run formatting first:
 
@@ -793,11 +803,11 @@ just bazel-lock-update
 just bazel-lock-check
 ```
 
-No dependency change is expected for Batch 06.
+No dependency change is expected for Work Area 06.
 
-## Acceptance Criteria
+## Target State
 
-Batch 06 is complete when:
+This Work Area's target state is:
 
 - no reachable active producer imports or constructs `GoalContext`
 - no reachable active producer imports or applies `GoalContextRole`
@@ -838,7 +848,7 @@ Batch 06 is complete when:
 
 ## Non-Goals
 
-This batch does not:
+This Work Area does not:
 
 - implement durable pending cadence intent
 - implement final request-input shaping
@@ -856,21 +866,21 @@ This batch does not:
 
 ## Continuation Constraints
 
-Batch 06 has stricter continuation rules than earlier batches.
+Work Area 06 has stricter continuation rules than earlier Work Areas.
 
-Allowed before Batch 06 starts:
+Allowed before Work Area 06 starts:
 
-- old symbols may still exist while Batches 01-05 are incomplete
-- old tests may still exist before their owning earlier batch deletes or
+- old symbols may still exist while Work Areas 01-05 are incomplete
+- old tests may still exist before their owning earlier Work Area deletes or
   rewrites them
 
-Allowed inside a Batch 06 implementation branch before final review:
+Allowed inside a Work Area 06 implementation branch before final review:
 
 - temporary compile failures while deleting old symbols and updating imports
 - temporary audit matches while the same branch is removing those matches
 - legacy marker fixtures in replacement tests before whitelist review
 
-Not allowed in a completed Batch 06 implementation:
+Not allowed for this Work Area's target state:
 
 - any reachable active Goal path using old concrete injection or carry
 - any reachable `ext/goal` path constructing active model input
@@ -883,5 +893,5 @@ Not allowed in a completed Batch 06 implementation:
   show uninspected or disallowed matches
 
 If the final audit finds an old active path that cannot be removed without new
-architecture, stop and return to the earlier owning batch. Do not make Batch 06
+architecture, stop and return to the earlier owning Work Area. Do not make Work Area 06
 the place where new architecture is invented.

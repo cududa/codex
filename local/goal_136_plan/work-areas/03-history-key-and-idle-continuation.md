@@ -1,28 +1,38 @@
-# Batch 03: History Key And Idle Continuation
+# Work Area 03: History Key And Idle Continuation
 
-This batch completes the automatic Continuation side of Goal cadence:
+This Work Area completes the automatic Continuation side of Goal cadence:
 
 - real `model_visible_history_key` projection
 - persisted latest automatic Continuation watermark for resume/restart
 - `MaybeContinueIfIdle` staging for pending work, pending durable cadence
   intent, then automatic Continuation
-- finalizer-owned Continuation insertion and watermark commit through the
-  Batch 02 final request-input seam
+- request-input-shaped Continuation insertion and watermark commit through the
+  Work Area 02 final request-input seam
 
 It does not implement `ext/goal` conversion, broad classifier/projection
 cleanup, or final Goal shim deletion.
 
-## Slice Index
+## Realignment Note
 
-Implement Batch 03 through these slices rather than as one central idle
-rewrite:
+Read this Work Area with
+`goal-work-area-coordination-note.md#accepted-v136-placement-default`.
+Use the private `codex-rs/core/src/goal_cadence/` module directory for
+request-input shaping and Continuation support. Continuation
+request metadata must flow into `GoalTurnRequest` / `GoalRequestContext`, not
+prebuilt model input. Stale Goal-owned synthetic turns must use the Work Area
+02 submit-or-internal-abort outcome before model submission.
+
+## Implementation Pass Index
+
+Implement Work Area 03 through these implementation passes rather than as one
+central idle rewrite:
 
 - `03a-watermark-schema-store-apis.md`
   - Continuation watermark schema, state model, store APIs, cadence snapshot
     plumbing, and state tests
 - `03b-model-visible-history-key-projection.md`
   - `ModelVisibleHistoryKey` type, eligible progress projection in
-    `goal_cadence.rs`, and focused projection unit tests
+    `goal_cadence/`, and focused projection unit tests
 - `03c-idle-stage-order-refactor.md`
   - `MaybeContinueIfIdle` stage-order refactor and pending-work helpers that
     return whether work started
@@ -30,8 +40,8 @@ rewrite:
   - idle delivery of pending Initial / ObjectiveUpdated / BudgetLimit using
     typed metadata, not rendered model input
 - `03e-automatic-continuation-preflight-finalizer-recheck.md`
-  - automatic Continuation candidate preflight and finalizer recheck before
-    any synthetic request is submitted
+  - automatic Continuation candidate preflight and request-input shaper
+    recheck before any synthetic request is submitted
 - `03f-continuation-created-commit.md`
   - Created-event commit for automatic Continuation and watermark advancement
 - `03g-resume-hydration-and-watermark-reconstruction.md`
@@ -40,27 +50,27 @@ rewrite:
 - `03h-retry-failure-and-stale-synthetic-turn-tests.md`
   - retry, failure, stale candidate, and duplicate-suppression acceptance tests
 
-The parent Batch 03 file remains the overview contract. Slice docs are ordered
-work packets for the same rewrite branch. They should make continuation state
-explicit for the next packet or compacted agent, not force idle, key,
-watermark, and retry work into independently mergeable states.
+The parent Work Area 03 file remains the overview contract. Implementation pass
+docs are ordered units of work for the same rewrite branch. They should make
+continuation state explicit for the next pass or compacted agent, not force
+idle, key, watermark, and retry work into independently mergeable states.
 
 Testing posture:
 
-- each slice should include focused validation for behavior it actually
-  introduces
-- state-only APIs should have focused state tests in the same slice
+- each implementation pass should include focused validation for behavior it
+  actually introduces
+- state-only APIs should have focused state tests in the same pass
 - projection logic should have direct unit tests before lifecycle tests depend
   on it
 - `03h` is the representative failure/retry/stale synthetic-turn acceptance
-  layer; it does not replace slice-local tests for 03a-03g
+  layer; it does not replace pass-local tests for 03a-03g
 
 ## Direction Lock
 
 Request:
 
 - translate the model-visible history key and idle Continuation contracts into
-  an execution-ready batch
+  an execution-ready Work Area
 - ground the plan in current idle hook, pending-work, history, resume,
   compaction, and request construction code
 - do not implement Rust code in this planning pass
@@ -72,8 +82,8 @@ Authority:
 - `local/goal_research/goal-authority-idle-continuation-contract.md`
 - `local/goal_research/goal-authority-model-visible-history-key.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
-- `local/goal_136_plan/batches/01-durable-cadence-state.md`
-- `local/goal_136_plan/batches/02-final-request-input-shaping-and-commit.md`
+- `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
+- `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
 
 Terrain:
 
@@ -85,10 +95,10 @@ Terrain:
   - `continuation_lock` already protects Goal-owned scheduling
   - `restore_thread_goal_runtime_after_resume()` currently marks Initial
     pending for any active Goal, which the contract forbids
-  - `initial_steering_goal_id` is runtime-only Initial state, which Batch 01
+  - `initial_steering_goal_id` is runtime-only Initial state, which Work Area 01
     replaces with persisted pending cadence intent
   - `GoalContinuationCandidate` currently carries concrete
-    `ResponseInputItem`s, which Batch 03 must replace with request intent
+    `ResponseInputItem`s, which Work Area 03 must replace with request intent
 - `codex-rs/core/src/tasks/mod.rs`
   - `maybe_start_turn_for_pending_work*` already starts regular queued or
     trigger-turn mailbox work when idle
@@ -101,10 +111,10 @@ Terrain:
     `ResponseInputItem`s into turn pending input
 - `codex-rs/core/src/state/turn.rs`
   - `TurnState` stores concrete current-turn Goal steering items today
-  - Batch 02 introduces committed carry metadata for finalized Goal items
+  - Work Area 02 introduces committed carry metadata for finalized Goal items
 - `codex-rs/core/src/session/turn.rs`
   - retry attempts rebuild prompt input from `clone_history().for_prompt(...)`
-  - Batch 02 finalizer must run inside `run_sampling_request(...)` before
+  - Work Area 02 finalizer must run inside `run_sampling_request(...)` before
     `build_prompt(...)`
   - `ResponseEvent::Created` is the commit point for selected Goal delivery
 - `codex-rs/core/src/client_common.rs`
@@ -136,7 +146,7 @@ Terrain:
 - existing tests in `codex-rs/core/src/session/tests.rs`
   - some prove useful pending-work precedence
   - some assert old `<goal_context>` and resume-Initial behavior and must be
-    deleted or replaced under the Batch 00 posture
+    deleted or replaced under the Work Area 00 posture
 
 Code-shape temptation:
 
@@ -150,8 +160,8 @@ Code-shape temptation:
 
 Locked direction:
 
-- put `ModelVisibleHistoryKey` and key projection in the Batch 02 cadence
-  module, proposed as `codex-rs/core/src/goal_cadence.rs`
+- put `ModelVisibleHistoryKey` and key projection in the Work Area 02 cadence
+  module directory at `codex-rs/core/src/goal_cadence/`
 - compute the key from the same logical model-visible input used for the
   request attempt, before inserting a new Continuation item
 - use a preflight key only to avoid unnecessary synthetic turn launches; the
@@ -162,7 +172,7 @@ Locked direction:
   pending non-Goal work first, pending durable cadence delivery second,
   automatic Continuation last
 - replace idle-owned concrete Goal input injection with structured Goal idle
-  request intent consumed by the Batch 02 finalizer
+  request intent consumed by the Work Area 02 finalizer
 
 Exclusions:
 
@@ -174,13 +184,13 @@ Exclusions:
 - no user-role active Goal steering compatibility
 - no code implementation in this planning pass
 
-## Ownership Split For This Batch
+## Ownership Split For This Work Area
 
-Batch 03 adds Continuation policy on top of the Batch 02 finalizer. Use this
+Work Area 03 adds Continuation policy on top of the Work Area 02 finalizer. Use this
 file split while implementing:
 
-- `codex-rs/core/src/goal_cadence.rs` owns `ModelVisibleHistoryKey`
-  projection, finalizer recheck of structured idle requests, Continuation
+- `codex-rs/core/src/goal_cadence/` owns `ModelVisibleHistoryKey`
+  projection, request-input shaper recheck of structured idle requests, Continuation
   item construction, and Continuation commit metadata.
 - `codex-rs/state/src/runtime/goals.rs` owns persisted Continuation watermark
   storage and clearing. It does not decide whether a request should emit
@@ -191,7 +201,7 @@ file split while implementing:
   finalizer, not rendered prompt text or concrete model input.
 - `codex-rs/core/src/session/turn.rs` continues to own finalizer placement and
   Created-event commit execution. It does not compute the key independently of
-  `goal_cadence.rs`.
+  `goal_cadence/`.
 - `codex-rs/core/src/session/input_queue.rs`,
   `codex-rs/core/src/state/turn.rs`, and `codex-rs/core/src/session/mod.rs`
   may carry idle request metadata and pending-work state. They must not inject
@@ -203,7 +213,7 @@ file split while implementing:
 
 Edit:
 
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 
 Add a concrete key type equivalent to:
 
@@ -241,8 +251,8 @@ projection inputs are.
 
 Edit:
 
-- `codex-rs/core/src/goal_cadence.rs`
-- later Batch 05 classifier module only if it already exists by implementation
+- `codex-rs/core/src/goal_cadence/`
+- later Work Area 05 classifier module only if it already exists by implementation
   time
 
 Add a private projection type equivalent to:
@@ -255,7 +265,7 @@ struct ModelVisibleProgressProjection {
 ```
 
 The projection is computed from the finalizer base input for this attempt,
-after Batch 02 request cleanup has removed or ignored pure Goal-only artifacts,
+after Work Area 02 request cleanup has removed or ignored pure Goal-only artifacts,
 and before the selected Goal item is inserted.
 
 Include ordered model-visible items that can represent real work progress:
@@ -309,9 +319,9 @@ Edit:
 - `codex-rs/state/src/lib.rs`
 
 Use the next available goals migration number if 01a and 01b land with a
-different migration layout. In the split Batch 01 plan, 01a uses `0002` for
+different migration layout. In the split Work Area 01 plan, 01a uses `0002` for
 `facts_version` and 01b uses `0003` for pending cadence intent, so this
-watermark slice should normally use `0004`.
+watermark pass should normally use `0004`.
 
 Add migration:
 
@@ -391,7 +401,7 @@ pub async fn clear_thread_goal_continuation_watermark(
 ) -> anyhow::Result<bool>;
 ```
 
-Extend the Batch 01 cadence snapshot or add a sibling snapshot so core can
+Extend the Work Area 01 cadence snapshot or add a sibling snapshot so core can
 load:
 
 ```rust
@@ -412,17 +422,17 @@ Clear the watermark when:
 Leaving a stale row with a mismatched `goal_id` must not suppress a new Goal,
 but cleanup should keep state reviewable.
 
-### 4. Extend Batch 02 Finalizer Runtime Request
+### 4. Extend Work Area 02 Finalizer Runtime Request
 
 Edit:
 
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 - `codex-rs/core/src/session/turn.rs`
 - `codex-rs/core/src/goals.rs`
 - `codex-rs/core/src/state/turn.rs`
 - `codex-rs/core/src/session/mod.rs`
 
-Extend the Batch 02 request shape with structured idle intent:
+Extend the Work Area 02 request shape with structured idle intent:
 
 ```rust
 pub(crate) enum GoalIdleRequest {
@@ -459,13 +469,13 @@ The exact names may change. The shape may not:
 - no rendered Goal text
 - no role-bearing model item
 - no durable pending Continuation
-- only structured request intent for the Batch 02 finalizer
+- only structured request intent for the Work Area 02 finalizer
 
-Batch 02 finalizer changes for Batch 03:
+Work Area 02 finalizer changes for Work Area 03:
 
 ```text
 receive base Vec<ResponseItem> for this attempt
-clean or ignore Goal-only request artifacts under Batch 02 rules
+clean or ignore Goal-only request artifacts under Work Area 02 rules
 compute ModelVisibleHistoryKey from the cleaned base input
 load current durable Goal snapshot and latest Continuation watermark
 select pending durable BudgetLimit / ObjectiveUpdated / Initial if due
@@ -498,19 +508,19 @@ Do not expose this as a user-facing product error.
 
 Edit:
 
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 - `codex-rs/core/src/session/turn.rs`
 - `codex-rs/state/src/runtime/goals.rs`
 
-Extend `GoalRequestCommit` from Batch 02 so Continuation commits require:
+Extend `GoalRequestCommit` from Work Area 02 so Continuation commits require:
 
 ```rust
 pub model_visible_history_key: ModelVisibleHistoryKey,
 ```
 
 for `GoalCadenceKind::Continuation`. Non-Continuation commits may still carry
-`None` only if the Batch 02 continuation state is being implemented before
-Batch 03; after Batch 03, the key is available for diagnostics but
+`None` only if the Work Area 02 continuation state is being implemented before
+Work Area 03; after Work Area 03, the key is available for diagnostics but
 watermarking uses it only for Continuation.
 
 On `ResponseEvent::Created`, `commit_goal_request(...)` must:
@@ -526,7 +536,7 @@ On `ResponseEvent::Created`, `commit_goal_request(...)` must:
   - `committed_turn_id`
   - `item_fingerprint`
   - current commit timestamp
-- record committed current-turn carry metadata from Batch 02
+- record committed current-turn carry metadata from Work Area 02
 
 Do not advance the watermark when:
 
@@ -609,7 +619,7 @@ Edit:
 - `codex-rs/core/src/goals.rs`
 - `codex-rs/core/src/state/turn.rs`
 - `codex-rs/core/src/session/mod.rs`
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 
 When Stage 2 finds eligible pending Initial, ObjectiveUpdated, or BudgetLimit
 intent:
@@ -644,7 +654,7 @@ Remove idle-path use of:
 for finalizer-owned Goal work.
 
 The old functions may remain temporarily only while reachable old producers
-await later batches, but a completed Batch 03 implementation must not use them
+await later Work Areas, but this Work Area's target state must not use them
 for core idle lifecycle delivery.
 
 ### 8. Launch Automatic Continuation With Preflight And Finalizer Recheck
@@ -652,7 +662,7 @@ for core idle lifecycle delivery.
 Edit:
 
 - `codex-rs/core/src/goals.rs`
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 - `codex-rs/core/src/state/turn.rs`
 - `codex-rs/core/src/session/mod.rs`
 
@@ -681,7 +691,7 @@ start regular task with empty user input
 
 The preflight key is a launch suppression check only. It is not committed.
 
-During `run_sampling_request(...)`, the Batch 02 finalizer recomputes
+During `run_sampling_request(...)`, the Work Area 02 finalizer recomputes
 `ModelVisibleHistoryKey` from the actual per-attempt base input. Automatic
 Continuation is inserted only if:
 
@@ -706,14 +716,14 @@ Edit:
 - `codex-rs/core/src/goals.rs`
 - `codex-rs/core/src/codex_thread.rs`
 - `codex-rs/core/src/session/rollout_reconstruction.rs`
-- state APIs from this batch
+- state APIs from this Work Area
 
 Change `restore_thread_goal_runtime_after_resume()`:
 
 - reload durable Goal facts
 - reload pending Initial, ObjectiveUpdated, and BudgetLimit intent through the
-  Batch 01 cadence snapshot
-- reload latest Continuation watermark through the Batch 03 state API
+  Work Area 01 cadence snapshot
+- reload latest Continuation watermark through the Work Area 03 state API
 - refresh accounting baselines for current active Goal
 - clear stopped-goal runtime state when durable status is not active
 - do not mark Initial pending merely because a durable active Goal exists
@@ -742,14 +752,14 @@ parsing rendered Goal text.
 
 Edit:
 
-- `codex-rs/core/src/goal_cadence.rs`
+- `codex-rs/core/src/goal_cadence/`
 - `codex-rs/core/src/context_manager/history.rs`
 - `codex-rs/core/src/session/rollout_reconstruction.rs`
 - `codex-rs/core/src/compact.rs`
 - `codex-rs/core/src/compact_remote.rs`
 - `codex-rs/core/src/compact_remote_v2.rs`
 
-Batch 03 does not finish broad compaction/projection cleanup. It must still
+Work Area 03 does not finish broad compaction/projection cleanup. It must still
 make the key correct for the model-visible input it sees.
 
 Rules:
@@ -768,7 +778,7 @@ Rules:
   not suppress or permit Continuation by itself
 
 If the implementation needs helper access to raw prompt-history items for unit
-tests, add a narrowly named helper in `goal_cadence.rs` rather than changing
+tests, add a narrowly named helper in `goal_cadence/` rather than changing
 `ContextManager` into a Goal authority component.
 
 ### 11. Failure And Retry Semantics
@@ -776,8 +786,8 @@ tests, add a narrowly named helper in `goal_cadence.rs` rather than changing
 Edit:
 
 - `codex-rs/core/src/session/turn.rs`
-- `codex-rs/core/src/goal_cadence.rs`
-- state APIs from this batch
+- `codex-rs/core/src/goal_cadence/`
+- state APIs from this Work Area
 
 Required behavior:
 
@@ -910,13 +920,13 @@ rewritten according to `local/goal_research/goal-test-deletion-map.md`.
 
 ## Verification
 
-Docs-only validation for this planning batch:
+Docs-only validation for this planning Work Area:
 
 ```powershell
 git diff --check -- local/goal_136_plan
 ```
 
-Implementation validation for Batch 03:
+Implementation validation for Work Area 03:
 
 ```powershell
 cd codex-rs
@@ -950,9 +960,9 @@ cargo test -p codex-core --test suite goal_authority
 Do not run broad workspace or full crate suites by default on this
 workstation.
 
-## Acceptance Criteria
+## Target State
 
-Batch 03 is complete when:
+This Work Area's target state is:
 
 - `ModelVisibleHistoryKey` exists as structured key data, not a
   `history_version()` alias
@@ -973,9 +983,9 @@ Batch 03 is complete when:
 - `MaybeContinueIfIdle` runs pending non-Goal work first, pending durable Goal
   cadence intent second, automatic Continuation last
 - pending Initial, ObjectiveUpdated, and BudgetLimit delivery from idle uses
-  durable pending intent and the Batch 02 finalizer, not prebuilt Goal input
+  durable pending intent and the Work Area 02 finalizer, not prebuilt Goal input
 - automatic Continuation launch uses structured idle request intent and the
-  Batch 02 finalizer, not concrete `ResponseInputItem` injection
+  Work Area 02 finalizer, not concrete `ResponseInputItem` injection
 - resume hydrates durable state and pending intent without fabricating Initial
 - final request payload tests prove automatic Continuation emits exactly one
   developer-role Goal item when due
@@ -985,7 +995,7 @@ Batch 03 is complete when:
 
 ## Non-Goals
 
-This batch does not:
+This Work Area does not:
 
 - create persisted pending Continuation intent
 - change the upstream Goal product API surface
@@ -1003,21 +1013,21 @@ This batch does not:
 
 ## Continuation Constraints
 
-Batch 03 should be implemented after Batch 01 and Batch 02 have established
+Work Area 03 should be implemented after Work Area 01 and Work Area 02 have established
 durable cadence state, final request-input shaping, and the Created commit
 seam.
 
-Allowed continuation state while later batches remain:
+Allowed continuation state while later Work Areas remain:
 
-- `goal_cadence.rs` owns the key projection, and after 03f owns
+- `goal_cadence/` owns the key projection, and after 03f owns
   Continuation commit metadata and commit handling
 - `MaybeContinueIfIdle` uses durable pending intent and structured idle request
   metadata
-- `ext/goal` still awaits Batch 04 conversion
-- broad classifier/projection cleanup still awaits Batch 05
-- final dead-code deletion still awaits Batch 06
+- `ext/goal` still awaits Work Area 04 conversion
+- broad classifier/projection cleanup still awaits Work Area 05
+- final dead-code deletion still awaits Work Area 06
 
-Not allowed in a completed Batch 03 implementation:
+Not allowed for this Work Area's target state:
 
 - `ThreadResumed` marking Initial pending from active Goal state alone
 - automatic Continuation selected from active durable Goal state alone
