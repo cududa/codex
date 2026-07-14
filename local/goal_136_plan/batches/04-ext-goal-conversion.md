@@ -858,14 +858,14 @@ This batch does not:
 - treat extension helper output, classifier output, or raw notifications as
   Goal authority
 
-## Partial Landing Constraints
+## Continuation Constraints
 
-Batch 04 may land only after Batch 01 durable cadence state and Batch 02 final
-request-input shaping/Created commit exist. It should also follow Batch 03 if
-same-turn delivery fallback depends on idle Stage 2 pending durable cadence
-delivery.
+Batch 04 should be implemented after Batch 01 durable cadence state and Batch
+02 final request-input shaping/Created commit exist. It should also follow
+Batch 03 if same-turn delivery fallback depends on idle Stage 2 pending durable
+cadence delivery.
 
-Allowed partial state while Batch 05/06 remain:
+Allowed continuation state while Batch 05/06 remain:
 
 - app-server and extension mutation paths route through cadence-aware state
 - extension-origin pending intent is delivered by the finalizer

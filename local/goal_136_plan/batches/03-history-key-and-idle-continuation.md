@@ -40,13 +40,14 @@ rewrite:
 - `03h-retry-failure-and-stale-synthetic-turn-tests.md`
   - retry, failure, stale candidate, and duplicate-suppression acceptance tests
 
-The parent Batch 03 file remains the overview contract. Slice docs are the
-implementation units. Each slice must either leave the tree in a coherent
-intermediate state or explicitly state that it must land with a later slice.
+The parent Batch 03 file remains the overview contract. Slice docs are ordered
+work packets for the same rewrite branch. They should make continuation state
+explicit for the next packet or compacted agent, not force idle, key,
+watermark, and retry work into independently mergeable states.
 
 Testing posture:
 
-- each slice must include the cheapest direct proof for the behavior it
+- each slice should include focused validation for behavior it actually
   introduces
 - state-only APIs should have focused state tests in the same slice
 - projection logic should have direct unit tests before lifecycle tests depend
@@ -508,9 +509,9 @@ pub model_visible_history_key: ModelVisibleHistoryKey,
 ```
 
 for `GoalCadenceKind::Continuation`. Non-Continuation commits may still carry
-`None` only if the Batch 02 partial state is being implemented before Batch
-03; after Batch 03, the key is available for diagnostics but watermarking
-uses it only for Continuation.
+`None` only if the Batch 02 continuation state is being implemented before
+Batch 03; after Batch 03, the key is available for diagnostics but
+watermarking uses it only for Continuation.
 
 On `ResponseEvent::Created`, `commit_goal_request(...)` must:
 
@@ -1000,12 +1001,13 @@ This batch does not:
 - emit Goal steering on ordinary user turns merely because durable Goal state
   exists
 
-## Partial Landing Constraints
+## Continuation Constraints
 
-Batch 03 may land after Batch 01 and Batch 02 only if durable cadence state,
-Batch 02's final request-input shaping, and the Created commit seam exist.
+Batch 03 should be implemented after Batch 01 and Batch 02 have established
+durable cadence state, final request-input shaping, and the Created commit
+seam.
 
-Allowed partial state while later batches remain:
+Allowed continuation state while later batches remain:
 
 - `goal_cadence.rs` owns the key projection, and after 03f owns
   Continuation commit metadata and commit handling

@@ -34,6 +34,18 @@ doc, so the durable cadence state, final request-input shaping, idle
 Continuation, extension conversion, repair/projection work, and replacement
 tests can be planned without reopening the core architecture.
 
+Slices are ordered work packets on one branch. They exist so agents can pick
+up the rewrite in succession across compactions with a clear local task,
+handoff state, and validation target. They are not individual PRs, release
+units, or promises of independent mergeability. Do not distort module
+boundaries, add no-op architecture, or create test-only seams just to make a
+slice appear independently complete.
+
+When creating or revising slice docs, follow
+`local/goal_136_plan/batches/slice-planning-rules.md`. Slice boundaries must
+come from the relevant authority docs plus a direct code walk of the batch
+terrain, not from document length or plausible implementation guesses.
+
 The producer behavior switch is atomic. After that switch is accepted, no
 active Goal steering producer may remain on `GoalContext`, `GoalContextRole`,
 active `<goal_context>` emission, user-role Goal steering, or Goal-only fake
@@ -50,8 +62,10 @@ input.
 
 ## Plan Boundaries
 
-The batch docs are review and execution units. They are not permission to land
-known-broken active Goal behavior.
+The batch docs and slice docs are ordered execution guidance for one rewrite
+branch. They are not permission to present known-broken active Goal behavior
+as accepted, and they are not pressure to make every intermediate packet a
+standalone build or merge point.
 
 - Test prep may remove false pressure but must not weaken upstream Goal product
   baseline obligations.

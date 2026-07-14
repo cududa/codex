@@ -41,13 +41,15 @@ change:
   - add request-payload, cleanup, commit, and retry-before/after-Created
     acceptance tests that inspect final `/responses` input
 
-The parent Batch 02 file remains the overview contract. The slice docs are the
-implementation units. Each slice must either leave the tree in a coherent
-intermediate state or explicitly state that it must land with a later slice.
+The parent Batch 02 file remains the overview contract. The slice docs are
+ordered work packets for the same rewrite branch. They exist so agents can
+continue the request/commit rewrite across compactions without reopening the
+architecture. They should state their handoff state and downstream owner for
+intentionally incomplete work, not imply independent mergeability.
 
 Testing posture:
 
-- each slice must include the cheapest direct proof for the behavior it
+- each slice should include focused validation for behavior it actually
   introduces
 - unit tests are enough for pure types, selection, commit primitives, and
   producer state effects when they prove the slice contract
@@ -734,14 +736,15 @@ This batch does not:
 - change upstream Goal product surfaces such as app-server APIs, `/goal`,
   status/footer projection, pause/edit/clear, budget, or usage
 
-## Partial Landing Constraints
+## Continuation Constraints
 
 Batch 02 may be developed after Batch 01 state support exists.
 
-It may land before Batches 03-06 only if the branch clearly remains an
-incomplete rewrite and does not present the active Goal path as accepted.
+Batch 02 may be completed before Batches 03-06 only if the branch clearly
+tracks the remaining work and does not present the active Goal path as fully
+accepted.
 
-Allowed partial state:
+Allowed continuation state:
 
 - finalizer module wired for Initial, ObjectiveUpdated, and BudgetLimit
 - Created commit for durable pending intent

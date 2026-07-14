@@ -26,10 +26,10 @@ state change:
   - atomic facts-plus-intent store operations
   - focused state tests for the complete durable cadence state contract
 
-The parent Batch 01 file remains the overview contract. The slice docs are the
-implementation units. If a slice cannot land alone, it must say so explicitly;
-otherwise each slice should leave the tree compiling with existing production
-callers still using facts-only behavior.
+The parent Batch 01 file remains the overview contract. The slice docs are
+ordered work packets for the same rewrite branch. They should identify what
+they add, what remains intentionally incomplete, and what the next packet must
+inherit. They are not standalone acceptance or release contracts.
 
 ## Direction Lock
 
@@ -535,10 +535,10 @@ This batch does not:
 - convert `ext/goal`
 - delete the old active steering producer path
 
-## Partial Landing Constraints
+## Continuation Constraints
 
-Batch 01 may land before active steering is rewritten only if it remains
-state-additive:
+Batch 01 may be implemented before active steering is rewritten only while it
+remains state-additive:
 
 - migrations and facts versioning are allowed
 - cadence-aware APIs and state tests are allowed
@@ -549,5 +549,5 @@ state-additive:
 
 If implementation pressure makes production caller conversion appear necessary
 inside Batch 01, stop and move that conversion to the later final
-request-input/producers batch instead of landing a half-connected pending
+request-input/producers packet instead of creating a half-connected pending
 intent path.

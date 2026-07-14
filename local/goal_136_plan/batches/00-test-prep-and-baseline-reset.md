@@ -361,9 +361,9 @@ This batch does not:
   raw suppression test
 - add the replacement final request-input tests
 
-## Partial Landing Constraints
+## Continuation Constraints
 
-This batch may land before the behavior rewrite only if it remains a prep
+This batch may be implemented before the behavior rewrite only if it remains a prep
 change:
 
 - deleting false local tests is allowed

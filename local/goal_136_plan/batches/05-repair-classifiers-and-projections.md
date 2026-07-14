@@ -573,8 +573,8 @@ Required behavior:
 
 If implementation cannot remove `sess.current_turn_goal_steering_items()` from
 both local and remote compaction in this batch because prior batches have not
-landed committed carry metadata yet, stop and fix the dependency ordering. Do
-not keep concrete carry as a Batch 05 partial state.
+established committed carry metadata yet, stop and fix the dependency ordering. Do
+not keep concrete carry as a Batch 05 continuation state.
 
 Add focused tests:
 
@@ -939,16 +939,16 @@ This batch does not:
 - remove upstream Goal product behavior such as `/goal`, status/footer
   projection, pause/edit/clear, budget, or usage
 
-## Partial Landing Constraints
+## Continuation Constraints
 
-Batch 05 should land after Batches 02-04 because it depends on:
+Batch 05 should be implemented after Batches 02-04 because it depends on:
 
 - final request-input cleanup and commit ownership in `goal_cadence.rs`
 - committed Goal carry metadata replacing pre-finalizer concrete carry
 - extension/app-server producers no longer depending on active
   `GoalContext` injection
 
-Allowed partial state while Batch 06 remains:
+Allowed continuation state while Batch 06 remains:
 
 - legacy `<goal_context>` pure-artifact detection still exists behind the
   shared classifier

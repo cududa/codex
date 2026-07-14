@@ -8,6 +8,23 @@ The authority docs still win. This file adds batch-local guardrails so the
 implementation route stays compatible with the ownership model in the
 authority docs.
 
+## Slice Execution Posture
+
+Slice docs are ordered work packets for one branch. They are meant to be
+picked up in succession across compactions, not merged, released, or accepted
+as independent units.
+
+When a slice says what must exist before or after it, read that as task
+ordering and handoff state. Do not add no-op modules, artificial compile
+states, test-only hooks, or broad adapter APIs merely to make a slice look
+independently complete. Focus validation on behavior or interfaces actually
+introduced by the packet, and leave integrated acceptance to the owning batch
+acceptance packet.
+
+When creating or revising slice docs, follow `slice-planning-rules.md` in this
+directory. Do the relevant tree-walk before naming boundaries; a plausible
+split from the batch prose is not enough.
+
 ## Migration-Stable Goal Ownership
 
 - Keep durable Goal facts and pending cadence intent in state APIs.

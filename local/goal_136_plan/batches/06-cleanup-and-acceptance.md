@@ -854,9 +854,9 @@ This batch does not:
 - parse legacy rendered text to recover Goal facts or objective text
 - make repair emit Goal on every ordinary active-Goal turn
 
-## Partial Landing Constraints
+## Continuation Constraints
 
-Batch 06 has stricter partial rules than earlier batches.
+Batch 06 has stricter continuation rules than earlier batches.
 
 Allowed before Batch 06 starts:
 

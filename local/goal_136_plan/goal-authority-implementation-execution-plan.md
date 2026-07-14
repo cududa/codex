@@ -111,6 +111,12 @@ The spine records ordering, dependencies, invariants, and acceptance gates.
 Batch docs carry exact file edits, API shapes, tests, migration names, and
 slice-level verification.
 
+Slices within a batch are ordered work packets on the same rewrite branch.
+They are designed for continuation across compactions, not for independent
+mergeability. A slice may intentionally create scaffolding that the next slice
+uses, as long as the docs state the continuation state and do not present the
+unfinished behavior as accepted.
+
 Do not implement code from this spine alone. Write or approve the relevant
 batch doc first.
 
@@ -133,7 +139,7 @@ Planned batch docs:
 Batch 00 may delete local false-compatibility pressure and restore upstream
 baseline tests. It must not delete upstream Goal product behavior.
 
-Batch 01 must land durable facts versioning and pending cadence intent before
+Batch 01 must establish durable facts versioning and pending cadence intent before
 producers rely on it.
 
 Batch 02 must own the per-attempt final request-input shaping point and commit
@@ -164,7 +170,7 @@ Each batch doc must include:
 - exact files/tests to delete, restore, add, or update
 - API/schema/module names proposed for that batch
 - ordering inside the batch
-- rollback or partial-landing constraints
+- continuation and handoff constraints
 - focused verification commands
 - acceptance criteria
 - explicit non-goals
