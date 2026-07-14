@@ -1,5 +1,24 @@
 # Goal Authority Durable Cadence State
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: durable state seam for Goal cadence.
+- Owns: durable facts version, pending Initial/ObjectiveUpdated/BudgetLimit
+  intent storage, atomic mutation rules, supersedence cleanup, exact-key
+  consumption, required store operations, and state-layer non-ownership.
+- Does not own: request shaping, repair decisions, prompt rendering, model
+  roles, idle ordering, or automatic Continuation policy.
+- Read after: `goal-authority-primary-cadence-contract.md`.
+- Read with: `goal-authority-final-request-input-and-commit.md`.
+- Current terrain anchors: `codex-rs/state/goals_migrations/0001_thread_goals.sql`,
+  `codex-rs/state/src/model/thread_goal.rs`, and
+  `codex-rs/state/src/runtime/goals.rs`.
+- Fidelity note: pending cadence intent is structured durable state; it is not
+  rollout text, rendered context, UI metadata, or raw response events.
+
 ## Purpose
 
 This document defines the durable state needed by Goal cadence.

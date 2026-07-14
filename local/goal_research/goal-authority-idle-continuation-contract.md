@@ -1,5 +1,26 @@
 # Goal Authority Idle Continuation Contract
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: focused idle lifecycle contract for `MaybeContinueIfIdle`.
+- Owns: legal callers, stage order, pending non-Goal work precedence, pending
+  durable cadence intent delivery, automatic Continuation eligibility,
+  lock/reservation behavior, resume hydration, external mutation ordering, and
+  idle acceptance tests.
+- Does not own: active steering shape, the final request-input authority seam,
+  durable storage details, or classifier architecture.
+- Read after: `goal-authority-grounding-truth.md` and
+  `goal-authority-primary-cadence-contract.md`.
+- Current terrain anchors: `codex-rs/core/src/goals.rs`,
+  `codex-rs/core/src/session/input_queue.rs`, and
+  `codex-rs/core/src/state/turn.rs`.
+- Fidelity note: do not call pending Initial, ObjectiveUpdated, or BudgetLimit
+  delivery automatic Continuation merely because it is launched from the idle
+  hook.
+
 ## Purpose
 
 This document defines the `MaybeContinueIfIdle` contract for Goal authority.

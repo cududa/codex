@@ -1,5 +1,27 @@
 # Goal Authority Fake-Shim Removal Map
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: demolition terrain map for deleting the active Goal-only context path.
+- Owns: current shim roots, shim-dependent consumers, required replacement work
+  areas, and legacy artifact handling after active shim removal.
+- Does not own: cadence timing, durable pending intent rules, final commit
+  semantics, or the decision that Goal speaks.
+- Read after: `goal-authority-grounding-truth.md`,
+  `goal-authority-primary-cadence-contract.md`, and
+  `goal-authority-idle-continuation-contract.md`.
+- Read with: `goal-authority-repair-classifier-integration.md` and
+  `goal-authority-ext-goal-ownership.md`.
+- Current terrain anchors: `codex-rs/core/src/context/goal_context.rs`,
+  `codex-rs/core/src/goals.rs`, `codex-rs/ext/goal/src/steering.rs`,
+  `codex-rs/core/src/event_mapping.rs`, `codex-rs/core/src/compact.rs`, and
+  `codex-rs/core/src/session/rollout_reconstruction.rs`.
+- Fidelity note: this map explains what to delete or replace; it is not an
+  architecture to keep alive under compatibility language.
+
 ## Purpose
 
 This document maps the existing Goal-only provenance shim so implementation

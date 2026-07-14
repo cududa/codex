@@ -1,5 +1,31 @@
 # Goal Authority Repair And Classifier Integration
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: integration map for strict classifiers, request-local repair, cleanup,
+  typed projection, compaction, reconstruction, and raw notifications.
+- Owns: classifier outputs, purity rules, repair/classifier limits, projection
+  behavior, history and user-turn handling, compaction and reconstruction behavior,
+  raw notification behavior, classifier ownership, and focused tests.
+- Does not own: cadence selection, durable Goal fact recovery, pending-intent
+  consumption, authority proof, or active Goal state inference.
+- Read after: `goal-authority-final-request-input-and-commit.md`.
+- Read with: `goal-authority-fake-shim-removal-map.md` and
+  `goal-authority-model-visible-history-key.md`.
+- Current terrain anchors: `codex-rs/core/src/context/goal_context.rs`,
+  `codex-rs/core/src/context/contextual_user_message.rs`,
+  `codex-rs/core/src/event_mapping.rs`,
+  `codex-rs/core/src/context_manager/history.rs`,
+  `codex-rs/core/src/compact.rs`,
+  `codex-rs/core/src/compact_remote.rs`,
+  `codex-rs/core/src/session/rollout_reconstruction.rs`, and
+  `codex-rs/app-server/src/bespoke_event_handling.rs`.
+- Fidelity note: classifiers are cleanup tools; they do not decide cadence and
+  they do not prove authority.
+
 ## Purpose
 
 This document maps how strict Goal item classifiers integrate with repair,

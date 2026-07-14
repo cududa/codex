@@ -3,6 +3,11 @@
 This directory contains local authority docs for Goal behavior in this fork.
 Treat them as design contracts, not brainstorming notes.
 
+`README.md` and `CONTEXT.md` are navigation aids. They help agents find the
+right authority doc and shared terms, but they do not supersede the authority
+order below. If a navigation aid is incomplete, follow the source authority
+document.
+
 Version-specific implementation plans may live outside this directory, such as
 `local/goal_136_plan`. Those plans are execution artifacts, not peer authority.
 They must conform to the authority order here.
@@ -36,71 +41,33 @@ resume behavior, compaction repair, legacy Goal artifacts, or Goal tests:
 If these files appear to conflict, stop and name the conflict. Do not silently
 choose an implementation shape that weakens the grounding truth.
 
-## File Relationships
+## Navigation And Document Roles
 
-The four authority files are complementary, not competing proposals.
+Use `README.md` for the reader map, document roles, supporting seams, terrain
+anchors, and Pass 2 guardrails. Use `CONTEXT.md` for vocabulary.
 
-`goal-authority-grounding-truth.md` is the behavioral source of truth. It says
-what must be true from the model's perspective and what designs are forbidden.
-Use it to reject implementation shapes that would reintroduce Goal reminders on
-ordinary user turns, user-role Goal steering, rendered marker text as
-authority, or hiddenness-as-authority.
+Those files are not peer authority and do not replace top-to-bottom reading of
+the source contracts. If a navigation aid and a source contract differ, follow
+the source contract and update the navigation aid.
 
-`goal-authority-primary-cadence-contract.md` turns that truth into an
-implementable cadence model. It defines durable Goal facts, persisted pending
-cadence intent, consumption when final model request input contains the
-developer-role Goal item, request repair, supersedence, and the verification
-checklist. In the current code, final model request input means the logical
-`Vec<ResponseItem>` that becomes `Prompt.input` and then
-`ResponsesApiRequest.input`. Version plans should generally derive their state
-model and tests from this file.
-
-`goal-authority-idle-continuation-contract.md` is a focused companion to the
-cadence contract. It fills in the `MaybeContinueIfIdle` gap. Use it only for
-idle lifecycle sequencing, pending-work precedence, pending durable cadence
-intent delivery, automatic Continuation watermarking, resume hydration, and
-reservation/retry behavior. It does not replace the primary cadence contract.
-
-`goal-authority-fake-shim-removal-map.md` is implementation terrain for
-deleting the active Goal-only context path. It explains where the existing
-`GoalContext` / `<goal_context>` machinery is rooted and what consumers must
-be replaced. It does not decide when Goal speaks; the cadence docs decide that.
-
-`goal-test-deletion-map.md` is the test prep authority. Use it to remove local
-false-compatibility pressure, restore upstream Goal product tests to
-`rust-v0.136.0` baseline, and add replacement tests from the authority
-contracts after the active steering path is replaced.
-
-A complete implementation plan usually needs all five:
-
-```text
-grounding truth decides what is allowed
-  -> primary cadence decides when Goal steering is due
-  -> idle continuation decides how idle hooks sequence Goal-owned turns
-  -> fake-shim removal map decides what active Goal-only context terrain to delete
-  -> test deletion map decides how to reset test pressure before replacement tests
-```
+A complete implementation plan usually needs the authority order above plus
+the supporting seam docs named by `README.md`. Do not rely on this file as a
+summary of those source contracts.
 
 ## Design Deliverables
 
-The authority contracts are mature, and the remaining implementation-design
-deliverables are tracked in `goal-authority-open-design-deliverables.md`. Do
-not treat the repo as ready for a new implementation execution plan unless
-that checklist marks all required deliverables Ready or a later authority
-update explicitly resolves them.
+Before writing or executing a Goal implementation plan, read
+`goal-authority-open-design-deliverables.md`.
 
-Use `goal-authority-open-design-deliverables.md` as the current checklist.
-It tracks the implementation-design seams for:
+That checklist is the operational gate for whether the design inputs are
+Ready. Ready means ready as implementation-design input; it does not mean the
+work has already been translated into concrete files, functions, migrations,
+tests, or slice order.
 
-- durable cadence state
-- final request-input shaping and commit
-- `model_visible_history_key`
-- `ext/goal` ownership, with upstream guidance expected because Goal is moving
-  toward extension ownership
-- repair/classifier integration
-
-When the checklist marks all deliverables Ready, the next step is an
-implementation execution plan that translates them into file-specific slices.
+When the checklist marks all required deliverables Ready, the next step is an
+implementation execution plan. Do not reopen the core architecture unless a
+code walk finds a direct conflict with these authority docs or a later
+authority update explicitly supersedes them.
 
 ## Non-Negotiables
 

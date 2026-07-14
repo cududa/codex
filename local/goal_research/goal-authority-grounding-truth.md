@@ -1,5 +1,23 @@
 # Goal Authority Grounding Truth
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: behavioral source of truth for Goal authority.
+- Owns: allowed active steering shape, forbidden anti-patterns, top-level
+  cadence, repair, durable-state, legacy-artifact, and acceptance rules.
+- Does not own: version-specific execution plans, SQL/storage specifics, or
+  detailed idle lifecycle sequencing.
+- Read after: `AGENTS.md` and `CONTEXT.md`.
+- Current terrain anchors: `codex-rs/core/src/session/turn.rs`,
+  `codex-rs/core/src/client_common.rs`, `codex-rs/codex-api/src/common.rs`,
+  and `codex-rs/core/src/context/goal_context.rs`.
+- Fidelity note: do not weaken the final-request-input developer-role proof
+  into helper output, hidden classification, UI projection, or durable state
+  alone.
+
 ## Purpose
 
 This document defines the behavioral truth for Goal authority.

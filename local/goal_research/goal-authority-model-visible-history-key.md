@@ -1,5 +1,26 @@
 # Goal Authority Model Visible History Key
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: automatic Continuation duplicate-suppression support.
+- Owns: key shape, eligible progress projection, capture point, runtime
+  watermark semantics, resume/restart reconstruction, compaction effects, and
+  focused tests for Continuation suppression.
+- Does not own: Goal authority, pending Initial/ObjectiveUpdated/BudgetLimit
+  delivery, pending intent consumption, or cadence selection.
+- Read after: `goal-authority-primary-cadence-contract.md` and
+  `goal-authority-idle-continuation-contract.md`.
+- Read with: `goal-authority-final-request-input-and-commit.md`.
+- Current terrain anchors: `codex-rs/core/src/context_manager/history.rs`,
+  `codex-rs/core/src/session/mod.rs`,
+  `codex-rs/core/src/session/turn.rs`, and
+  `codex-rs/core/src/session/rollout_reconstruction.rs`.
+- Fidelity note: the automatic Continuation steering item itself must not be
+  the history change that permits another automatic Continuation.
+
 ## Purpose
 
 This document defines the `model_visible_history_key` used by automatic Goal

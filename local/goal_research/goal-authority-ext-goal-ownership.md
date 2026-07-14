@@ -1,5 +1,28 @@
 # Goal Authority `ext/goal` Ownership
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: ownership seam for the `ext/goal` crate during the Goal authority
+  rewrite.
+- Owns: what extension code may own, what final request-input shaping must own,
+  required replacement shape, configuration treatment, reachability rule,
+  file-specific work areas, and extension-focused tests.
+- Does not own: the final model-input authority seam, active `ResponseItem` or
+  `ResponseInputItem` construction, model role selection, pending-intent
+  consumption, or Continuation watermark updates.
+- Read after: `goal-authority-final-request-input-and-commit.md`.
+- Read with: `goal-authority-fake-shim-removal-map.md`.
+- Current terrain anchors: `codex-rs/ext/goal/src/extension.rs`,
+  `codex-rs/ext/goal/src/runtime.rs`, `codex-rs/ext/goal/src/steering.rs`,
+  `codex-rs/core/src/codex_thread.rs`,
+  `codex-rs/core/src/session/input_queue.rs`, and
+  `codex-rs/core/src/state/turn.rs`.
+- Fidelity note: extension lifecycle ownership must not become model-input
+  authority ownership.
+
 ## Purpose
 
 This document defines how `codex-rs/ext/goal` fits into the Goal authority

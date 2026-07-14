@@ -1,5 +1,21 @@
 # Goal Authority Open Design Deliverables
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: readiness checklist for implementation-design deliverables.
+- Owns: deliverable status, readiness criteria, consolidated-doc posture, and
+  the rule for when an implementation execution plan may be written.
+- Does not own: the authority spine, detailed seam contracts, or file-specific
+  implementation slices.
+- Read after: the authority spine and all seam/support docs when deciding
+  whether implementation planning is ready.
+- Current terrain anchors: none beyond the focused artifacts it lists.
+- Fidelity note: Ready means ready as design input, not already translated into
+  concrete files, functions, migrations, tests, or slice order.
+
 These items must be resolved before authoring another implementation execution
 plan. The authority contracts are mature, but several implementation seams
 still need compact, code-grounded design artifacts.

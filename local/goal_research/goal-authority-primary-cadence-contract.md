@@ -1,5 +1,27 @@
 # Goal Authority Primary Cadence Contract
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: implementable cadence contract derived from the grounding truth.
+- Owns: cadence state layers, steering kinds, supersedence, final model request
+  input proof requirements, repair limits, legacy artifact limits, shared
+  classification requirements, pending-work ordering expectations, and the
+  verification checklist.
+- Does not own: concrete SQL/API names, the detailed `MaybeContinueIfIdle`
+  caller sequence, or file-specific implementation slices.
+- Read after: `goal-authority-grounding-truth.md`.
+- Read with: `goal-authority-idle-continuation-contract.md`,
+  `goal-authority-durable-cadence-state.md`, and
+  `goal-authority-final-request-input-and-commit.md`.
+- Current terrain anchors: `codex-rs/core/src/goals.rs`,
+  `codex-rs/state/src/runtime/goals.rs`, and
+  `codex-rs/core/src/session/turn.rs`.
+- Fidelity note: preserve the distinction between cadence delivery, request
+  repair, ordinary user turns, and active durable Goal state.
+
 ## Purpose
 
 This document defines the implementable primary cadence contract for Goal

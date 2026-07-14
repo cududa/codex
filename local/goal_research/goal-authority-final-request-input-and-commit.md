@@ -1,5 +1,28 @@
 # Goal Authority Final Request Input And Commit
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: central final model-input seam for active Goal authority.
+- Owns: per-attempt request-input shaping, selected Goal item insertion or
+  verification, stale/wrong-role/duplicate cleanup, commit metadata, commit
+  point, retry/follow-up behavior, current-turn carry replacement, and the
+  remaining `goals.rs` adapter scope.
+- Does not own: durable mutation semantics, idle scheduling, extension
+  lifecycle, or test prep deletion policy.
+- Read after: `goal-authority-primary-cadence-contract.md` and
+  `goal-authority-durable-cadence-state.md`.
+- Read with: `goal-authority-model-visible-history-key.md` and
+  `goal-authority-repair-classifier-integration.md`.
+- Current terrain anchors: `codex-rs/core/src/session/turn.rs`,
+  `codex-rs/core/src/client_common.rs`, `codex-rs/core/src/client.rs`,
+  `codex-rs/codex-api/src/common.rs`, `codex-rs/core/src/goals.rs`, and
+  `codex-rs/core/src/state/turn.rs`.
+- Fidelity note: helper output, active-turn injection, reservation, and
+  pre-finalizer carry are not commits.
+
 ## Purpose
 
 This document defines the central implementation seam for active Goal
@@ -155,6 +178,74 @@ GoalRequestCommit {
 final request input. It may be a structured fingerprint rather than a persisted
 copy of the whole item, but it must be enough for tests and commit logic to
 prove the commit refers to the item actually sent.
+
+## Recorded Request Evidence
+
+Current rollout terrain does not already provide structured Goal request
+evidence.
+
+In v135, `rust-v0.136.0`, and the available `rust-v0.139.0` tag, normal thread
+replay history persists `RolloutItem::ResponseItem(ResponseItem)`,
+`RolloutItem::Compacted`, `RolloutItem::TurnContext`, and
+`RolloutItem::EventMsg`. `record_conversation_items(...)` appends ordinary
+response items to in-memory history, persists those response items to rollout,
+and emits raw response item events. Rollout reconstruction replays those
+ordinary items and compaction checkpoints. It does not record the full
+submitted `Prompt.input`, and it does not record structured Goal commit
+metadata.
+
+Rollout trace can record an upstream inference request, but that path is
+best-effort diagnostic tracing, not normal session replay state. It may support
+debugging or tests, but it must not become the durable Goal cadence evidence
+or Continuation suppression carrier unless a later authority update explicitly
+changes that persistence contract.
+
+If an implementation or test plan uses recorded rollout evidence as proof, the
+evidence must be a structured committed Goal request record, not an ordinary
+rollout `ResponseItem` by itself. The logical carrier should be replayable
+thread history, preferably a new `RolloutItem` variant or an equivalent
+storage-neutral thread-store item appended through the live thread persistence
+boundary.
+
+Logical evidence shape:
+
+```text
+CommittedGoalRequestEvidence {
+  schema_version,
+  thread_id,
+  turn_id,
+  attempt_ordinal,
+  goal_id,
+  kind: Initial | ObjectiveUpdated | BudgetLimit | Continuation,
+  facts_version,
+  model_visible_history_key,
+  item_fingerprint,
+  request_input_fingerprint,
+  item_index,
+  inserted_or_verified,
+  commit_point: ResponseCreated,
+  committed_at_ms,
+}
+```
+
+The ordinary Goal `ResponseItem` may still be recorded as model-visible
+history when a cadence item is committed. That item records the model-visible
+content. The structured evidence record ties the committed cadence decision to
+the exact final request input and commit point. Neither record may be used to
+recover current Goal facts by parsing rendered text.
+
+The evidence record must be appended only from the same commit path that runs
+after `ResponseEvent::Created`. It must not be written when shaping succeeds
+but the request is not submitted, when stream setup fails, or when submission
+fails before the commit point.
+
+A later implementation plan must choose the error policy for evidence
+persistence. If the evidence is required for resume/reconstruction or
+Continuation suppression, a fire-and-log append through
+`Session::persist_rollout_items(...)` is not sufficient by itself; failure must
+be surfaced, retried, or covered by a durable state fallback. If the evidence
+is audit/test-only, the plan must say so and must use durable pending-intent
+and watermark state for correctness.
 
 ## Commit Point
 

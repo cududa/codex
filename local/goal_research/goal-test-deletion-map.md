@@ -1,5 +1,25 @@
 # Goal Test Deletion Map
 
+## Navigation Header
+
+This header is a navigation aid only. The full document below remains
+authoritative.
+
+- Role: concrete test prep map for the Goal authority rewrite.
+- Owns: local-only test deletions, upstream baseline restoration, replacement
+  test profile, and snapshot handling posture.
+- Does not own: product redesign, implementation architecture, or permission to
+  delete upstream Goal behavior tests.
+- Read after: the authority spine and before preparing implementation slices.
+- Current terrain anchors: `codex-rs/core/src/session/tests.rs`,
+  `codex-rs/app-server/tests/suite/v2/thread_resume.rs`,
+  `codex-rs/tui/src/chatwidget/tests/goal_validation.rs`,
+  `codex-rs/tui/src/chatwidget/tests/slash_commands.rs`,
+  `codex-rs/tui/src/chatwidget/tests/status_and_layout.rs`, and
+  `codex-rs/ext/goal/tests/goal_extension_backend.rs`.
+- Fidelity note: the prep target is not fewer Goal tests; it is removal of
+  false compatibility pressure while preserving upstream baseline obligations.
+
 This document answers the prep question directly: which Goal tests should be
 removed from the local overlay before the rewrite, which tests should revert to
 the upstream baseline, and which replacement tests should be added after the
