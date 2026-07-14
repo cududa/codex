@@ -297,8 +297,23 @@ If an active turn or pending non-Goal work appears after reservation but before
 launch, the reserved turn must be cleared and the hook must return without
 consuming pending intent or advancing the Continuation watermark.
 
+Launching a Goal-owned synthetic turn must not drain newly arrived pending
+non-Goal work into that Goal-owned turn. The launch path must either make the
+pending-work recheck and task start effectively atomic for queued/mailbox work,
+or use a Goal-owned task-start path that refuses or requeues pending non-Goal
+work before model submission. Pending user/mailbox/queued work remains regular
+pending work and still outranks Goal-owned cadence delivery or automatic
+Continuation.
+
 Reservation is not recording. Reservation does not prove the final model
 request input contains Goal steering.
+
+If a reserved synthetic Goal-owned turn becomes stale after launch but before
+model submission, the abort is an internal lifecycle outcome. It must not send
+a model request, consume pending intent, advance the Continuation watermark, or
+surface as a user-facing model/request error. The implementation may emit normal
+internal tracing or lifecycle cleanup, but it must not present the stale
+Goal-owned turn as a failed user turn.
 
 ## Resume Behavior
 

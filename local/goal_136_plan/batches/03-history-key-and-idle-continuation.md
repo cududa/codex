@@ -12,6 +12,48 @@ This batch completes the automatic Continuation side of Goal cadence:
 It does not implement `ext/goal` conversion, broad classifier/projection
 cleanup, or final Goal shim deletion.
 
+## Slice Index
+
+Implement Batch 03 through these slices rather than as one central idle
+rewrite:
+
+- `03a-watermark-schema-store-apis.md`
+  - Continuation watermark schema, state model, store APIs, cadence snapshot
+    plumbing, and state tests
+- `03b-model-visible-history-key-projection.md`
+  - `ModelVisibleHistoryKey` type, eligible progress projection in
+    `goal_cadence.rs`, and focused projection unit tests
+- `03c-idle-stage-order-refactor.md`
+  - `MaybeContinueIfIdle` stage-order refactor and pending-work helpers that
+    return whether work started
+- `03d-idle-pending-durable-intent-delivery.md`
+  - idle delivery of pending Initial / ObjectiveUpdated / BudgetLimit using
+    typed metadata, not rendered model input
+- `03e-automatic-continuation-preflight-finalizer-recheck.md`
+  - automatic Continuation candidate preflight and finalizer recheck before
+    any synthetic request is submitted
+- `03f-continuation-created-commit.md`
+  - Created-event commit for automatic Continuation and watermark advancement
+- `03g-resume-hydration-and-watermark-reconstruction.md`
+  - resume hydration of durable Goal facts, pending intent, and Continuation
+    suppression basis without fabricating Initial
+- `03h-retry-failure-and-stale-synthetic-turn-tests.md`
+  - retry, failure, stale candidate, and duplicate-suppression acceptance tests
+
+The parent Batch 03 file remains the overview contract. Slice docs are the
+implementation units. Each slice must either leave the tree in a coherent
+intermediate state or explicitly state that it must land with a later slice.
+
+Testing posture:
+
+- each slice must include the cheapest direct proof for the behavior it
+  introduces
+- state-only APIs should have focused state tests in the same slice
+- projection logic should have direct unit tests before lifecycle tests depend
+  on it
+- `03h` is the representative failure/retry/stale synthetic-turn acceptance
+  layer; it does not replace slice-local tests for 03a-03g
+
 ## Direction Lock
 
 Request:
@@ -259,11 +301,16 @@ participate in the main eligible progress fingerprint.
 
 Edit:
 
-- `codex-rs/state/goals_migrations/0003_goal_continuation_watermarks.sql`
+- `codex-rs/state/goals_migrations/0004_thread_goal_continuation_watermarks.sql`
 - `codex-rs/state/src/model/thread_goal.rs`
 - `codex-rs/state/src/model/mod.rs`
 - `codex-rs/state/src/runtime/goals.rs`
 - `codex-rs/state/src/lib.rs`
+
+Use the next available goals migration number if 01a and 01b land with a
+different migration layout. In the split Batch 01 plan, 01a uses `0002` for
+`facts_version` and 01b uses `0003` for pending cadence intent, so this
+watermark slice should normally use `0004`.
 
 Add migration:
 
@@ -275,6 +322,7 @@ CREATE TABLE thread_goal_continuation_watermarks (
     model_visible_history_key TEXT NOT NULL,
     model_visible_history_key_schema_version INTEGER NOT NULL,
     eligible_progress_count INTEGER NOT NULL,
+    eligible_progress_fingerprint TEXT NOT NULL,
     latest_eligible_progress_fingerprint TEXT,
     compaction_basis_fingerprint TEXT,
     committed_turn_id TEXT NOT NULL,
@@ -300,6 +348,7 @@ pub struct ThreadGoalContinuationWatermark {
     pub model_visible_history_key: String,
     pub model_visible_history_key_schema_version: i64,
     pub eligible_progress_count: i64,
+    pub eligible_progress_fingerprint: String,
     pub latest_eligible_progress_fingerprint: Option<String>,
     pub compaction_basis_fingerprint: Option<String>,
     pub committed_turn_id: String,
@@ -314,6 +363,7 @@ pub struct ThreadGoalContinuationWatermarkInput {
     pub model_visible_history_key: String,
     pub model_visible_history_key_schema_version: i64,
     pub eligible_progress_count: i64,
+    pub eligible_progress_fingerprint: String,
     pub latest_eligible_progress_fingerprint: Option<String>,
     pub compaction_basis_fingerprint: Option<String>,
     pub committed_turn_id: String,
@@ -957,7 +1007,8 @@ Batch 02's final request-input shaping, and the Created commit seam exist.
 
 Allowed partial state while later batches remain:
 
-- `goal_cadence.rs` owns the key projection and Continuation commit
+- `goal_cadence.rs` owns the key projection, and after 03f owns
+  Continuation commit metadata and commit handling
 - `MaybeContinueIfIdle` uses durable pending intent and structured idle request
   metadata
 - `ext/goal` still awaits Batch 04 conversion

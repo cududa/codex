@@ -14,6 +14,49 @@ It does not implement automatic idle Continuation policy. It does not convert
 Batch 03 consumes this seam for the real `model_visible_history_key`,
 automatic Continuation selection, and Continuation watermark commit behavior.
 
+## Slice Index
+
+Implement Batch 02 through these slices rather than as one large request-loop
+change:
+
+- `02a-goal-cadence-module-types.md`
+  - introduce `goal_cadence.rs`, core types, item fingerprinting, repair
+    report shape, selected-item metadata, and a private renderer if shared
+    internal-context helpers do not exist yet
+- `02b-per-attempt-finalizer-wiring.md`
+  - wire a no-op or cleanup-only finalizer into every
+    `run_sampling_request(...)` attempt after base input is known and before
+    `build_prompt(...)`
+- `02c-pending-intent-selection-and-insertion.md`
+  - select durable pending Initial / ObjectiveUpdated / BudgetLimit intent and
+    insert exactly one current developer-role Goal item in final request input
+- `02d-created-commit-and-carry.md`
+  - commit on `ResponseEvent::Created`, consume pending intent by exact key,
+    and record committed current-turn carry metadata
+- `02e-core-producer-conversion.md`
+  - convert core Initial / ObjectiveUpdated / BudgetLimit producers away from
+    pre-finalizer concrete Goal injection and toward durable cadence intent
+    plus typed wake/recheck metadata
+- `02f-request-payload-and-retry-tests.md`
+  - add request-payload, cleanup, commit, and retry-before/after-Created
+    acceptance tests that inspect final `/responses` input
+
+The parent Batch 02 file remains the overview contract. The slice docs are the
+implementation units. Each slice must either leave the tree in a coherent
+intermediate state or explicitly state that it must land with a later slice.
+
+Testing posture:
+
+- each slice must include the cheapest direct proof for the behavior it
+  introduces
+- unit tests are enough for pure types, selection, commit primitives, and
+  producer state effects when they prove the slice contract
+- compile-only validation is acceptable only for an intentionally no-op or
+  type-only slice with no executable behavior to assert
+- `02f` is the representative full-flow acceptance layer for final
+  `/responses` payloads and retry behavior; it does not replace slice-local
+  tests for 02a-02e
+
 ## Direction Lock
 
 Request:
@@ -268,7 +311,15 @@ pub(crate) async fn finalize_goal_request_input(
 - current durable Goal cadence snapshot from Batch 01
 - optional automatic Continuation request, initially `None` in Batch 02
 - optional model-visible history key for this attempt
-- request/transport facts needed for diagnostics
+- Goals feature and collaboration-mode eligibility facts for this attempt
+- request/transport facts needed for diagnostics and repair
+- request-local repair context, if the finalizer needs to distinguish cleanup
+  from cadence delivery
+
+The finalizer must treat feature-disabled or collaboration-ineligible attempts
+as selecting no active Goal item and consuming no pending intent. These typed
+eligibility facts are gates on delivery; they are not cadence authority by
+themselves.
 
 Batch 02 must not invent a fake history key. If the full key projection is not
 implemented until Batch 03, non-Continuation commits may carry
@@ -282,6 +333,7 @@ Shaping order:
 receive base Vec<ResponseItem> for this attempt
 classify/remove pure legacy <goal_context> artifacts from active request input
 classify/remove stale, wrong-role, duplicate, or pre-injected Goal-looking items
+apply feature/collaboration eligibility gates for active Goal delivery
 capture real model_visible_history_key before inserting selected Goal item,
   when the Batch 03 key implementation already exists; otherwise keep None
   for non-Continuation commits
