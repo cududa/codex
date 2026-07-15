@@ -24,6 +24,12 @@ pressure points are the request-loop seam, the Created-event commit seam,
 current core producer conversion, committed carry metadata, and request-payload
 tests.
 
+Pre-pass validation is complete in
+`02-direct-split-readiness-check.md`. That note confirms the direct split is
+grounded in the actual local and `rust-v0.136.0` request loop, identifies the
+Created-event commit hook, names the local fork concrete-carry terrain, and
+records the core producers that still create pre-shaper Goal model input.
+
 The old labels for module types, no-op request-input shaper wiring, pending
 insertion, Created commit, producer conversion, and request-payload tests are
 not authority by themselves. Reuse, rename, merge, or split them only after a
@@ -432,6 +438,11 @@ Selection rules:
 - same-turn or idle turn metadata never guarantees that its originally
   requested kind is delivered; the shaper rechecks durable facts, pending
   intent, eligibility, and supersedence for this exact attempt
+- turn metadata may survive retries before `ResponseEvent::Created`, but once
+  Created-event commit records committed carry for the selected Goal item, the
+  uncommitted request metadata must be cleared or treated as obsolete. Later
+  same-turn follow-up shaping uses fresh durable snapshots plus committed
+  carry, not stale `GoalTurnRequest` metadata.
 
 ### 3. Wire Shaping Into Every Sampling Attempt
 
@@ -669,6 +680,9 @@ It does not store rendered prompt text, `ResponseInputItem`, or a full
 for structured request evidence. The fingerprint fields let compaction or
 repair code identify the committed item/request pair without reconstructing
 Goal facts from rendered text.
+The same commit path must clear or obsolete the uncommitted turn request
+metadata that produced the committed item, so a later same-turn follow-up does
+not replay stale synthetic cadence intent.
 
 Work Area 02 should not yet delete all old concrete carry consumers. It should
 introduce the replacement carry and switch Created-event Goal commits to use it.

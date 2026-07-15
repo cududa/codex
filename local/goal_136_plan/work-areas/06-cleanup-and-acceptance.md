@@ -66,12 +66,12 @@ Local terrain:
   Goal-specific concrete injection and carry APIs
 - local and remote compaction still read concrete current-turn Goal items in
   the current tree
-- app-server raw response handling still suppresses pure Goal context raw
+- app-server raw response handling still drops pure Goal context raw
   notifications in the current tree
 - `ext/goal` still stores steering role config, builds `GoalContext`, and
   injects concrete model input through core
 - local overlay tests still assert active `<goal_context>`, user-role steering,
-  raw suppression, concrete carry, and resume-fabricated Initial behavior
+  raw hiding, concrete carry, and resume-fabricated Initial behavior
 
 Upstream terrain:
 
@@ -101,7 +101,7 @@ Locked direction:
 - require Work Areas 01-05 replacement surfaces to exist before this Work Area starts
 - delete reachable active producers and public exports for `GoalContext`,
   `GoalContextRole`, active `<goal_context>`, `GoalSteeringRole`, concrete
-  Goal injection, concrete Goal carry, and raw Goal suppression
+  Goal injection, concrete Goal carry, and any remaining raw Goal hiding branch
 - leave legacy `<goal_context>` handling only behind the Work Area 05 shared
   classifier and only for cleanup/projection/raw-contract tests
 - keep active authority in `core/src/goal_cadence/` request-input shaping and
@@ -303,8 +303,9 @@ Do this Work Area only after the following are true in code:
 
    - shared classifier distinguishes current Goal internal context, legacy
      `<goal_context>`, non-Goal internal context, and mixed ordinary content
-   - raw app-server Goal suppression has been removed or is explicitly being
-     removed in this Work Area
+   - Work Area 05 raw-notification behavior has been implemented, or any
+     remaining app-server raw Goal hiding branch is explicitly being removed as
+     leftover cleanup in this Work Area
    - compaction and reconstruction no longer use concrete pre-shaper Goal
      carry
 
@@ -502,8 +503,10 @@ Required replacement posture:
   Area 04 ordering path
 - selected ordering outcomes carry durable facts, previous facts, pending
   intent metadata, accounting effects, and cadence delivery requests
-- extension-origin active Goal steering is proven only by final `/responses`
-  payload tests through `core/src/goal_cadence/`
+- extension-origin active Goal steering is covered only by an explicit
+  extension producer-to-core-request final `/responses` test, or by paired
+  extension durable-effect tests plus shared-shaper final payload tests through
+  `core/src/goal_cadence/`
 
 ### 5. Finish Work Area 05 Consumer Cleanup Audit
 
@@ -538,7 +541,14 @@ Not allowed:
 - adding a helper named or shaped like `has_current_goal_authority(...)`
   outside the request-input shaper
 
-### 6. Finish App-Server Raw Notification Cleanup
+### 6. Verify App-Server Raw Notification Cleanup
+
+Work Area 05 owns the raw-notification behavior conversion: raw response item
+notifications remain raw, and typed/materialized projection hiding does not
+apply to raw streams. This section is a final audit and leftover cleanup step.
+If Work Area 05 already removed the local app-server raw overlay, verify the
+state and add no new behavior. If the branch remains, remove it here as dead
+overlay cleanup, not as a new classifier or raw-contract design.
 
 Edit:
 
@@ -686,8 +696,9 @@ Required cleanup coverage:
 
 - compaction does not reinsert pre-shaper concrete Goal input.
 - reconstruction does not recover active Goal state from legacy marker text.
-- old extension/app-server-origin mutations deliver through final request
-  payload tests, not prompt helper assertions.
+- old app-server-origin mutations deliver through final request payload tests,
+  and extension-related payload coverage follows the true-extension or paired
+  shared-shaper route from Work Area 04, not prompt helper assertions.
 - old `goals.steering_role = "user"` config, if still accepted for
   compatibility, cannot affect final payload role.
 
@@ -726,7 +737,7 @@ Disallowed matches:
 - active `<goal_context>` rendering
 - tests asserting active `<goal_context>` final payload
 - tests asserting user-role Goal steering
-- app-server raw suppression helpers
+- app-server raw Goal hiding helpers
 
 ### Concrete Injection And Carry Audit
 
@@ -773,7 +784,7 @@ rg -n "is_goal_context_response_item|is_goal_context_text|RawResponseItemComplet
 Expected result:
 
 - no app-server-local Goal marker helper
-- no raw Goal suppression branch
+- no raw Goal hiding branch
 - raw notification type remains unchanged
 
 ### Request Payload Acceptance Audit
@@ -841,7 +852,7 @@ Focused extension tests:
 
 ```powershell
 cd codex-rs
-cargo test -p codex-goal-extension --test goal_extension_backend goal_extension_
+cargo test -p codex-goal-extension --test goal_extension_backend
 ```
 
 Focused app-server tests:
@@ -953,7 +964,7 @@ Not allowed for this Work Area's target state:
 - any reachable `ext/goal` path constructing active model input
 - any production `GoalContextRole` or `GoalSteeringRole`
 - any active `<goal_context>` final payload
-- any raw Goal suppression branch
+- any raw Goal hiding branch
 - any test that asserts active marker transport, user-role active steering, or
   resume-fabricated Initial
 - any claim that the rewrite is complete while the final audit commands still

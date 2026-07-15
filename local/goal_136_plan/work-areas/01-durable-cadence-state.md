@@ -13,6 +13,15 @@ request-input shaping Work Area.
 
 ## Implementation Pass Index
 
+Pre-pass validation:
+
+- `01-existing-pass-validation.md`
+  - confirms the existing 01a/01b/01c split is still aligned with current
+    Goal authority docs, recorded-evidence boundaries, and v136-to-v139/v140
+    migration posture
+  - records implementation carry-forward constraints for facts version,
+    pending intent, exact-key consumption, and production caller conversion
+
 Implement Work Area 01 through these principled implementation passes rather than
 as one large state change:
 

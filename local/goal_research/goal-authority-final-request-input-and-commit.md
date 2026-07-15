@@ -310,6 +310,15 @@ Rules:
   unchanged
 - retry after commit reruns shaping against committed state/history
 - same-turn follow-up after tool output or mailbox input reruns shaping
+- uncommitted runtime cadence request metadata may survive retries before
+  `ResponseEvent::Created`, but the Created-event commit must clear or make
+  that metadata obsolete when it records committed carry for the selected Goal
+  item
+- same-turn follow-up attempts after Created must assemble fresh context from
+  durable Goal state, pending intent or Continuation watermark state, optional
+  new turn request metadata, and committed carry; they must not reuse stale
+  pre-commit request metadata as if the original cadence request were still
+  pending
 - WebSocket incremental transport may send a delta, but shaping still attaches
   to the full logical request input used to derive that delta
 
@@ -319,6 +328,13 @@ Current carry may preserve evidence that a finalized request already contained
 a Goal item.
 
 It must not carry prebuilt active Goal `ResponseInputItem`s as authority.
+
+Uncommitted turn-local cadence request metadata, such as a same-turn recheck
+request or a Goal-owned synthetic turn request, is not current-turn carry. It
+is input to request shaping until the request commits or aborts. After a
+Created-event commit, committed carry is the same-turn record of delivered Goal
+authority and the source request metadata must no longer drive follow-up
+shaping.
 
 Replacement carry should be the logical equivalent of:
 

@@ -50,6 +50,13 @@ the shared finalizer. It must not turn those facts into model-visible
 pending intent, or commit delivery before the final request-input path sees the
 actual per-attempt `Prompt.input`.
 
+Extension-origin Goal creation remains a valid mutation entry point. An
+agent-callable `create_goal` tool may stay extension-owned; when no Goal
+currently exists, a successful create writes an active durable Goal plus
+pending Initial intent. If a Goal already exists, duplicate create remains a
+product error. This is Goal mutation, not active steering construction, and it
+does not give `ext/goal` authority to construct model input.
+
 ## Code Terrain
 
 Current local terrain:
@@ -112,7 +119,9 @@ active Goal steering produced as user-role helper output
 `ext/goal` may own:
 
 - tool registration
-- Goal tool execution entry points when Goal tools are extension-owned
+- Goal tool execution entry points when Goal tools are extension-owned,
+  including `create_goal` for creating an active Goal when no Goal currently
+  exists
 - external mutation observation
 - active and idle usage accounting
 - metrics and event emission
@@ -146,6 +155,11 @@ the same final-input proof.
 
 If `ext/goal` remains reachable, replace active steering production with
 structured cadence requests.
+
+This is conversion, not removal, for extension-owned Goal mutation entry
+points. In particular, `create_goal` remains allowed to create the active
+durable Goal when no Goal exists; the replacement is that it writes pending
+Initial intent and lets final request-input shaping deliver the Initial item.
 
 Logical replacement:
 
@@ -241,6 +255,8 @@ emit:
 
 Focused tests must prove:
 
+- `create_goal` from `ext/goal` remains a valid agent-callable mutation path
+  when no Goal exists and writes pending Initial intent on success
 - no reachable `ext/goal` path emits `<goal_context>`
 - no reachable `ext/goal` path emits user-role active Goal steering
 - no reachable `ext/goal` path injects concrete Goal `ResponseInputItem`s into
@@ -251,6 +267,14 @@ Focused tests must prove:
   intent before delivery
 - same-turn extension mutation cannot drop pending ObjectiveUpdated or
   BudgetLimit intent when active-turn injection is unavailable
-- final request payload tests show extension-origin Goal steering has the same
-  developer-role final `ResponseItem` shape as core-origin steering
+- extension state/runtime tests alone do not establish active Goal authority;
+  final request payload coverage must inspect captured final `/responses`
+  input or the equivalent final request-input seam
+- final request payload tests for extension-origin scenarios must either drive
+  a real extension producer through a core request path, or pair extension
+  durable-state/runtime coverage with shared request-shaper coverage from
+  equivalent pending intent. The latter is shared-shaper coverage, not
+  end-to-end extension-origin payload coverage.
+- final request payload coverage shows extension-origin Goal steering has the
+  same developer-role final `ResponseItem` shape as core-origin steering
 - compatibility config cannot make active Goal steering user-role

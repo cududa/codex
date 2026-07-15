@@ -1,133 +1,200 @@
-# Implementation Pass Planning Rules
+# Implementation Pass Split Instructions
 
-This file defines how to divide large Work Area docs into ordered implementation
-passes. It is an execution-planning constraint, not Goal authority. The
-authority docs under `local/goal_research` still win.
+This file defines how to write actual implementation pass docs after any
+required pre-pass work has been completed.
+
+It is execution guidance only. The authority docs under `local/goal_research`
+still win.
+
+If the question is "what map, validation, or remediation work must happen
+before we split this Work Area?", use
+`local/goal_136_plan/work-areas/implementation-prepass-planning-rules.md`
+first. This file starts after the active Work Area is ready to be split into
+implementation passes.
 
 ## Purpose
 
-The problem to avoid is simple:
+The problem to avoid is:
 
 ```text
-Work Area docs too large for one agent window
-  -> dumb split by headings or word count
-  -> fake work units that do not match implementation seams
+large Work Area doc
+  -> split by headings, word count, or plausible vibes
+  -> fake work units that do not match runtime seams
 ```
 
-Implementation pass planning exists to avoid that failure. It is not a
-separate planning program or a requirement to create prep artifacts before
-every Work Area can be divided into workable tasks.
+Implementation pass split instructions exist to convert a ready Work Area, or
+a completed pre-pass map, into ordered implementation pass docs that a later
+agent can execute after compaction.
+
+## Authority And Terrain
+
+Before writing or revising implementation pass docs, read:
+
+- `local/goal_research/AGENTS.md`
+- `local/goal_136_plan/AGENTS.md`
+- `local/goal_136_plan/work-areas/AGENTS.md`
+- the active Work Area doc
+- any completed pre-pass deliverable for that Work Area
+- the specific authority docs named by the active Work Area or pre-pass
+  deliverable
+
+Then walk the bounded code terrain named by the Work Area or pre-pass
+deliverable. Existing local code and upstream tags are terrain, not mission.
+Use them to find real files, hooks, state shapes, call order, and tests.
+
+Version terrain should be used this way:
+
+- local code: current fork terrain to replace, preserve, or delete
+- `rust-v0.136.0`: landing topology and upstream product baseline
+- `rust-v0.139.0` and `rust-v0.140.0`: migration pressure, especially
+  `ext/goal` ownership and typed replay precedent
+- `upstream/main`: drift clarification only when needed
+
+When upstream conflicts with `local/goal_research`, local authority wins.
 
 ## Core Rule
 
 Implementation passes are ordered units of work on one rewrite branch. They
-exist so agents can pick up the next piece of the same branch after compaction
-with enough local context to proceed.
+exist so agents can continue through compaction with enough local context to
+execute the next slice.
 
-Implementation passes are not individual PRs, release units, checkpoints, or
-promises of independent mergeability. Do not distort architecture, add no-op
-modules, create broad adapters, or invent test-only seams to make a pass look
-self-contained.
+Implementation passes are not:
 
-## Direct Passes First
+- individual PRs
+- release units
+- standalone acceptance checkpoints
+- promises that the branch fully compiles or works after every pass
+- reasons to add no-op modules, broad adapters, or test-only seams
 
-Default to direct implementation pass planning when the Work Area already has
-clear implementation seams.
+When a pass states prerequisites or branch continuation state, read that as
+task ordering for one branch, not as mergeability pressure.
 
-For example, Work Area 02 is mostly linear:
+## Direction Lock Required
 
-- final request-input shaping
-- per-attempt request-loop placement
-- Created-event commit
-- committed carry metadata
-- core producer conversion
-- integrated request/retry tests
+Every split-planning session must include a visible Direction Lock after
+authority reading and code terrain inspection, before naming pass boundaries:
 
-For a Work Area like this, read the authority docs, read the Work Area, do targeted
-direct code reads around the request/producer/carry/test seams, and then write
-implementation pass docs. Do not insert a prep-map session just because this
-file mentions prep maps.
+```text
+Request:
+Authority:
+Terrain:
+Code-shape temptation:
+Locked direction:
+Exclusions:
+```
 
-## Appendage Maps
+The lock must name the code-shape temptation. Common wrong paths include:
 
-Use a prep pass only when direct implementation pass planning would force the
-next agent to reread a large cross-cutting Work Area and half the repo before doing
-useful work.
-
-The main expected case is Work Area 03. It has several appendages that touch
-different subsystems:
-
-- model-visible history key projection
-- Continuation watermark storage
-- idle stage ordering
-- pending durable intent delivery from idle
-- automatic Continuation preflight and finalizer recheck
-- Continuation Created commit
-- resume hydration
-- retry/failure/stale synthetic-turn behavior
-- compaction/reconstruction key correctness
-
-For a Work Area like that, a prep output may be useful if it is an appendage map:
-
-- what behavioral appendages exist
-- where each appendage enters the code
-- which appendages are coupled
-- which appendages probably need separate passes
-- which appendages can wait for a later Work Area
-
-An appendage map is temporary context compression for the next agent. It is not
-authority, not an implementation plan by itself, and not a read log.
-
-## What Not To Produce
-
-Do not produce prep outputs whose main content is:
-
-- a broad list of files to read
-- exhaustive observations with no implementation consequence
-- a checklist that must be filled before any implementation pass can be written
-- invented context budgets
-- bureaucratic process artifacts
-- a plan to plan the work
-
-If the prep artifact does not let the next agent start a concrete
-implementation pass or a targeted reread, it has failed.
+- preserving `GoalContext`, `GoalContextRole`, active `<goal_context>`, or
+  pre-shaper concrete Goal injection because current code has them
+- turning `core/src/goals.rs` into a long-lived cadence service because it is
+  nearby
+- moving active model-input construction into `ext/goal` because later
+  upstream versions move more Goal ownership there
+- using classifier output, raw notifications, rollout text, or recorded
+  evidence as authority
+- creating independent PR-style checkpoints because a Work Area is large
 
 ## Splitting Standard
 
 Before naming implementation pass boundaries:
 
+- confirm any required pre-pass deliverable has been completed or explain why
+  the active Work Area is ready for direct split planning
 - read the relevant authority docs directly
 - read the Work Area doc directly
 - read the code needed to understand the proposed seam
 - split by implementation pressure, ownership boundary, and test boundary
 - keep observed code facts separate from design inference when the difference
   matters
+- name exact files, functions, types, state records, and tests for each pass
 
-Grep can locate terrain, but grep results are not a substitute for direct file
-reads around the relevant functions, data types, callers, and tests.
+Grep can locate terrain. Grep is not enough. Read around the relevant
+functions, data types, callers, and tests before deciding the split.
 
-## Work Area Guidance
+Good split boundaries usually line up with all three of these:
 
-- Work Area 01: state terrain is narrow enough to plan direct passes around
-  schema/model plumbing, pending intent storage, and cadence-aware store
-  operations.
-- Work Area 02: plan direct passes from targeted request construction, commit,
-  producer, carry, and test reads. Do not require an appendage map.
-- Work Area 03: likely benefits from an appendage map before final implementation
-  pass docs because idle Continuation spans state, history projection, request
-  finalization, resume, retry, and compaction/reconstruction.
-- Work Area 04: use an appendage map only if reachable `ext/goal` ownership and
-  current producers are unclear after a bounded code read.
-- Work Area 05: may benefit from a surface map if classifier, projection,
-  compaction/reconstruction, and raw/materialized behavior are too broad for
-  direct implementation pass planning.
-- Work Area 06: should usually be a final cleanup/audit pass. Divide it only if
-  the deletion and acceptance audit proves too large for one pass.
+- one main owner or narrow owner set
+- one coherent behavioral seam
+- focused verification that proves the behavior introduced by that pass
+
+Bad split boundaries usually come from:
+
+- Work Area headings alone
+- line count
+- broad "frontend/backend" buckets that do not match this codebase
+- temporary compatibility layers that exist only to make a pass look complete
+- postponing the actual model request seam while building helper machinery
+
+## Direct Splits
+
+A direct split planning session writes the implementation pass docs
+themselves. It does not create a separate map first.
+
+Use a direct split only when the active Work Area or pre-pass deliverable
+already makes these clear:
+
+- the files and function hooks
+- the state or runtime owner
+- the behavior each pass introduces
+- the focused verification for each pass
+- what remains for the next pass
+
+Work Area 02 is the clearest expected direct split. The request terrain gives
+the pass spine:
+
+```text
+run_sampling_request(...)
+  -> rebuild input per retry or follow-up attempt
+  -> request-input shaper before build_prompt(...)
+  -> try_run_sampling_request(...)
+  -> ResponseEvent::Created commit handler
+```
+
+That terrain supports direct pass docs around `core/src/goal_cadence/`,
+per-attempt placement, Created-event commit, evidence/fingerprints where in
+scope, committed carry metadata, producer conversion, and final-payload tests.
+
+## Using Completed Maps
+
+If a pre-pass produced an appendage, reachability, ordering, or surface map,
+do not copy the whole map into every pass doc.
+
+Use the map to:
+
+- choose pass boundaries
+- name exact code entry points
+- preserve coupling constraints
+- decide what must wait for a later pass
+- define branch continuation state
+
+The pass doc should reference the map and include only the context needed to
+execute that pass.
+
+## Recorded Evidence In Splits
+
+Recorded request evidence is structured Created-event metadata. It is not
+authority, durable Goal facts, repair authority, raw output, or rendered-text
+recovery.
+
+When a pass touches commit, replay, reconstruction, rollback, fork, compaction,
+or final acceptance tests, it must say whether recorded evidence is in scope.
+If it is in scope, the pass must keep these boundaries:
+
+- evidence is written only by the Created-event commit path
+- evidence must refer to the exact finalized request input and selected item
+- ordinary rollout `ResponseItem`s, rollout trace payloads, raw notifications,
+  classifier matches, and rendered Goal text are not structured commit evidence
+- live correctness uses durable state unless the Work Area explicitly selects
+  and tests a non-best-effort evidence-backed path
+
+Do not create a pass that writes evidence without the matching commit metadata
+and final request input fingerprints.
 
 ## Implementation Pass Doc Shape
 
-Each implementation pass doc should include enough local context for the next
-agent to implement that pass without prior conversation memory:
+Each implementation pass doc should include enough context for the next agent
+to implement that pass without prior conversation memory:
 
 - Direction Lock
 - authority docs read
@@ -139,6 +206,27 @@ agent to implement that pass without prior conversation memory:
 - branch continuation state
 - non-goals
 
-Use "branch continuation state" to describe handoff to the next ordered pass.
-Avoid language that implies the pass must be independently merged, released,
-accepted, or buildable as the full Work Area.
+The `code terrain read` section must name concrete files and functions, not
+just directories.
+
+The `required edits` section should avoid broad "wire everything" language.
+Name the owner and the mutation point.
+
+The `tests and checks` section should focus on behavior introduced by the
+pass. Final rewrite acceptance belongs to Work Area 06.
+
+The `branch continuation state` section should tell the next pass what now
+exists, what deliberately remains incomplete, and what must not be mistaken
+for a standalone accepted state.
+
+## Validation
+
+For docs-only edits to Work Area or pass-planning documents, run:
+
+```text
+git diff --check -- local/goal_research local/goal_136_plan
+```
+
+For Rust implementation, follow the root `AGENTS.md` validation rules and the
+focused validation named by the active implementation pass. Do not run broad
+Rust suites for planning-only work.

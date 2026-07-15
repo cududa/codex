@@ -90,7 +90,7 @@ Local terrain:
   - `record_response_item_and_emit_turn_item(...)` emits typed turn items
     through `parse_turn_item(...)`
 - `codex-rs/app-server/src/bespoke_event_handling.rs`
-  - locally suppresses raw Goal context notifications with a duplicate
+  - locally drops raw Goal context notifications with a duplicate
     `is_goal_context_response_item(...)`
 - app-server typed/materialized projection:
   - `codex-rs/app-server-protocol/src/protocol/thread_history.rs` rebuilds
@@ -115,8 +115,8 @@ Upstream terrain:
   rendering and parsing terrain, but it is user-role contextual helper
   infrastructure and not Goal authority.
 - `rust-v0.136.0` app-server emits raw response item notifications without the
-  local Goal suppression overlay. That confirms raw Goal suppression is local
-  fork behavior to remove, not an upstream baseline to preserve.
+  local Goal raw overlay. That confirms Goal raw hiding is local fork behavior
+  to remove, not an upstream baseline to preserve.
 - `rust-v0.136.0` compaction and rollout reconstruction do not carry the local
   Goal-only filter/carry shape as a baseline requirement. The local filters are
   replacement terrain created by the fork overlay.
@@ -151,7 +151,7 @@ Locked direction:
 - route active request cleanup/repair through `core/src/goal_cadence/`
 - convert typed/materialized projection, history boundary, compaction, and
   reconstruction callsites to use classifier output only for cleanup/hiding
-- remove app-server raw Goal suppression so raw response item notifications
+- remove the app-server raw Goal overlay so raw response item notifications
   remain raw
 - keep `GoalRequestEvidence` as structured Created-event commit metadata only;
   projection, classifier, compaction, reconstruction, and raw-notification
@@ -255,22 +255,22 @@ Findings:
   history and replayed rollout response items, but it has no representation for
   current internal-context Goal artifacts or committed Goal metadata repair.
 - `Session::record_conversation_items(...)` emits raw response item events for
-  every response item; app-server then suppresses Goal context in
-  `maybe_emit_raw_response_item_completed(...)`. This local app-server
-  suppression is the behavior to remove.
+  every response item; app-server then drops Goal context in
+  `maybe_emit_raw_response_item_completed(...)`. This local app-server raw
+  overlay is the behavior to remove.
 - app-server materialized history from rollout response items only rebuilds
   hook prompts from response items. Other typed/materialized surfaces use
   `codex_core::parse_turn_item(...)`, so core classifier semantics carry most
   projection behavior.
 - current tests contain local-only assertions that preserve active
-  `<goal_context>`, `GoalContextRole`, raw suppression, and concrete carry.
+  `<goal_context>`, `GoalContextRole`, raw hiding, and concrete carry.
   Work Area 05 should replace only the projection/classifier/repair-support
   coverage, leaving final dead-code deletion to Work Area 06.
 - upstream v136/v139 internal-model-context helper code is useful source
   validation and rendering terrain, but its contextual user conversion path is
   not a Goal authority path.
 - upstream v136 app-server raw response handling emits raw items without the
-  local Goal suppression overlay; WA05 should remove the fork overlay, not move
+  local Goal raw overlay; WA05 should remove the fork overlay, not move
   it behind a new classifier.
 - upstream v140 typed replay shows how a structured `RolloutItem` can survive
   persistence and reconstruction. For Goal request evidence, this is metadata
@@ -761,20 +761,29 @@ These tests should assert `RawResponseItemCompletedNotification.item` equality.
 Edit:
 
 - `codex-rs/app-server-protocol/src/protocol/thread_history.rs`
+- `codex-rs/app-server/src/request_processors/thread_processor.rs`, only for
+  preview/materialized routes that call `codex_core::parse_turn_item(...)`
+- `codex-rs/app-server/src/request_processors/thread_summary.rs`, only for
+  summary/materialized routes that call `codex_core::parse_turn_item(...)`
 - app-server request processor tests that inspect typed/materialized history,
   if any fail after core classifier changes
 
 The current test
 `ignores_goal_context_response_items_in_rollout_replay` is local-only
 fake-shim pressure if it preserves active `<goal_context>` behavior. Replace
-it with classifier/projection coverage:
+it with route-accurate classifier/projection coverage:
 
 - pure legacy Goal artifacts in rollout replay do not create
   `ThreadItem::UserMessage`
 - pure current Goal internal-context items in rollout replay do not create
   `ThreadItem::UserMessage`
-- mixed user-role marker-like prose remains a `ThreadItem::UserMessage`
+- plain or mixed non-hook user-role rollout `ResponseItem`s keep the existing
+  `ThreadHistoryBuilder` replay baseline and do not become
+  `ThreadItem::UserMessage`
 - hook prompt response items still rebuild `ThreadItem::HookPrompt`
+- mixed marker-like user prose remains visible in app-server routes that
+  materialize `codex_core::parse_turn_item(...)` output, such as preview or
+  summary projection, when those routes otherwise expose user-visible content
 - structured committed Goal request evidence, when implemented, remains typed
   replay metadata. It must not become a `ThreadItem::UserMessage`, hook prompt,
   raw response item, or any other user-visible conversation item.
@@ -803,7 +812,7 @@ Required treatment:
 - tests that assert concrete `ResponseInputItem` carry is persisted or
   reinserted by compaction must be rewritten to committed metadata plus
   request-input shaping behavior
-- tests that assert raw Goal suppression must be replaced in this Work Area
+- tests that assert raw Goal hiding must be replaced in this Work Area
 
 Do not convert every old active steering test into a classifier test. Classifier
 coverage is not authority coverage.
@@ -1015,8 +1024,8 @@ This Work Area's target state is:
   notifications, classifier matches, and rendered Goal text as substitutes
 - app-server raw response item notifications emit pure current Goal, pure
   legacy Goal, and mixed Goal-looking items unchanged
-- old app-server raw Goal suppression helpers are removed
-- old local tests that preserve raw suppression or active `<goal_context>`
+- old app-server raw Goal overlay helpers are removed
+- old local tests that preserve raw hiding or active `<goal_context>`
   projection behavior are deleted or rewritten
 - focused tests cover classifier, projection, compaction, reconstruction, raw
   notification, and request-input cleanup behavior
@@ -1064,7 +1073,7 @@ Not allowed for this Work Area's target state:
 - `GoalContext` or `GoalContextRole` retained as active steering architecture
 - classifier output treated as active Goal authority
 - request repair emitting Goal on every ordinary active-Goal turn
-- app-server raw Goal suppression
+- app-server raw Goal hiding
 - compaction preserving active Goal authority by carrying pre-shaper
   `ResponseInputItem`s
 - reconstruction parsing rendered Goal text to recover Goal state or intent

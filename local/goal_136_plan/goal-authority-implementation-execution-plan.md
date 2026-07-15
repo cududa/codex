@@ -23,13 +23,14 @@ Before writing or executing any Work Area, read these directly:
 Then do a bounded code walk for the Work Area being planned or executed. Existing
 Rust code is terrain, not mission.
 
-When creating or revising implementation pass docs, also follow
-`local/goal_136_plan/work-areas/implementation-pass-planning-rules.md`. Pass
-boundaries must come from the relevant authority docs plus a direct code walk
-of the Work Area terrain. Default to direct pass planning when the Work Area's
-implementation seams are clear. Use an appendage map only for broad,
-cross-cutting Work Areas where it compresses the route for the next agent rather
-than becoming another planning layer.
+Before creating or revising implementation pass docs, also check
+`local/goal_136_plan/work-areas/implementation-prepass-planning-rules.md`.
+That file names the validation and mapping work that must happen before split
+planning for the remaining Work Areas. After the required pre-pass work is
+complete, follow
+`local/goal_136_plan/work-areas/implementation-pass-planning-rules.md` to write
+the actual pass docs. Pass boundaries must come from the relevant authority
+docs plus a direct code walk of the Work Area terrain.
 
 ## Architecture Lock
 

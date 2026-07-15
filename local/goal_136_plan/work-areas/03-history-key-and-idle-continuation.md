@@ -39,21 +39,24 @@ central idle rewrite:
 - `03b-model-visible-history-key-projection.md`
   - `ModelVisibleHistoryKey` type, eligible progress projection in
     `goal_cadence/`, and focused projection unit tests
-- `03c-idle-stage-order-refactor.md`
+- `03c-goal-turn-request-metadata.md`
+  - metadata-only `GoalTurnRequest` storage/adapters and request-context
+    plumbing; no rendered prompt text and no prebuilt model input
+- `03d-idle-stage-order-refactor.md`
   - `MaybeContinueIfIdle` stage-order refactor and pending-work helpers that
     return whether work started
-- `03d-idle-pending-durable-intent-delivery.md`
+- `03e-idle-pending-durable-intent-delivery.md`
   - idle delivery of pending Initial / ObjectiveUpdated / BudgetLimit using
     typed metadata, not rendered model input
-- `03e-automatic-continuation-preflight-shaper-recheck.md`
+- `03f-automatic-continuation-preflight-shaper-recheck.md`
   - automatic Continuation candidate preflight and request-input shaper
     recheck before any synthetic request is submitted
-- `03f-continuation-created-commit.md`
+- `03g-continuation-created-commit.md`
   - Created-event commit for automatic Continuation and watermark advancement
-- `03g-resume-hydration-and-watermark-reconstruction.md`
+- `03h-resume-hydration-and-watermark-reconstruction.md`
   - resume hydration of durable Goal facts, pending intent, and Continuation
     suppression basis without fabricating Initial
-- `03h-retry-failure-and-stale-synthetic-turn-tests.md`
+- `03i-retry-failure-and-stale-synthetic-turn-tests.md`
   - retry, failure, stale candidate, and duplicate-suppression acceptance tests
 
 The parent Work Area 03 file remains the overview contract. Implementation pass
@@ -69,8 +72,8 @@ Testing posture:
   runnable state boundary
 - projection logic should have direct unit tests before lifecycle tests depend
   on it
-- `03h` is the representative failure/retry/stale synthetic-turn acceptance
-  layer; it does not replace pass-local test plans for 03a-03g
+- `03i` is the representative failure/retry/stale synthetic-turn acceptance
+  layer; it does not replace pass-local test plans for 03a-03h
 
 ## Direction Lock
 
@@ -523,10 +526,12 @@ Metadata lifecycle rules:
   `IdlePendingCadence` for pending Initial / ObjectiveUpdated / BudgetLimit
   delivery, or `IdleAutomaticContinuation` for automatic Continuation.
 - Turn metadata lives until the active turn is cleared, the synthetic turn is
-  aborted before submit, or Created-event commit state makes the metadata
-  irrelevant. It is not consumed merely because one shaping attempt inspected
-  it; retry before Created must be able to re-run shaping from the same
-  metadata and fresh durable facts.
+  aborted before submit, or Created-event commit records committed carry and
+  makes the uncommitted metadata obsolete. It is not consumed merely because
+  one shaping attempt inspected it; retry before Created must be able to
+  re-run shaping from the same metadata and fresh durable facts. Post-commit
+  same-turn follow-up attempts use fresh durable snapshots plus committed
+  carry, not the stale `GoalTurnRequest`.
 - Metadata supersedence is handled by the request-input shaper's fresh
   selection order. If same-turn metadata was originally requested for
   ObjectiveUpdated but BudgetLimit becomes due before the next attempt, the
@@ -740,12 +745,20 @@ store GoalTurnRequest::IdlePendingCadence as turn metadata
 create a default TurnContext for the reserved turn
 re-check the active Goal state, selected pending intent, same active-turn
   reservation, and pending non-Goal work
-start a regular task with empty user input
+start Goal-owned task without draining newly arrived queued/mailbox work into
+  the synthetic turn
 ```
 
 The request-input shaper selects from durable pending cadence intent and
 returns inert commit metadata. The Created-event commit handler consumes the
 exact-key pending intent. The idle hook does neither.
+
+The synthetic launch must not rely on a non-atomic pre-launch recheck followed
+by the generic task start path if that path can drain newly arrived queued
+next-turn or trigger-turn mailbox input into the active turn. The implementation
+must either make the pending-work recheck and task start effectively atomic, or
+use a Goal-owned start path that refuses or requeues late pending work before
+model submission.
 
 If the request-input shaper later finds the pending intent is gone, stale, or
 superseded, it must abort the synthetic request before model submission unless
@@ -797,10 +810,14 @@ reserve ActiveTurn
 store GoalTurnRequest::IdleAutomaticContinuation as turn metadata
 re-read durable Goal and watermark
 re-check the same active-turn reservation and pending non-Goal work
-start regular task with empty user input
+start Goal-owned task without draining newly arrived queued/mailbox work into
+  the synthetic turn
 ```
 
 The preflight key is a launch suppression check only. It is not committed.
+As with Stage 2, a pending-work recheck before a generic task start is not
+enough if the start path can drain late queued/mailbox work into the synthetic
+turn.
 
 During `run_sampling_request(...)`, the Work Area 02 request-input shaper
 recomputes `ModelVisibleHistoryKey` from the actual per-attempt base input.
@@ -949,6 +966,7 @@ Likely test locations:
 
 - `codex-rs/core/src/session/tests.rs`
 - `codex-rs/core/tests/suite/goal_authority.rs`
+- `codex-rs/core/tests/suite/mod.rs` when adding a new suite module
 - `codex-rs/core/tests/common/responses.rs` only if small helper methods are
   needed
 - `codex-rs/state/src/runtime/goals.rs`
@@ -1045,7 +1063,10 @@ Initial. Planned coverage:
   - resume plus idle hook does not duplicate Continuation
 - `goal_idle_candidate_rejected_if_pending_work_appears_after_reservation`
   - pending work appears after Goal-owned reservation
-  - reservation is cleared; no intent is consumed; no watermark advances
+  - reservation is cleared or late pending work is refused/requeued before
+    model submission
+  - no pending work is drained into a Goal-owned synthetic request
+  - no intent is consumed; no watermark advances
 - `goal_idle_automatic_continuation_preflight_mismatch_aborts_before_submit`
   - preflight key differs from the per-attempt recomputed key
   - no `/responses` request is submitted for the stale synthetic turn
@@ -1061,13 +1082,22 @@ Initial. Planned coverage:
 - `goal_idle_continuation_created_commit_records_evidence_metadata`
   - final request payload contains exactly one developer-role Continuation item
   - Created-event commit writes the state-owned watermark
-  - if the typed evidence carrier exists, the evidence fingerprints match the
-    exact item and full finalized logical request input
+  - if the typed evidence carrier and explicit failure policy exist, the
+    evidence fingerprints match the exact item and full finalized logical
+    request input
 - `goal_idle_resume_ignores_ordinary_rollout_goal_text_for_watermark`
   - surviving ordinary rollout `ResponseItem` with Goal text does not
     reconstruct Continuation suppression by itself
   - resume uses the state-owned watermark, or an explicitly selected structured
     evidence path, never rendered text
+- `goal_idle_rollback_recomputes_key_from_surviving_history`
+  - rollback computes the key from surviving reconstructed prompt input
+  - rolled-back Goal items, request evidence, rollout text, or trace payloads
+    do not suppress or permit Continuation by themselves
+- `goal_idle_fork_recomputes_key_from_surviving_history`
+  - fork computes the key from the fork's surviving reconstructed prompt input
+  - parent-only Goal items, request evidence, rollout text, or trace payloads
+    do not suppress or permit Continuation by themselves
 
 Tests that currently assert resumed active Goal emits Initial, active
 `<goal_context>` output, or user-role Goal steering must be deleted or
@@ -1105,12 +1135,12 @@ cargo test -p codex-core --lib goal_idle
 ```
 
 Focused integration tests when request payload behavior is covered under the
-suite:
+`all` integration test binary's suite modules:
 
 ```powershell
 cd codex-rs
-cargo test -p codex-core --test suite goal_idle
-cargo test -p codex-core --test suite goal_authority
+cargo test -p codex-core --test all goal_idle
+cargo test -p codex-core --test all goal_authority
 ```
 
 Do not run broad workspace or full crate suites by default on this

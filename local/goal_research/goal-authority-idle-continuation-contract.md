@@ -336,6 +336,13 @@ surface as a user-facing model/request error. The implementation may emit normal
 internal tracing or lifecycle cleanup, but it must not present the stale
 Goal-owned turn as a failed user turn.
 
+Goal-owned synthetic turn request metadata remains uncommitted scheduling
+metadata until one of those outcomes happens. A stale abort clears it without
+commit. A successful `ResponseEvent::Created` commit records committed carry
+and pending-intent or Continuation suppression effects, then clears or makes
+the synthetic request metadata obsolete so same-turn follow-up attempts do not
+reuse it as a still-pending Goal-owned request.
+
 ## Resume Behavior
 
 Thread resume is hydration, not cadence.

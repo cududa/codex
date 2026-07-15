@@ -158,6 +158,11 @@ core session/thread bridge:
 `ResponseItem` construction in v136. It means the v136 plan should avoid
 creating new core ownership that fights the later migration.
 
+It also does not mean removing extension-owned Goal mutation tools. The
+agent-callable `create_goal` entry point remains valid when no Goal currently
+exists; it must write active durable facts plus pending Initial intent and then
+let the request-input shaping path deliver model-visible Goal steering.
+
 For v136-specific `ext/goal` scope decisions, apply the language from
 `goal-authority-ext-goal-ownership.md`: if `ext/goal` remains compiled and
 reachable as an active Goal producer, it must be converted to shared final
@@ -333,6 +338,12 @@ Goal-owned turn after recheck, abort before model submission, without
 consuming pending intent, advancing Continuation suppression, or surfacing a
 user-facing model error.
 
+`GoalTurnRequest` metadata is pre-Created request intent. It may survive
+retry before `ResponseEvent::Created`, but once Created-event commit records
+the selected Goal item as committed carry, the uncommitted request metadata is
+cleared or treated as obsolete. Same-turn follow-up attempts then use fresh
+durable facts plus committed carry, not stale request metadata.
+
 ### `ext/goal` Default
 
 Do not introduce a new crate or move shared types into `ext/goal` for v136.
@@ -409,6 +420,9 @@ carry explicitly so later agents do not rediscover or reopen them.
 - `ext/goal` may own lifecycle, tools, accounting, metrics, mutation entry
   points, prompt-body helpers, durable state calls, pending intent summaries,
   runtime accounting effects, and typed delivery requests.
+- `ext/goal` may preserve `create_goal` as an agent-callable mutation entry
+  point that creates an active Goal only when no Goal currently exists and
+  writes pending Initial intent.
 - `ext/goal` must not construct active `ResponseItem` / `ResponseInputItem`
   values, choose the active steering role, consume pending intent, advance
   Continuation watermarks, or commit delivery.
@@ -531,6 +545,8 @@ Default v136 direction:
 
 - keep `GoalExtension` as the extension lifecycle contributor owner
 - keep `GoalRuntimeHandle` as the per-thread runtime/accounting/effects owner
+- keep extension Goal mutation tools, including `create_goal`, where they are
+  product entry points rather than model-input construction paths
 - keep existing v136 adapters where they do not conflict with authority
 - convert any reachable active steering producer away from concrete active
   model-input construction/injection and toward durable pending intent plus

@@ -49,15 +49,15 @@ are not individual PRs, release units, or promises of independent
 mergeability. Do not distort module boundaries, add no-op architecture, or
 create test-only seams just to make a pass look self-contained.
 
-When creating or revising implementation pass docs, follow
-`local/goal_136_plan/work-areas/implementation-pass-planning-rules.md`. Pass
-boundaries must come from the relevant authority docs plus a direct code walk
-of the Work Area terrain, not from document length or plausible implementation
-guesses. Default to direct pass planning when the implementation seams are
-already clear. Use a prep or appendage map only for genuinely sprawling
-Work Areas where it helps the next agent avoid rereading the whole terrain before
-doing useful work. Work Area 02 is expected to use direct implementation pass
-planning from targeted request-construction reads, not a prep-map layer.
+Before creating or revising implementation pass docs, check
+`local/goal_136_plan/work-areas/implementation-prepass-planning-rules.md`.
+That file names the validation and mapping work that must happen before split
+planning for the remaining Work Areas. After the required pre-pass work is
+complete, follow
+`local/goal_136_plan/work-areas/implementation-pass-planning-rules.md` to write
+the actual pass docs. Pass boundaries must come from the relevant authority
+docs plus a direct code walk of the Work Area terrain, not from document length
+or plausible implementation guesses.
 
 The producer behavior switch is atomic. After that switch lands, no
 active Goal steering producer may remain on `GoalContext`, `GoalContextRole`,

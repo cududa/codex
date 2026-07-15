@@ -31,14 +31,13 @@ self-contained. Focus validation on behavior or interfaces actually introduced
 by the pass. Final rewrite acceptance belongs to the final cleanup and
 acceptance work, not to every Work Area or pass.
 
-When creating or revising implementation pass docs, follow
-`implementation-pass-planning-rules.md` in this directory. Do the relevant
-tree-walk before naming boundaries; a plausible split from the Work Area prose is
-not enough. Prefer direct pass planning after targeted code reads when the
-Work Area has clear seams. Use an appendage map only for broad, cross-cutting
-Work Areas where it compresses the route for the next agent instead of becoming
-another planning layer. Work Area 02 should use direct implementation pass
-planning from targeted request-construction reads, not a prep-map layer.
+Before creating or revising implementation pass docs, check
+`implementation-prepass-planning-rules.md` in this directory. Some Work Areas
+need validation, readiness checks, or maps before split planning. After the
+required pre-pass work is complete, follow
+`implementation-pass-planning-rules.md` to write the actual pass docs. Do the
+relevant tree-walk before naming boundaries; a plausible split from the Work
+Area prose is not enough.
 
 ## Migration-Stable Goal Ownership
 
