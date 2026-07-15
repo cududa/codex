@@ -6,6 +6,14 @@ required pre-pass work has been completed.
 It is execution guidance only. The authority docs under `local/goal_research`
 still win.
 
+Status: WA01-WA06 implementation pass splitting is complete. Retain this file
+as process context for how the existing pass docs were written. A fresh
+implementation session should execute the concrete ordered pass docs, not
+restart split planning or add verification gates merely because this file is
+present. Reopen split planning only when a pass doc is missing, directly
+conflicts with `local/goal_research`, or implementation finds a concrete
+route-breaking dependency gap.
+
 If the question is "what map, validation, or remediation work must happen
 before we split this Work Area?", use
 `local/goal_136_plan/work-areas/implementation-prepass-planning-rules.md`

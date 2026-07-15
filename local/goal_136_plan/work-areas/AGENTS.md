@@ -31,13 +31,16 @@ self-contained. Focus validation on behavior or interfaces actually introduced
 by the pass. Final rewrite acceptance belongs to the final cleanup and
 acceptance work, not to every Work Area or pass.
 
-Before creating or revising implementation pass docs, check
-`implementation-prepass-planning-rules.md` in this directory. Some Work Areas
-need validation, readiness checks, or maps before split planning. After the
-required pre-pass work is complete, follow
-`implementation-pass-planning-rules.md` to write the actual pass docs. Do the
-relevant tree-walk before naming boundaries; a plausible split from the Work
-Area prose is not enough.
+WA01-WA06 pre-pass and split planning are complete. The planning-rules docs in
+this directory are retained as process context for how the existing maps,
+readiness notes, and implementation pass docs were produced. Fresh
+implementation sessions should start from `implementation-route-index.md` and
+then the concrete ordered pass docs, not rerun pre-pass or split-planning work
+and not add extra verification gates merely because the planning-rules docs
+exist. Reopen split planning only if a required deliverable is missing, a pass
+doc directly conflicts with `local/goal_research`, or implementation finds a
+concrete route-breaking dependency gap. Keep the route index status cells terse;
+do not turn them into implementation logs.
 
 ## Migration-Stable Goal Ownership
 

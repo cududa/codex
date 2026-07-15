@@ -6,6 +6,13 @@ into implementation pass docs.
 It is execution guidance only. The authority docs under `local/goal_research`
 still win.
 
+Status: WA01-WA06 pre-pass planning is complete. Retain this file as process
+context for why the maps, readiness notes, and split docs exist. A fresh
+implementation session should not rerun pre-pass work or re-verify the split
+because this file exists. Reopen pre-pass planning only when a required
+deliverable is missing, directly conflicts with `local/goal_research`, or a
+concrete implementation pass finds a missing earlier replacement seam.
+
 Use this file when the next question is:
 
 ```text

@@ -331,16 +331,17 @@ participate in the main eligible progress fingerprint.
 
 Edit:
 
-- `codex-rs/state/goals_migrations/0004_thread_goal_continuation_watermarks.sql`
+- `codex-rs/state/goals_migrations/<next>_thread_goal_continuation_watermarks.sql`
 - `codex-rs/state/src/model/thread_goal.rs`
 - `codex-rs/state/src/model/mod.rs`
 - `codex-rs/state/src/runtime/goals.rs`
 - `codex-rs/state/src/lib.rs`
 
-Use the next available goals migration number if 01a and 01b land with a
-different migration layout. In the split Work Area 01 plan, 01a uses `0002` for
-`facts_version` and 01b uses `0003` for pending cadence intent, so this
-watermark pass should normally use `0004`.
+Use the next available goals migration number after WA01 lands. The current
+WA01 route shares `0002_goal_cadence_state.sql` between facts-version and
+pending-intent DDL, so the watermark pass should normally use `0003` after that
+shared migration. Use `0004` only if WA01 actually consumes `0003` before WA03
+lands.
 
 WA03 selects this state-owned watermark table as the default live correctness
 owner for automatic Continuation suppression. Structured recorded request

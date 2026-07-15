@@ -95,14 +95,16 @@ committed_at_ms
 
 ## Exact Files To Edit
 
-- `codex-rs/state/goals_migrations/0004_thread_goal_continuation_watermarks.sql`
+- `codex-rs/state/goals_migrations/<next>_thread_goal_continuation_watermarks.sql`
 - `codex-rs/state/src/model/thread_goal.rs`
 - `codex-rs/state/src/model/mod.rs`
 - `codex-rs/state/src/runtime/goals.rs`
 - `codex-rs/state/src/lib.rs`
 
-Use the next available migration number if WA01 lands with a different file
-layout.
+Use the next available migration number after WA01 lands. The current WA01
+route shares `0002_goal_cadence_state.sql` between facts-version and
+pending-intent DDL, so this pass should normally use `0003` after that shared
+migration. Use `0004` only if WA01 actually consumes `0003` before WA03 lands.
 
 ## Required Edits
 

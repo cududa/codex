@@ -49,15 +49,17 @@ are not individual PRs, release units, or promises of independent
 mergeability. Do not distort module boundaries, add no-op architecture, or
 create test-only seams just to make a pass look self-contained.
 
-Before creating or revising implementation pass docs, check
-`local/goal_136_plan/work-areas/implementation-prepass-planning-rules.md`.
-That file names the validation and mapping work that must happen before split
-planning for the remaining Work Areas. After the required pre-pass work is
-complete, follow
-`local/goal_136_plan/work-areas/implementation-pass-planning-rules.md` to write
-the actual pass docs. Pass boundaries must come from the relevant authority
-docs plus a direct code walk of the Work Area terrain, not from document length
-or plausible implementation guesses.
+WA01-WA06 pre-pass and split planning are complete. The planning-rules docs are
+retained as process context for how the existing maps, readiness notes, and
+implementation pass docs were produced. Fresh implementation sessions should
+start from
+`local/goal_136_plan/work-areas/implementation-route-index.md` and then the
+concrete ordered pass docs under `work-areas/`, not rerun the pre-pass or
+split-planning process and not add extra verification gates merely because the
+planning-rules docs exist. Reopen those rules only if a required deliverable is
+missing, a pass doc directly conflicts with `local/goal_research`, or
+implementation finds a concrete route-breaking dependency gap. Keep the route
+index status cells terse; do not turn them into implementation logs.
 
 The producer behavior switch is atomic. After that switch lands, no
 active Goal steering producer may remain on `GoalContext`, `GoalContextRole`,
