@@ -18,6 +18,7 @@ Authority:
 - `local/goal_research/goal-authority-grounding-truth.md`
 - `local/goal_research/goal-authority-primary-cadence-contract.md`
 - `local/goal_research/goal-authority-durable-cadence-state.md`
+- `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
 - `local/goal_136_plan/work-areas/AGENTS.md`
 - `local/goal_136_plan/work-areas/implementation-pass-planning-rules.md`
@@ -35,6 +36,8 @@ Terrain:
 Code-shape temptation:
 
 - encode pending intent in rollout history, `<goal_context>`, or UI metadata
+- treat ordinary rollout `ResponseItem`s, rollout trace payloads, or rendered
+  Goal text as pending-intent storage or committed-delivery evidence
 - use free-form strings at public API boundaries for intent kind
 - consume by thread or kind only instead of exact key
 - start writing pending intent from existing production callers before Work Area
@@ -45,6 +48,9 @@ Locked direction:
 - pending cadence intent is structured durable state
 - exact-key consumption requires thread id, goal id, kind, and facts version
 - storage helpers return facts and intent metadata only
+- pending intent storage is separate from recorded request evidence. It stores
+  due Initial/ObjectiveUpdated/BudgetLimit work before delivery; evidence
+  records a later committed finalized request attempt.
 - state still does not render, select request cadence, or construct model input
 
 Exclusions:
@@ -52,6 +58,8 @@ Exclusions:
 - no cadence-aware producer conversion
 - no final request-input shaping
 - no `ResponseEvent::Created` commit
+- no `GoalRequestEvidence` carrier, item fingerprint, request-input
+  fingerprint, replay pairing, or rollout trace policy
 - no Continuation persisted intent
 - no active steering repair or classifier work
 
@@ -134,6 +142,11 @@ pub struct ThreadGoalCadenceSnapshot {
 }
 ```
 
+Do not add attempt ordinal, item index, item fingerprint,
+request-input fingerprint, commit point, rendered prompt text, or rollout trace
+payload fields to pending intent rows. Those belong to recorded request
+evidence after a finalized request attempt reaches the commit point.
+
 Add a crate-private row helper for pending intents, following the
 `ThreadGoalRow` pattern.
 
@@ -202,7 +215,8 @@ Add focused tests in `codex-rs/state/src/runtime/goals.rs` with names such as:
 - `goal_pending_intent_facts_only_methods_do_not_create_intent`
 
 The tests may seed pending rows through a private test helper. They should not
-construct prompt text, model input, rollout items, or legacy Goal artifacts.
+construct prompt text, model input, rollout items, recorded request evidence,
+or legacy Goal artifacts.
 
 Suggested implementation validation:
 
@@ -227,6 +241,7 @@ After this pass, the branch should have:
 - snapshot reads that return facts plus pending intent metadata
 - exact-key consume and mechanical cleanup helpers
 - facts-only production callers still unchanged
+- no structured request-evidence carrier or replay behavior
 
 The next pass, 01c, inherits these storage primitives and adds atomic
 facts-plus-intent operations for creation, objective update, and budget-limit
@@ -240,6 +255,7 @@ This pass does not:
 - write pending intent from current production callers
 - consume intent because a prompt was rendered
 - commit delivery on `ResponseEvent::Created`
+- record committed request-input evidence
 - render internal Goal context
 - construct or repair final request input
 - persist Continuation intent

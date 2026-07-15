@@ -61,6 +61,15 @@ GoalStore-interface, or state/behavior docs unless code inspection proves the
 consolidated docs are too large to execute. If a later slice needs more detail,
 patch the consolidated doc first.
 
+The recorded request evidence pass is a support seam for final request-input
+commit and replay evidence:
+
+- `goal-authority-recorded-request-evidence.md`
+
+It does not add a new authority mechanism. It defines the structured carrier
+used when rollout/thread history is used as replay evidence for a committed
+final request input.
+
 ## Current Status
 
 Status terms in this file mean:
@@ -79,6 +88,8 @@ Current status:
 - `goal-authority-model-visible-history-key.md`: Ready.
 - `goal-authority-ext-goal-ownership.md`: Ready.
 - `goal-authority-repair-classifier-integration.md`: Ready.
+- `goal-authority-recorded-request-evidence.md`: Ready as a support seam for
+  final request-input commit/replay evidence.
 
 The Ready docs are ready as implementation-design inputs, not as execution
 plans. The execution plan still needs to assign concrete files, functions,
@@ -264,8 +275,9 @@ An implementation execution plan is ready only after these five deliverables
 are Ready or are explicitly resolved in a later authority update.
 
 Current readiness: ready for an implementation execution plan. All five
-deliverables are Ready as design inputs. The next plan should translate them
-into ordered, file-specific slices without reopening the core architecture.
+primary deliverables and the recorded-evidence support seam are Ready as
+design inputs. The next plan should translate them into ordered, file-specific
+slices without reopening the core architecture.
 
 The execution plan must translate them into ordered, file-specific slices. It
 must not reopen the core architecture unless a code walk finds a direct

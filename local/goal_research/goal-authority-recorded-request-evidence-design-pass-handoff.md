@@ -3,6 +3,11 @@
 This is a compact-forward note for the next Goal authority design pass. It is
 not authority and does not supersede the source contracts in this directory.
 
+Status update: this handoff has been executed. The resolved seam is now
+`goal-authority-recorded-request-evidence.md`, and
+`PASS2_CONCEPT_LEDGER.md` no longer marks `Recorded rollout evidence` as
+requiring a design pass.
+
 ## Suggested Skills
 
 - `task-alignment`: required before terrain inspection and before writing the
@@ -20,7 +25,7 @@ Produce the recorded request evidence design pass for Goal authority.
 
 The pass should decide how structured committed Goal request evidence is
 represented, persisted, replayed, and tested when recorded rollout evidence is
-used as proof of the same logical final model request input.
+used as replay evidence for the same logical final model request input.
 
 Likely output shape:
 
@@ -40,12 +45,20 @@ the relevant source contracts.
 The code-grounding debt for `Recorded rollout evidence` has been completed.
 It is no longer an unknown terrain question.
 
-Current ledger status:
+Original ledger status before this handoff was executed:
 
 - `PASS2_CONCEPT_LEDGER.md` marks `Recorded rollout evidence` as
-  `High-risk, Test-critical, Design-pass required`.
+  requiring a design pass.
 - `goal-authority-final-request-input-and-commit.md` now has a
   `Recorded Request Evidence` section.
+
+Current ledger status after execution:
+
+- `PASS2_CONCEPT_LEDGER.md` marks `Recorded rollout evidence` as
+  `High-risk, Test-critical`.
+- `goal-authority-recorded-request-evidence.md` defines the structured
+  committed evidence carrier, replay semantics, failure policy, version notes,
+  and focused tests.
 
 The current conclusion is:
 
@@ -164,8 +177,9 @@ Version checks:
 
 - compare the above terrain against `rust-v0.136.0`
 - compare against available `rust-v0.139.0`
-- note that no local `rust-v0.140.0` tag was available during the last pass;
-  recheck v140 when that terrain exists
+- compare against `rust-v0.140.0`; this tag is available locally and was
+  checked during the design pass that produced
+  `goal-authority-recorded-request-evidence.md`
 
 ## Decisions The Design Pass Must Pin
 
@@ -226,4 +240,3 @@ git diff --check -- local/goal_research
 Do not run broad Rust tests. If the design pass proposes later Rust
 validation, keep it focused on final model payloads, recorded evidence items,
 resume/reconstruction, rollback/fork, and Continuation suppression.
-

@@ -301,6 +301,20 @@ Repair and legacy artifacts:
   intent
 - raw response item notifications are not specially suppressed for Goal context
 
+Recorded request evidence:
+
+- structured Goal request evidence is appended only after
+  `ResponseEvent::Created`
+- retry or stream setup failure before `ResponseEvent::Created` records no
+  stale evidence and consumes no pending intent
+- evidence fingerprints match the exact developer-role Goal item and the full
+  finalized logical request input
+- ordinary `RolloutItem::ResponseItem` and rollout trace payloads are not
+  accepted as structured Goal commit evidence
+- resume, rollback, fork, and compaction use structured evidence only as
+  replay evidence and never parse rendered Goal text for Goal facts or
+  Continuation suppression
+
 Local behavior re-additions:
 
 - Ctrl+C during an active turn interrupts without mutating Goal state

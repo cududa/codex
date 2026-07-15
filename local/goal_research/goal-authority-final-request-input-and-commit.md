@@ -181,18 +181,24 @@ prove the commit refers to the item actually sent.
 
 ## Recorded Request Evidence
 
+Detailed recorded-evidence ownership lives in
+`goal-authority-recorded-request-evidence.md`. This section records the final
+request-input seam's obligation to produce the metadata used by that carrier.
+
 Current rollout terrain does not already provide structured Goal request
 evidence.
 
-In v135, `rust-v0.136.0`, and the available `rust-v0.139.0` tag, normal thread
-replay history persists `RolloutItem::ResponseItem(ResponseItem)`,
+In v135, `rust-v0.136.0`, and `rust-v0.139.0`, normal thread replay history
+persists `RolloutItem::ResponseItem(ResponseItem)`,
 `RolloutItem::Compacted`, `RolloutItem::TurnContext`, and
-`RolloutItem::EventMsg`. `record_conversation_items(...)` appends ordinary
+`RolloutItem::EventMsg`. `rust-v0.140.0` adds typed replay precedent through
+`RolloutItem::InterAgentCommunication`, but it still does not provide Goal
+request commit identity. `record_conversation_items(...)` appends ordinary
 response items to in-memory history, persists those response items to rollout,
-and emits raw response item events. Rollout reconstruction replays those
-ordinary items and compaction checkpoints. It does not record the full
-submitted `Prompt.input`, and it does not record structured Goal commit
-metadata.
+and emits raw response item events. Rollout reconstruction replays ordinary
+items, typed replay items where supported, and compaction checkpoints. It does
+not record the full submitted `Prompt.input`, and it does not record
+structured Goal commit metadata.
 
 Rollout trace can record an upstream inference request, but that path is
 best-effort diagnostic tracing, not normal session replay state. It may support
@@ -200,12 +206,17 @@ debugging or tests, but it must not become the durable Goal cadence evidence
 or Continuation suppression carrier unless a later authority update explicitly
 changes that persistence contract.
 
-If an implementation or test plan uses recorded rollout evidence as proof, the
-evidence must be a structured committed Goal request record, not an ordinary
-rollout `ResponseItem` by itself. The logical carrier should be replayable
-thread history, preferably a new `RolloutItem` variant or an equivalent
-storage-neutral thread-store item appended through the live thread persistence
-boundary.
+If an implementation or test plan uses recorded rollout evidence as replay
+evidence, the evidence must be a structured committed Goal request record, not
+an ordinary rollout `ResponseItem` by itself. The carrier is a replayable typed
+thread-history metadata item, logically:
+
+```text
+RolloutItem::GoalRequestEvidence(CommittedGoalRequestEvidence)
+```
+
+or an equivalent storage-neutral thread-store item appended through the live
+thread persistence seam.
 
 Logical evidence shape:
 
@@ -239,13 +250,17 @@ after `ResponseEvent::Created`. It must not be written when shaping succeeds
 but the request is not submitted, when stream setup fails, or when submission
 fails before the commit point.
 
-A later implementation plan must choose the error policy for evidence
-persistence. If the evidence is required for resume/reconstruction or
-Continuation suppression, a fire-and-log append through
-`Session::persist_rollout_items(...)` is not sufficient by itself; failure must
-be surfaced, retried, or covered by a durable state fallback. If the evidence
-is audit/test-only, the plan must say so and must use durable pending-intent
-and watermark state for correctness.
+Default posture: pending intent consumption and automatic Continuation
+suppression use durable state as the correctness owner.
+`GoalRequestEvidence` is required only when recorded rollout/thread history is
+used as replay evidence or as a reconstruction source.
+
+Live correctness must not depend solely on best-effort rollout append. If
+replay evidence matters, the committed Goal `ResponseItem` and
+`GoalRequestEvidence` must be appended through the thread-history seam as one
+logical batch, and append failure cannot be fire-and-log. A version plan may
+choose non-best-effort rollout-derived evidence for correctness only with an
+error policy as strong as the durable-state alternative.
 
 ## Commit Point
 

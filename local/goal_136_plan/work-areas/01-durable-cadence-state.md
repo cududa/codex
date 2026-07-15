@@ -46,6 +46,7 @@ Authority:
 - `local/goal_research/goal-authority-primary-cadence-contract.md`
 - `local/goal_research/goal-authority-idle-continuation-contract.md`
 - `local/goal_research/goal-authority-durable-cadence-state.md`
+- `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
 
 Terrain:
@@ -66,6 +67,8 @@ Code-shape temptation:
 - use `updated_at_ms` as the only durable facts identity
 - let state decide cadence selection, model roles, prompt rendering, request
   repair, or Continuation policy
+- put structured request evidence, replay pairing, rollout trace policy, or
+  request-input fingerprints into `GoalStore` because durable state is nearby
 - switch production callers to create pending intent before final request-input
   shaping and commit exist
 
@@ -73,6 +76,10 @@ Locked direction:
 
 - state owns durable facts and durable pending cadence intent
 - state exposes facts snapshots and exact-key mutation operations
+- state remains the live correctness owner for pending-intent consumption and
+  keeps the later default automatic Continuation watermark strategy state-owned;
+  recorded request evidence is typed commit/replay metadata owned by later
+  request-commit and replay work
 - state does not construct model input or decide when a request should carry
   Goal steering
 - Work Area 01 may add cadence-capable APIs and tests, but production callers that
@@ -83,6 +90,8 @@ Exclusions:
 
 - no final request-input shaping
 - no commit on `ResponseEvent::Created`
+- no `GoalRequestEvidence` carrier, request-input fingerprinting, replay
+  pairing, rollout trace policy, or raw response notification behavior
 - no idle Continuation watermarking
 - no request repair or classifier integration
 - no `GoalContext` / `<goal_context>` production deletion
@@ -105,6 +114,13 @@ Files read for this Work Area:
   - `codex-rs/app-server/src/request_processors/thread_goal_processor.rs`
   - `codex-rs/ext/goal/src/tool.rs`
   - `codex-rs/ext/goal/src/runtime.rs`
+- recorded-evidence propagation checked the current replay/request terrain:
+  - `codex-rs/protocol/src/protocol.rs`
+  - `codex-rs/core/src/session/mod.rs`
+  - `codex-rs/core/src/session/turn.rs`
+  - `codex-rs/core/src/session/rollout_reconstruction.rs`
+  - `codex-rs/thread-store/src/live_thread.rs`
+  - `codex-rs/rollout/src/policy.rs`
 
 Findings:
 
@@ -136,6 +152,12 @@ Work Area 01 adds durable primitives only. Use this file split while implementin
   needed to expose facts version and pending intent data cleanly.
 - `codex-rs/state/goals_migrations/*` owns schema changes for facts version
   and pending intent tables.
+- Recorded request evidence stays out of GoalStore. The typed evidence carrier,
+  request-input fingerprinting, replay pairing, and rollout/thread-history
+  append policy belong to the final request-input commit and reconstruction
+  Work Areas. A durable Continuation watermark table may live in state later,
+  but that table records committed suppression triples; it is not persisted
+  pending Continuation intent and it is not the evidence carrier.
 - Core, app-server, and extension callers remain facts-only until later
   Work Areas switch producers. Do not add request cadence selection, model role
   choice, prompt rendering, or `ResponseItem` / `ResponseInputItem`
@@ -231,6 +253,8 @@ The exact names may change, but the shape may not:
 - intent carries `thread_id`, `goal_id`, `kind`, `facts_version`, and
   `created_at`
 - no model role, prompt text, rendered context, or rollout item is stored here
+- no request-input fingerprint, item fingerprint, attempt ordinal,
+  `ResponseEvent::Created` evidence, or rollout trace payload is stored here
 
 Export only what core/app-server/extension callers need. Keep row helpers
 crate-private.
@@ -414,7 +438,7 @@ Do not switch these production callers in Work Area 01:
 
 Reason:
 
-- current active steering still uses the old pre-finalizer path
+- current active steering still uses the old pre-request-input-shaping path
 - creating durable pending intent before final request-input shaping and commit
   exist can leave stale pending rows that later look undelivered
 
@@ -517,7 +541,8 @@ This Work Area's target state is:
 - existing product behavior tests remain product-equivalent after
   `facts_version` expectations are updated
 - Work Area 01 tests prove state behavior without relying on rendered Goal text,
-  model roles, prompt construction, or rollout history
+  model roles, prompt construction, rollout history, rollout trace payloads, or
+  recorded request evidence
 - production callers are not switched to create pending intent until a later
   Work Area owns final request-input shaping and commit
 
@@ -533,6 +558,7 @@ This Work Area does not:
 - create persisted Continuation intent
 - repair request input
 - classify current or legacy Goal items
+- record or replay structured Goal request evidence
 - convert `ext/goal`
 - delete the old active steering producer path
 

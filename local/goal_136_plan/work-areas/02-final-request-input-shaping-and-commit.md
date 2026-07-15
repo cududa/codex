@@ -5,8 +5,10 @@ This Work Area adds the core authority seam for active Goal steering:
 - per-attempt shaping of the actual `Vec<ResponseItem>` before `Prompt.input`
 - selection of durable pending Initial, ObjectiveUpdated, and BudgetLimit
   intent
-- insertion of exactly one selected current developer-role Goal item when due
-- commit metadata tied to that exact final request item
+- insertion of exactly one selected current developer-role Goal `ResponseItem`
+  when due
+- commit metadata tied to that exact final request item and finalized logical
+  request input
 - commit on `ResponseEvent::Created`
 
 It does not implement automatic idle Continuation policy. It does not convert
@@ -22,9 +24,9 @@ pressure points are the request-loop seam, the Created-event commit seam,
 current core producer conversion, committed carry metadata, and request-payload
 tests.
 
-The old labels for module types, no-op finalizer wiring, pending insertion,
-Created commit, producer conversion, and request-payload tests are not
-authority by themselves. Reuse, rename, merge, or split them only after a
+The old labels for module types, no-op request-input shaper wiring, pending
+insertion, Created commit, producer conversion, and request-payload tests are
+not authority by themselves. Reuse, rename, merge, or split them only after a
 targeted direct read confirms the boundaries.
 
 The parent Work Area 02 file remains the overview contract. Final implementation
@@ -40,6 +42,8 @@ Testing posture:
   interfaces it actually introduces
 - pure module behavior, selection, commit primitives, and producer state
   effects should be tested near the pass that introduces them
+- recorded-evidence fields and carrier behavior should be tested near the pass
+  that introduces the Created-event commit writer or typed replay carrier
 - avoid type-only or no-op passes unless the continuation state is explicit
   and no executable behavior exists yet
 - the final integrated Work Area 02 target-state pass should prove full
@@ -66,6 +70,7 @@ Authority:
 - `local/goal_research/goal-authority-final-request-input-and-commit.md`
 - `local/goal_research/goal-authority-durable-cadence-state.md`
 - `local/goal_research/goal-authority-model-visible-history-key.md`
+- `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
 - `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
@@ -92,6 +97,21 @@ Terrain:
 - `codex-rs/codex-api/src/common.rs`
   - `ResponsesApiRequest.input` is `Vec<ResponseItem>`
   - `ResponseCreateWsRequest::from(&ResponsesApiRequest)` preserves that input
+- `codex-rs/core/src/session/mod.rs`
+  - `record_conversation_items(...)` appends ordinary `ResponseItem`s to
+    history, persists them as rollout response items, and emits raw response
+    item events
+  - `persist_rollout_items(...)` currently logs append failures
+- `codex-rs/protocol/src/protocol.rs`
+  - `RolloutItem` has no Goal request commit metadata in the v136 terrain
+- `codex-rs/core/src/session/rollout_reconstruction.rs`
+  - replay reconstructs ordinary response items, compaction checkpoints, turn
+    context, and event messages, not Goal request commit identity
+- `codex-rs/thread-store/src/live_thread.rs`
+  - live thread append applies rollout persistence filtering before storage
+- `codex-rs/rollout/src/policy.rs`
+  - ordinary `RolloutItem::ResponseItem` persistence is content persistence,
+    not structured Goal commit evidence
 - old Goal steering terrain currently builds and carries concrete
   `ResponseInputItem`s before this seam
 
@@ -104,8 +124,11 @@ Code-shape temptation:
 - commit before the stream reaches `ResponseEvent::Created`
 - hide final request shaping inside `goals.rs`, generic context rendering, or
   classifier code
-- leave old concrete Goal carry as proof that the final request contained
+- leave old concrete Goal carry as evidence that the final request contained
   current Goal authority
+- treat ordinary rollout `ResponseItem`s, rollout trace payloads, raw response
+  notifications, classifier matches, or rendered Goal text as structured
+  recorded request evidence
 
 Locked direction:
 
@@ -121,6 +144,9 @@ Locked direction:
   not final request-input authority owner
 - replace current-turn concrete Goal carry with committed metadata for the
   finalized item
+- keep recorded request evidence as typed commit/replay metadata written only
+  from the Created-event commit handler, with durable state remaining the live
+  correctness owner unless a non-best-effort evidence path is explicitly chosen
 
 Exclusions:
 
@@ -148,8 +174,15 @@ Files read for this Work Area:
 - `codex-rs/core/src/compact.rs`
 - `codex-rs/core/src/compact_remote.rs`
 - `codex-rs/core/src/codex_thread.rs`
+- `codex-rs/core/src/session/mod.rs`
+- `codex-rs/protocol/src/protocol.rs`
+- `codex-rs/core/src/session/rollout_reconstruction.rs`
+- `codex-rs/thread-store/src/live_thread.rs`
+- `codex-rs/rollout/src/policy.rs`
 - `codex-rs/core/tests/common/responses.rs`
 - request-capture examples in `codex-rs/core/tests/suite/client.rs`
+- targeted upstream `rust-v0.136.0`, `rust-v0.139.0`, `rust-v0.140.0`, and
+  `upstream/main` `RolloutItem` shape checks for typed replay precedent
 
 Findings:
 
@@ -171,8 +204,19 @@ Findings:
   final `/responses` payload assertions
 - current mid-turn compaction reads concrete current-turn Goal
   `ResponseInputItem`s from `TurnState`
-- the replacement carry must be committed metadata, not a pre-finalizer
+- the replacement carry must be committed metadata, not a pre-request-shaping
   model-input item
+- current rollout history has no typed Goal request evidence carrier; ordinary
+  `RolloutItem::ResponseItem` records model-visible content but not attempt
+  ordinal, item index, full request-input fingerprint, or Created-event commit
+  identity
+- current `Session::persist_rollout_items(...)` is fire-and-log on append
+  failure, so it is not sufficient as the sole correctness path for pending
+  intent consumption or Continuation suppression
+- `rust-v0.140.0` and `upstream/main` show typed replay metadata/items can live
+  beside ordinary `ResponseItem` rollout content, but that is only precedent
+  for a structured carrier; it does not make rendered text or model-visible
+  items into Goal evidence
 
 ## Ownership Split For This Work Area
 
@@ -184,7 +228,7 @@ whole Goal runtime into core. Use this file split while implementing:
   pending-intent selection, developer-role `ResponseItem` construction, and
   commit metadata for the exact final request item.
 - `codex-rs/core/src/session/turn.rs` is only the sampling placement owner. It
-  passes the actual per-attempt base input into the finalizer before
+  passes the actual per-attempt base input into the request-input shaper before
   `build_prompt(...)` and passes commit metadata to the Created-event commit
   point.
 - Work Area 01 APIs in `codex-rs/state/src/runtime/goals.rs` own durable facts,
@@ -193,12 +237,16 @@ whole Goal runtime into core. Use this file split while implementing:
 - `codex-rs/core/src/goals.rs` is edited only to convert existing core
   Initial, ObjectiveUpdated, and BudgetLimit producers into durable intent
   producers and, if useful, to provide prompt-body helpers. It is not the
-  long-lived cadence service, finalizer, scheduler, or active model-input
-  owner.
+  long-lived cadence service, request-input shaper, scheduler, or active
+  model-input owner.
 - `codex-rs/core/src/session/input_queue.rs` and
   `codex-rs/core/src/state/turn.rs` may introduce committed carry metadata for
   finalized Goal delivery. They must not keep `ResponseInputItem` carry as
-  proof of authority.
+  authority evidence.
+- `codex-rs/protocol/src/protocol.rs`, `codex-rs/thread-store`, and
+  `codex-rs/rollout` own any typed replay carrier and persistence filtering
+  needed for recorded request evidence. They do not select cadence, render
+  Goal text, consume pending intent, or materialize active model input.
 
 ## Required Edits
 
@@ -241,14 +289,22 @@ pub(crate) struct GoalItemFingerprint {
     // final developer-role Goal item.
 }
 
+pub(crate) struct GoalRequestInputFingerprint {
+    // Stable digest or structured fields sufficient to identify the full
+    // finalized logical request input.
+}
+
 pub(crate) struct GoalRequestCommit {
     pub thread_id: ThreadId,
     pub turn_id: String,
+    pub attempt_ordinal: u64,
     pub goal_id: String,
     pub kind: GoalCadenceKind,
     pub facts_version: i64,
     pub model_visible_history_key: Option<ModelVisibleHistoryKey>,
     pub item_fingerprint: GoalItemFingerprint,
+    pub request_input_fingerprint: GoalRequestInputFingerprint,
+    pub item_index: usize,
     pub placement: GoalItemPlacement,
     pub item: ResponseItem,
 }
@@ -275,12 +331,24 @@ pub(crate) enum GoalFinalizationOutcome {
 The exact field representation may change, but the semantics may not:
 
 - commit metadata refers to the exact `ResponseItem` in final request input
+- `attempt_ordinal` is allocated immediately before per-attempt request-input
+  shaping and reused by the Created-event commit handler
+- `item_index`, `item_fingerprint`, and `request_input_fingerprint` identify
+  the exact finalized logical `Vec<ResponseItem>` and selected item that become
+  `Prompt.input` / `ResponsesApiRequest.input`
 - pending intent is not consumed when the struct is created
-- `item` is a finalized `ResponseItem`, not a pre-finalizer
-  `ResponseInputItem`
+- `item` is a finalized `ResponseItem`, not a pre-request-shaping
+  `ResponseInputItem`; it may be carried for model-visible history append, but
+  the fingerprint fields are the commit identity
+- `VerifiedExisting` is valid only when this attempt's cleaned request input
+  already contains exactly one selected current developer-role `ResponseItem`
+  matching the durable facts and cadence kind
 - `model_visible_history_key` may be `None` only for non-Continuation commits
   before Work Area 03; Continuation commits must require a real key
 - repair report is diagnostic/test support, not a cadence decision source
+- `commit_point` and `committed_at_ms` are not shaper outputs. The
+  Created-event commit handler adds those fields when it materializes
+  `CommittedGoalRequestEvidence` or equivalent typed metadata.
 
 ### 2. Add Final Request-Input Shaping Function
 
@@ -302,6 +370,8 @@ pub(crate) fn finalize_request_input(
 
 - thread id
 - turn id
+- attempt ordinal allocated immediately before request-input shaping for this
+  sampling attempt
 - current durable Goal cadence snapshot from Work Area 01
 - optional automatic Continuation request, initially `None` in Work Area 02
 - optional model-visible history key for this attempt
@@ -336,13 +406,13 @@ apply feature/collaboration eligibility gates for active Goal delivery
 capture real model_visible_history_key before inserting selected Goal item,
   when the Work Area 03 key implementation already exists; otherwise keep None
   for non-Continuation commits
-read/select pending durable intent in order:
-  BudgetLimit
-  ObjectiveUpdated
-  Initial
-  Continuation (not active until Work Area 03)
+select cadence request from the durable snapshot and turn metadata in order:
+  pending BudgetLimit
+  pending ObjectiveUpdated
+  pending Initial
+  runtime Continuation request (not active until Work Area 03)
 render selected Goal text from durable state
-insert exactly one developer-role Goal ResponseItem when selected
+insert exactly one developer-role Goal `ResponseItem` when selected
 return FinalizedGoalRequestInput { input, commit, repair_report }
 ```
 
@@ -354,6 +424,7 @@ Selection rules:
 - pending Initial is selected only when no higher-priority pending intent is
   due
 - Continuation is not selected in Work Area 02
+- Continuation is never persisted pending cadence intent
 - active durable Goal state alone selects nothing
 - historical rendered Goal items select nothing
 
@@ -373,6 +444,7 @@ Required placement:
 Target shape:
 
 ```rust
+let attempt_ordinal = next_goal_request_attempt_ordinal();
 let base_prompt_input = if let Some(input) = initial_input.take() {
     input
 } else {
@@ -381,7 +453,8 @@ let base_prompt_input = if let Some(input) = initial_input.take() {
         .for_prompt(&turn_context.model_info.input_modalities)
 };
 
-let goal_request_context = assemble_goal_request_context_for_attempt(...).await?;
+let goal_request_context =
+    assemble_goal_request_context_for_attempt(attempt_ordinal, ...).await?;
 let finalized_goal_input = match goal_cadence::finalize_request_input(
     base_prompt_input,
     goal_request_context,
@@ -414,6 +487,17 @@ retry attempts that rebuild prompt input from history.
 Do not move the seam into `client.rs`; that is after `Prompt` construction and
 would make Goal authority a client serialization side effect.
 
+Attempt ordinal rules:
+
+- allocate the ordinal before calling `goal_cadence::finalize_request_input(...)`
+  for each sampling attempt
+- reuse the same ordinal in `GoalRequestCommit` and any
+  `CommittedGoalRequestEvidence`
+- do not allocate ordinals only for attempts that select Goal cadence; evidence
+  tests need stale failed attempts to be distinguishable from committed attempts
+- retry and follow-up requests get new ordinals because their base prompt input
+  is rebuilt and re-shaped
+
 ### 4. Commit On `ResponseEvent::Created`
 
 Edit:
@@ -433,24 +517,36 @@ On `ResponseEvent::Created`:
 
 ```rust
 if let Some(commit) = goal_request_commit.take() {
-    goal_cadence::commit_goal_request(sess.as_ref(), turn_context.as_ref(), commit).await?;
+    goal_cadence::commit_goal_request_on_response_created(
+        sess.as_ref(),
+        turn_context.as_ref(),
+        commit,
+    ).await?;
 }
 ```
 
 Commit behavior:
 
+- verify the finalized request identity before side effects:
+  - the selected item is still at `item_index`
+  - the selected item still matches `item_fingerprint`
+  - the logical finalized input still matches `request_input_fingerprint`
 - record the finalized developer-role Goal `ResponseItem` as a model-visible
-  cadence item when it was newly inserted for cadence delivery
+  cadence item when the commit represents cadence delivery, whether placement
+  was `Inserted` or `VerifiedExisting`
 - consume pending Initial, ObjectiveUpdated, or BudgetLimit intent with
   `consume_pending_intent_exact(...)`
 - clear superseded Initial or ObjectiveUpdated intent after committed
   BudgetLimit when required
+- when recorded rollout/thread history is used as replay evidence, append the
+  committed Goal `ResponseItem` and typed `GoalRequestEvidence` as one logical
+  thread-history write
 - store committed current-turn carry metadata for this turn
 - do not advance Continuation watermark in Work Area 02
 
 No commit occurs when:
 
-- finalizer returns no selected item
+- the request-input shaper returns no selected item
 - `client_session.stream(...)` fails before returning a stream
 - stream returns an error or closes before `ResponseEvent::Created`
 - `build_prompt(...)` was constructed but no model execution event occurs
@@ -458,7 +554,75 @@ No commit occurs when:
 If a stream fails after `ResponseEvent::Created`, the commit remains. The retry
 must rerun shaping against committed state/history.
 
-### 5. Record Finalized Cadence Items, Not Pre-Finalizer Items
+This commit handler is separate from
+`goal_cadence::finalize_request_input(...)`. The handler may call session and
+state adapters to record committed carry metadata and consume exact-key pending
+intent, but it must not reselect cadence, rebuild the Goal item, or treat
+classifier output as authority. Its commit metadata must identify the exact
+final `ResponseItem` and full logical request input that reached the
+Created-event request.
+
+The Created-event commit handler is the only legal writer for structured
+committed request evidence. If a concrete implementation pass defers the typed
+carrier, it must leave that deferral explicit while still producing the
+`GoalRequestCommit` fields needed below. When the carrier is implemented, the
+Created-event handler enriches `GoalRequestCommit` with:
+
+```text
+commit_point: ResponseCreated
+committed_at_ms
+```
+
+and writes the logical equivalent of:
+
+```text
+CommittedGoalRequestEvidence {
+  schema_version,
+  thread_id,
+  turn_id,
+  attempt_ordinal,
+  goal_id,
+  kind,
+  facts_version,
+  model_visible_history_key,
+  item_fingerprint,
+  request_input_fingerprint,
+  item_index,
+  inserted_or_verified,
+  commit_point: ResponseCreated,
+  committed_at_ms,
+}
+```
+
+Evidence rules:
+
+- do not write evidence before `ResponseEvent::Created`
+- do not emit evidence through raw response item notifications
+- do not treat ordinary `RolloutItem::ResponseItem`, rollout trace payloads,
+  raw response notifications, classifier matches, or rendered Goal text as
+  structured evidence
+- do not recover Goal facts, cadence kind, pending intent, or Continuation
+  suppression by parsing the committed Goal item text
+- if evidence is only audit/test metadata, durable pending-intent consumption
+  and later durable Continuation watermark state remain the live correctness
+  paths
+- if evidence is used for resume, rollback/fork, reconstruction, or
+  Continuation suppression correctness, `Session::persist_rollout_items(...)`
+  is not enough by itself because it currently logs append failures. The
+  implementation must use a non-best-effort thread-history write or surface and
+  recover from append failure.
+
+Paired-write rule:
+
+- when replay evidence matters, the committed Goal `ResponseItem` and typed
+  evidence record must be appended as one logical thread-history batch
+- partial append of only the `ResponseItem` or only the evidence record must be
+  rejected, retried, or made explicitly unreplayable
+- durable correctness mutation happens before evidence append; an evidence
+  record must not claim delivery for pending intent that durable state still
+  considers pending unless a recovery path is documented and tested
+
+### 5. Record Finalized Cadence Items, Not Pre-Request-Shaping Items
 
 Edit:
 
@@ -471,11 +635,14 @@ Add a committed carry shape equivalent to:
 ```rust
 pub(crate) struct CommittedGoalRequestCarry {
     pub turn_id: String,
+    pub attempt_ordinal: u64,
     pub goal_id: String,
     pub kind: GoalCadenceKind,
     pub facts_version: i64,
     pub model_visible_history_key: Option<ModelVisibleHistoryKey>,
     pub item_fingerprint: GoalItemFingerprint,
+    pub request_input_fingerprint: GoalRequestInputFingerprint,
+    pub item_index: usize,
 }
 ```
 
@@ -488,12 +655,16 @@ Session::record_committed_goal_request_carry(...)
 Session::committed_goal_request_carry(...)
 ```
 
-This carry records that the final request input already contained the selected
-Goal item for the current turn. It does not store `ResponseInputItem`. It does
-not create cadence intent.
+This carry records that one finalized sampling attempt for the current turn
+already contained the selected Goal item and that the Created-event commit ran.
+It does not store rendered prompt text, `ResponseInputItem`, or a full
+`ResponseItem`. It does not create cadence intent, select cadence, or stand in
+for structured request evidence. The fingerprint fields let compaction or
+repair code identify the committed item/request pair without reconstructing
+Goal facts from rendered text.
 
 Work Area 02 should not yet delete all old concrete carry consumers. It should
-introduce the replacement carry and switch finalizer-owned commits to use it.
+introduce the replacement carry and switch Created-event Goal commits to use it.
 Work Area 05 handles compaction/projection classifier conversion, and Work Area 06
 removes the dead old carry once no reachable producer depends on it.
 
@@ -516,20 +687,21 @@ kinds to cadence-aware state APIs:
 
 Required replacements:
 
-- newly active Goal creation/resume of paused Goal writes pending Initial
-  intent in durable state
+- newly active Goal creation or explicit paused-to-active Goal mutation writes
+  pending Initial intent in durable state; thread resume hydration does not
+  fabricate Initial
 - objective update writes pending ObjectiveUpdated intent in durable state
 - budget-limit accounting writes pending BudgetLimit intent in durable state
-- same-turn injection failure must not drop intent because there is no
-  same-turn concrete item to inject
+- same-turn recheck or wake unavailability must not drop intent; there should
+  be no same-turn concrete Goal item to inject
 - `GoalSteeringMessage::into_response_input_item` must not be used for these
   core producer paths after conversion
 
 Allowed to remain for later Work Areas:
 
 - automatic Continuation selection and reservation until Work Area 03
-- `ext/goal` pre-finalizer producer path until Work Area 04, if the branch is
-  not being presented as final rewrite behavior before Work Area 04
+- `ext/goal` pre-request-shaping producer path until Work Area 04, if the
+  branch is not being presented as final rewrite behavior before Work Area 04
 - legacy artifact classifiers until Work Area 05
 
 Do not leave a converted core Initial, ObjectiveUpdated, or BudgetLimit path
@@ -577,14 +749,14 @@ Edit:
 
 - `codex-rs/core/src/goal_cadence/`
 
-Work Area 02 finalizer must remove or replace Goal-looking items from the active
-request input before inserting selected cadence:
+The Work Area 02 request-input shaper must remove or replace Goal-looking items
+from the active request input before inserting selected cadence:
 
 - pure legacy `<goal_context>` items
-- user-role current Goal internal-context items
-- duplicate current Goal internal-context items
-- stale current Goal internal-context items that do not match current durable
-  Goal facts or selected kind
+- wrong-role source-tagged Goal-looking messages
+- duplicate current developer-role Goal `ResponseItem`s
+- stale source-tagged Goal-looking messages that do not match current durable
+  Goal facts, selected kind, or the expected final `ResponseItem` shape
 - pre-injected Goal-looking items from old producer/carry paths
 
 This cleanup is local to final request-input shaping. It is not the broad typed
@@ -635,13 +807,14 @@ Required tests:
   - pending intent is consumed
   - retry rebuilds from committed state/history and does not emit a second
     pending Initial/ObjectiveUpdated/BudgetLimit item
-- `goal_authority_follow_up_reruns_finalizer_from_rebuilt_history`
+- `goal_authority_follow_up_reruns_request_shaper_from_rebuilt_history`
   - tool call response causes a follow-up sampling request
   - follow-up shaping runs from rebuilt history
   - stale/pre-injected Goal-looking items are not trusted as authority
 - `goal_authority_removes_wrong_role_duplicate_and_legacy_goal_items`
-  - seed request history with pure user-role current Goal item, duplicate
-    developer Goal item, and pure legacy `<goal_context>`
+  - seed request history with a pure wrong-role source-tagged Goal-looking
+    message, a duplicate developer-role Goal `ResponseItem`, and pure legacy
+    `<goal_context>`
   - final request input contains only the selected current developer-role item
     when cadence is due
   - mixed ordinary prose containing marker-like text remains
@@ -652,7 +825,20 @@ Required tests:
   - ordinary user turn does not receive a fresh Goal item
 - `goal_authority_created_commit_records_committed_carry_metadata`
   - after Created, current-turn carry stores committed metadata
-  - carry does not expose or store pre-finalizer `ResponseInputItem`
+  - carry does not expose or store pre-request-shaping `ResponseInputItem`
+- `goal_authority_created_commit_records_structured_request_evidence`
+  - evidence is written only after `ResponseEvent::Created`
+  - evidence contains the attempt ordinal, item index, item fingerprint, and
+    full request-input fingerprint for the finalized logical input
+  - evidence is not emitted as a raw response item
+- `goal_authority_failed_pre_created_attempt_records_no_evidence`
+  - stream setup or stream failure before Created writes no evidence
+  - ordinary rollout `ResponseItem`s and rollout trace payloads are not
+    accepted as substitute evidence
+- `goal_authority_retry_records_evidence_only_for_committed_attempt`
+  - a failed pre-Created attempt and a later committed attempt have distinct
+    attempt ordinals
+  - only the attempt that reaches Created has structured evidence
 
 Update existing local tests that assert:
 
@@ -670,7 +856,7 @@ old path.
 Docs-only validation for this planning Work Area:
 
 ```powershell
-git diff --check -- local/goal_136_plan
+git diff --check -- local/goal_research local/goal_136_plan
 ```
 
 Implementation validation for Work Area 02:
@@ -722,7 +908,17 @@ This Work Area's target state is:
 - retry before Created leaves pending intent intact
 - retry after Created does not duplicate pending intent delivery
 - current-turn carry for request-shaped Goal delivery stores committed
-  metadata, not pre-finalizer model input
+  metadata, including attempt ordinal and fingerprints, not
+  pre-request-shaping model input
+- `GoalRequestCommit` includes the exact item index, item fingerprint, and full
+  request-input fingerprint for the finalized logical request
+- structured request evidence, when the replay carrier is implemented, is
+  written only from the Created-event commit handler and is not replaced by
+  ordinary rollout `ResponseItem`s, rollout trace payloads, raw notifications,
+  classifier matches, or rendered Goal text
+- durable state remains the live correctness owner for pending-intent
+  consumption unless an implementation pass explicitly chooses a
+  non-best-effort evidence-backed path
 - core Initial, ObjectiveUpdated, and BudgetLimit producers no longer depend on
   active `GoalContext` construction or concrete Goal `ResponseInputItem`
   injection
@@ -756,6 +952,8 @@ Allowed continuation state:
 - `core/src/goal_cadence/` wired for Initial, ObjectiveUpdated, and BudgetLimit
 - Created commit for durable pending intent
 - committed metadata carry introduced
+- Created-event commit metadata includes attempt ordinal, item index, item
+  fingerprint, and request-input fingerprint
 - old Continuation implementation still awaiting Work Area 03
 - `ext/goal` still awaiting Work Area 04
 - projection/compaction cleanup still awaiting Work Area 05
@@ -765,7 +963,8 @@ Not allowed for this Work Area's target state:
 - converted core Initial, ObjectiveUpdated, or BudgetLimit producers still
   injecting active `GoalContext` / `<goal_context>` items
 - pending intent consumed before Created
-- shaping only the first attempt while retry attempts bypass the finalizer
+- shaping only the first attempt while retry attempts bypass the request-input
+  shaper
 - tests that prove helper output but not final request input
 - claiming completed active Goal authority rewrite while reachable producers
   still use the old path

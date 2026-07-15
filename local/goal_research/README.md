@@ -64,6 +64,7 @@ Use these documents when working at a specific implementation seam:
 | --- | --- |
 | What durable state and exact-key consumption must exist before cadence can be implemented? | `goal-authority-durable-cadence-state.md` |
 | Where does active Goal authority become real model input, and how do retry, commit, and carry work? | `goal-authority-final-request-input-and-commit.md` |
+| When rollout/thread history is used as replay evidence, what structured record captures the committed final request input? | `goal-authority-recorded-request-evidence.md` |
 | Which eligible progress projection suppresses duplicate automatic Continuation? | `goal-authority-model-visible-history-key.md` |
 | How does `ext/goal` participate without owning model-input authority, and what reachable/configured paths must be converted? | `goal-authority-ext-goal-ownership.md` |
 | How do classifiers support cleanup, typed projection, compaction, reconstruction, raw notifications, and repair without deciding cadence? | `goal-authority-repair-classifier-integration.md` |
@@ -89,6 +90,9 @@ terrain, not mission; do not infer desired architecture from current local code.
 - History and reconstruction terrain: `codex-rs/core/src/context_manager/history.rs`,
   `codex-rs/core/src/session/mod.rs`,
   `codex-rs/core/src/session/rollout_reconstruction.rs`
+- Recorded request evidence terrain: `codex-rs/protocol/src/protocol.rs`,
+  `codex-rs/thread-store/src/live_thread.rs`,
+  `codex-rs/thread-store/src/types.rs`, `codex-rs/rollout/src/policy.rs`
 - Cleanup and projection terrain: `codex-rs/core/src/event_mapping.rs`,
   `codex-rs/core/src/context/contextual_user_message.rs`,
   `codex-rs/core/src/compact.rs`,
@@ -108,6 +112,7 @@ terrain, not mission; do not infer desired architecture from current local code.
 | `goal-authority-idle-continuation-contract.md` | Idle lifecycle contract | Pending-work precedence, pending durable intent delivery, automatic Continuation, resume hydration | Active steering shape, repair architecture |
 | `goal-authority-durable-cadence-state.md` | Durable state seam | Facts version, pending intent storage, atomic mutations, supersedence cleanup, exact-key consumption | Request shaping, repair decisions, prompt rendering, model roles, Continuation policy |
 | `goal-authority-final-request-input-and-commit.md` | Final model-input seam | Per-attempt shaping, cleanup, selected item insertion, commit metadata, item fingerprint, retry/follow-up behavior, current-turn carry replacement | Durable mutation ownership, idle scheduling |
+| `goal-authority-recorded-request-evidence.md` | Recorded evidence seam | Structured committed request evidence carrier, persistence timing, replay semantics, fingerprint inputs, rollback/fork/compaction treatment | Goal authority, cadence selection, durable mutation ownership |
 | `goal-authority-model-visible-history-key.md` | Continuation suppression support | Eligible progress projection, key shape, capture point, runtime watermark, resume/restart suppression, compaction effects | Goal authority, pending intent delivery, pending intent consumption, cadence selection |
 | `goal-authority-ext-goal-ownership.md` | Extension ownership seam | Extension lifecycle, mutation, accounting, typed cadence participation, reachability/config treatment | Model role selection, active model-input construction, commit, pending-intent consumption, Continuation watermark updates |
 | `goal-authority-repair-classifier-integration.md` | Classifier and repair integration | Pure-item classification, projection behavior, history/user-turn handling, compaction, reconstruction, raw notification behavior, request-local repair support | Cadence selection, authority proof, durable Goal recovery, active Goal state inference |

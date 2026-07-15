@@ -1,9 +1,9 @@
 # Work Area 01c: Cadence-Aware Store Operations
 
-This ordered pass adds the atomic state APIs that later producer and finalizer
-work will call. These APIs mutate Goal facts and pending Initial,
-ObjectiveUpdated, or BudgetLimit intent in one SQL transaction. They still do
-not construct model input or decide final request cadence.
+This ordered pass adds the atomic state APIs that later producer and
+request-input commit paths will call. These APIs mutate Goal facts and pending
+Initial, ObjectiveUpdated, or BudgetLimit intent in one SQL transaction. They
+still do not construct model input or decide final request cadence.
 
 ## Direction Lock
 
@@ -18,6 +18,7 @@ Authority:
 - `local/goal_research/goal-authority-grounding-truth.md`
 - `local/goal_research/goal-authority-primary-cadence-contract.md`
 - `local/goal_research/goal-authority-durable-cadence-state.md`
+- `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
 - `local/goal_136_plan/work-areas/AGENTS.md`
 - `local/goal_136_plan/work-areas/implementation-pass-planning-rules.md`
@@ -42,6 +43,8 @@ Code-shape temptation:
 - let state choose which pending intent is due for a request attempt
 - return rendered Goal prompts or prebuilt model input from state outcomes
 - use a non-exact consume helper as a convenience
+- make cadence-aware state operations append or interpret recorded request
+  evidence because they already know the facts version and intent key
 
 Locked direction:
 
@@ -49,14 +52,16 @@ Locked direction:
 - every facts-plus-intent mutation is atomic
 - pending Initial, ObjectiveUpdated, and BudgetLimit intent survives until a
   later final request-input commit consumes it by exact key
-- production callers stay facts-only until the finalizer and producer
-  conversion passes can use the new APIs coherently
+- production callers stay facts-only until the request-input shaping/commit
+  and producer conversion passes can use the new APIs coherently
 
 Exclusions:
 
 - no Work Area 02 final request-input shaping
 - no producer conversion in core, app-server, or `ext/goal`
 - no same-turn concrete Goal item injection
+- no `GoalRequestEvidence` append, request-input fingerprinting, replay
+  pairing, rollout trace policy, or raw response notification behavior
 - no Continuation persisted intent
 - no request repair, compaction, projection, or classifier work
 
@@ -85,6 +90,9 @@ Observed facts:
   Work Area 02 final request commit path.
 - accounting must distinguish unchanged facts, updated facts without
   BudgetLimit intent, and updated facts with BudgetLimit intent.
+- recorded request evidence is not present in current state code, rollout
+  item shape, or reconstruction. It belongs to the later Created-event commit
+  and replay integration, not to these state mutations.
 
 ## Pass Goal
 
@@ -244,18 +252,20 @@ just fmt
 ## Branch Continuation State
 
 After this pass, Work Area 01 durable state work should be ready for later
-producer and finalizer passes to consume:
+producer and request-input commit passes to consume:
 
 - Goal facts expose and maintain `facts_version`
 - pending Initial / ObjectiveUpdated / BudgetLimit intent is structured state
 - cadence-aware state APIs write facts and pending intent atomically
 - exact-key consumption is available for the Work Area 02 commit path
 - existing production callers are still not switched to cadence-aware APIs
+- no recorded request evidence is appended, replayed, or used as a state
+  correctness source
 
-The next Work Area, Work Area 02, owns selection, final request-input shaping, and
-commit-time consumption. If implementation pressure suggests switching
-production callers during 01c, stop and move that work into the later producer
-conversion pass.
+The next Work Area, Work Area 02, owns selection, final request-input shaping,
+commit-time consumption, and evidence metadata. If implementation pressure
+suggests switching production callers during 01c, stop and move that work into
+the later producer conversion pass.
 
 ## Non-Goals
 
@@ -266,6 +276,7 @@ This pass does not:
 - construct `ResponseItem` or `ResponseInputItem`
 - consume pending intent before final request input contains the selected
   developer-role Goal item
+- record committed request-input evidence
 - advance Continuation watermarking
 - persist Continuation intent
 - convert core, app-server, or `ext/goal` producers

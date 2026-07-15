@@ -17,6 +17,7 @@ Authority:
 - `local/goal_research/goal-authority-grounding-truth.md`
 - `local/goal_research/goal-authority-primary-cadence-contract.md`
 - `local/goal_research/goal-authority-durable-cadence-state.md`
+- `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
 - `local/goal_136_plan/work-areas/AGENTS.md`
 - `local/goal_136_plan/work-areas/implementation-pass-planning-rules.md`
@@ -39,11 +40,16 @@ Code-shape temptation:
 - switch production callers to pending cadence intent before the final request
   commit path exists
 - add request cadence selection to state because facts version is nearby
+- treat the facts version as recorded request evidence or as a substitute for
+  the later request-input item/request fingerprints
 
 Locked direction:
 
 - state owns monotonic durable facts versioning
 - existing facts-only methods keep working and maintain `facts_version`
+- this pass creates a durable facts identity for pending-intent exact keys and
+  Continuation watermark comparison; it does not record committed request-input
+  evidence
 - pending-intent selection, prompt rendering, model roles, and final request
   shaping stay out of state
 
@@ -53,6 +59,8 @@ Exclusions:
 - no `ResponseItem` or `ResponseInputItem` construction
 - no final request-input commit
 - no Continuation watermarking
+- no `GoalRequestEvidence`, item fingerprint, request-input fingerprint, or
+  rollout replay work
 - no active steering producer conversion
 
 ## Code Terrain Read
@@ -197,6 +205,7 @@ The next pass, 01b, inherits:
 - `ThreadGoal.facts_version`
 - facts-only `GoalStore` methods that maintain the version
 - the same unswitched production callers
+- no recorded-evidence carrier or replay behavior
 
 ## Non-Goals
 
@@ -207,5 +216,6 @@ This pass does not:
 - choose which intent is due for a request
 - render Goal prompt text
 - construct model input
+- record committed request-input evidence
 - alter core/app-server/extension producer behavior
 - delete old active steering paths

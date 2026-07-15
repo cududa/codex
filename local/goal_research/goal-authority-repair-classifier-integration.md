@@ -13,8 +13,9 @@ authoritative.
 - Does not own: cadence selection, durable Goal fact recovery, pending-intent
   consumption, authority proof, or active Goal state inference.
 - Read after: `goal-authority-final-request-input-and-commit.md`.
-- Read with: `goal-authority-fake-shim-removal-map.md` and
-  `goal-authority-model-visible-history-key.md`.
+- Read with: `goal-authority-fake-shim-removal-map.md`,
+  `goal-authority-model-visible-history-key.md`, and
+  `goal-authority-recorded-request-evidence.md`.
 - Current terrain anchors: `codex-rs/core/src/context/goal_context.rs`,
   `codex-rs/core/src/context/contextual_user_message.rs`,
   `codex-rs/core/src/event_mapping.rs`,
@@ -232,8 +233,9 @@ Required behavior:
 - preserve mixed ordinary messages
 - never reconstruct active Goal facts, pending cadence intent, or current
   objective text by parsing rendered Goal artifacts
-- if structured committed Goal metadata says a recorded cadence item was lost,
-  repair may reconstruct that recorded item according to the cadence contract
+- if structured committed Goal request evidence records that a cadence item was
+  committed and later lost, repair may reconstruct that recorded item
+  according to the cadence contract and the evidence fingerprint rules
 
 ## Raw Response Notifications
 

@@ -240,8 +240,8 @@ ResponseItem::Message { role: "developer", ... }
 Do not describe it as a "developer-role internal-context ResponseItem."
 Source-tagged Goal text may be used inside the message body for provenance and
 cleanup classification, but source tagging and internal-context rendering are
-not the authority mechanism. The authority proof is the exact final
-developer-role `ResponseItem` in the per-attempt model request input.
+not the authority mechanism. Active Goal authority is established by the exact
+final developer-role `ResponseItem` in the per-attempt model request input.
 
 ### Type Placement Default
 
@@ -467,8 +467,8 @@ Relevant authority concepts:
   per-attempt shaping, commit metadata, Created-event commit, retry/follow-up
   behavior, committed carry, and the `goals.rs` adapter boundary.
 - `goal-authority-primary-cadence-contract.md`: developer-role steering shape,
-  supersedence order, pending-intent consumption, current-authority proof
-  sources, and repair as a backstop.
+  supersedence order, pending-intent consumption, current-authority sources,
+  and repair as a backstop.
 - `goal-authority-durable-cadence-state.md`: facts version, pending intent
   storage, exact-key consumption, and state-layer non-ownership of request
   shaping or role selection.

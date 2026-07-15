@@ -13,7 +13,8 @@ authoritative.
   delivery, pending intent consumption, or cadence selection.
 - Read after: `goal-authority-primary-cadence-contract.md` and
   `goal-authority-idle-continuation-contract.md`.
-- Read with: `goal-authority-final-request-input-and-commit.md`.
+- Read with: `goal-authority-final-request-input-and-commit.md` and
+  `goal-authority-recorded-request-evidence.md`.
 - Current terrain anchors: `codex-rs/core/src/context_manager/history.rs`,
   `codex-rs/core/src/session/mod.rs`,
   `codex-rs/core/src/session/turn.rs`, and
@@ -205,8 +206,11 @@ This is not persisted pending cadence intent. It records that a Continuation
 already reached model execution for a specific history/facts key.
 
 An equivalent rollout-derived implementation is acceptable only if it records
-structured committed Continuation metadata and can reconstruct the same triple
-without parsing rendered Goal text.
+structured committed Continuation metadata through the evidence seam in
+`goal-authority-recorded-request-evidence.md`, persists that metadata through a
+non-best-effort path, and can reconstruct the same triple without parsing
+rendered Goal text. Otherwise the durable watermark table, or an equivalent
+state-owned record, is the correctness owner.
 
 Resume behavior:
 
@@ -255,3 +259,6 @@ Focused tests must prove:
   Continuation
 - durable facts version changes permit automatic Continuation even when the
   eligible history key is unchanged
+- rollout-derived Continuation suppression is accepted only from structured
+  committed evidence, never from ordinary `RolloutItem::ResponseItem`, rollout
+  trace payloads, or rendered Goal text

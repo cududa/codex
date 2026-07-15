@@ -25,6 +25,7 @@ Authority:
 - `local/goal_research/goal-authority-durable-cadence-state.md`
 - `local/goal_research/goal-authority-final-request-input-and-commit.md`
 - `local/goal_research/goal-authority-model-visible-history-key.md`
+- `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_research/goal-authority-ext-goal-ownership.md`
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
 
@@ -51,8 +52,8 @@ Locked direction:
 - keep budget, usage, app-server Goal APIs, `/goal`, status/footer projection,
   pause/edit/clear, and upstream extension baseline behavior as product
   obligations
-- add replacement authority/cadence tests only after the relevant replacement
-  implementation passes exist
+- add replacement authority/cadence/recorded-evidence tests only after the
+  relevant replacement implementation passes exist
 
 Exclusions:
 
@@ -134,7 +135,7 @@ Findings:
 6. Run diff-focused verification.
 
    Work Area 00 is mostly test deletion and baseline reset. Per
-   `local/how-we-test.md`, diff inspection is the default proof. Compile checks
+   `local/how-we-test.md`, diff inspection is the default check. Compile checks
    are optional and should be scoped only if import or helper churn creates
    real compile risk.
 
@@ -256,6 +257,14 @@ test exists:
   the commit point
 - automatic Continuation is selected only by the idle predicate and suppresses
   duplicates by `{ goal_id, model_visible_history_key, durable_facts_version }`
+- structured Goal request evidence, when introduced by the request-input commit
+  Work Area, is appended only from the `ResponseEvent::Created` commit path for
+  the exact finalized request attempt
+- ordinary rollout `ResponseItem`s, rollout trace payloads, raw notifications,
+  classifier matches, and rendered Goal text are not accepted as structured
+  Goal request evidence
+- evidence fingerprints match the exact selected developer-role Goal item and
+  the full finalized logical request input when evidence replay is in scope
 - raw response item notifications remain raw for Goal-looking items
 - typed/materialized projections hide only pure current internal-context items
   and pure legacy artifacts
@@ -341,8 +350,8 @@ This Work Area's target state is:
   narrow test-side adaptation
 - snapshots are deleted only with their local-only owner tests or restored to
   upstream baseline
-- no replacement authority/cadence tests are added before their implementation
-  implementation pass exists
+- no replacement authority/cadence/recorded-evidence tests are added before
+  their implementation pass exists
 - no production Goal authority code is removed in this Work Area except incidental
   test-only import/helper cleanup
 
@@ -359,7 +368,7 @@ This Work Area does not:
   injection from production code
 - decide raw/typed projection implementation details beyond deleting the local
   raw suppression test
-- add the replacement final request-input tests
+- add replacement final request-input or recorded-evidence tests
 
 ## Continuation Constraints
 
