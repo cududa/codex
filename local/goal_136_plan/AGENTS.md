@@ -10,10 +10,15 @@ Before implementing work from this directory, read:
 2. `local/goal_research/goal-authority-grounding-truth.md`
 3. `local/goal_research/goal-authority-primary-cadence-contract.md`
 4. `local/goal_research/goal-authority-idle-continuation-contract.md`
-5. `local/goal_research/goal-authority-fake-shim-removal-map.md`
-6. `local/goal_research/goal-test-deletion-map.md`
-7. `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
-8. `local/goal_136_plan/work-areas/AGENTS.md` when executing or editing a Work Area
+5. `local/goal_research/goal-authority-final-request-input-and-commit.md`
+6. `local/goal_research/goal-authority-durable-cadence-state.md`
+7. `local/goal_research/goal-authority-model-visible-history-key.md`
+8. `local/goal_research/goal-authority-recorded-request-evidence.md`
+9. `local/goal_research/goal-authority-repair-classifier-integration.md`
+10. `local/goal_research/goal-authority-fake-shim-removal-map.md`
+11. `local/goal_research/goal-test-deletion-map.md`
+12. `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
+13. `local/goal_136_plan/work-areas/AGENTS.md` when executing or editing a Work Area
    under `local/goal_136_plan/work-areas/`
 
 If any plan file here conflicts with the authority docs, stop and name the
@@ -64,9 +69,12 @@ asks for authority-doc edits.
 
 Do not treat compatibility, migration, legacy handling, projection hiding,
 classifier output, or raw response notification behavior as model authority.
-Authority is proven only by final model request input or recorded rollout
-items containing the current Goal steering item as outer `developer` role model
-input.
+Active Goal authority is established by final model request input containing
+the selected current Goal steering item as outer `developer` role model input.
+Recorded request evidence is structured Created-event commit metadata; it is
+not authority by itself and must not be replaced by ordinary rollout items,
+rollout trace payloads, raw notifications, classifier matches, or rendered
+Goal text.
 
 ## Plan Boundaries
 

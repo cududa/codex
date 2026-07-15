@@ -3,8 +3,9 @@
 This Work Area is the final Goal authority cleanup pass.
 
 It removes dead active shim terrain left after Work Areas 01-05 and proves the
-completed rewrite against final request payloads, recorded cadence state, raw
-notifications, and typed/materialized projections.
+completed rewrite against final request payloads, durable cadence state,
+Created-event commit metadata where in scope, raw notifications, and
+typed/materialized projections.
 
 It does not introduce a new architecture. If an implementation reaches this
 Work Area and still needs new cadence policy, new classifier semantics, or new
@@ -15,10 +16,11 @@ extension ownership, stop and finish the earlier Work Area that owns that work.
 Read this Work Area with
 `goal-work-area-coordination-note.md#accepted-v136-placement-default`.
 Final acceptance should look for `core/src/goal_cadence/` as the request-input
-shaping module directory, not a single required `goal_cadence.rs` file.
+shaping module directory, not a single-file cadence module.
 `ext/goal` service adoption is not mandatory for v136 unless Work Area 04
-selected and justified it. The final active Goal proof remains one current
-developer-role `ResponseItem` in final `/responses` input.
+selected and justified it. Final active Goal acceptance remains concrete:
+captured final `/responses` input contains exactly one current outer
+developer-role Goal `ResponseItem` when cadence is due.
 
 ## Direction Lock
 
@@ -33,12 +35,17 @@ Request:
 Authority:
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-test-deletion-map.md`
 - `local/goal_research/goal-authority-grounding-truth.md`
 - `local/goal_research/goal-authority-primary-cadence-contract.md`
+- `local/goal_research/goal-authority-idle-continuation-contract.md`
+- `local/goal_research/goal-authority-final-request-input-and-commit.md`
+- `local/goal_research/goal-authority-durable-cadence-state.md`
+- `local/goal_research/goal-authority-model-visible-history-key.md`
+- `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_research/goal-authority-fake-shim-removal-map.md`
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
-- `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
+- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_136_plan/work-areas/goal-work-area-coordination-note.md`
 - `local/goal_136_plan/work-areas/AGENTS.md`
 - `local/goal_136_plan/work-areas/00-test-prep-and-baseline-reset.md`
 - `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
@@ -47,11 +54,11 @@ Authority:
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 - `local/goal_136_plan/work-areas/05-repair-classifiers-and-projections.md`
 
-Terrain:
+Local terrain:
 
-- current v136 still contains active `GoalContext` / `<goal_context>` rendering
+- current local tree still contains active `GoalContext` / `<goal_context>` rendering
   and `GoalContextRole`
-- current v136 still contains `GoalSteeringRole` config and user-role steering
+- current local tree still contains `GoalSteeringRole` config and user-role steering
   tests
 - core Goal producers still construct concrete `ResponseInputItem`s before the
   final request-input seam
@@ -66,12 +73,24 @@ Terrain:
 - local overlay tests still assert active `<goal_context>`, user-role steering,
   raw suppression, concrete carry, and resume-fabricated Initial behavior
 
+Upstream terrain:
+
+- `rust-v0.136.0` has the request-loop and empty `ResponseEvent::Created`
+  seam that WA02 targets, but quick grep does not show the local
+  `GoalContext`, `GoalContextRole`, `GoalSteeringRole`, or concrete Goal
+  injection symbols as upstream baseline
+- `rust-v0.136.0` raw response item handling emits raw items directly; local
+  app-server Goal raw suppression is a fork overlay to remove
+- `rust-v0.139.0` and `rust-v0.140.0` add `GoalService` and typed replay
+  terrain that guide later migration, but they do not override
+  `local/goal_research` or require mandatory v136 service adoption
+
 Code-shape temptation:
 
 - keep old symbols as compatibility wrappers because many callsites already
   compile against them
 - treat a private `GoalContext` or `GoalSteeringRole::Developer` hard-map as
-  harmless once the finalizer exists
+  harmless once the request-input shaper exists
 - let Work Area 06 add missing classifier or cadence behavior because the old
   callsites are still visible
 - preserve local tests that pass today by rewriting them around the old marker
@@ -85,8 +104,12 @@ Locked direction:
   Goal injection, concrete Goal carry, and raw Goal suppression
 - leave legacy `<goal_context>` handling only behind the Work Area 05 shared
   classifier and only for cleanup/projection/raw-contract tests
-- keep active authority in `goal_cadence.rs` final request-input shaping and
-  Created-event commit
+- keep active authority in `core/src/goal_cadence/` request-input shaping and
+  the Created-event commit handler
+- keep recorded request evidence, when in scope, as typed Created-event
+  metadata for the exact finalized request attempt; do not let ordinary
+  rollout items, rollout trace payloads, raw notifications, classifier
+  matches, or rendered Goal text substitute for it
 - prove success with final `/responses` payload tests, state/commit tests,
   projection/raw tests, and final grep/audit commands
 
@@ -161,8 +184,9 @@ Findings:
   Vec<ResponseInputItem> }` and extends pending input with
   `extend_goal_pending_input_for_turn_state(...)`.
 - `run_sampling_request(...)` currently builds `Prompt` directly from the
-  per-attempt `Vec<ResponseItem>`. Work Area 02 must have inserted the finalizer at
-  this seam before Work Area 06 can remove old active paths.
+  per-attempt `Vec<ResponseItem>`. Work Area 02 must have inserted the
+  request-input shaper at this seam before Work Area 06 can remove old active
+  paths.
 - `TurnState` still stores `GoalSteeringCarryItem { purpose, item:
   ResponseInputItem }` and exposes `current_turn_goal_steering_items()`.
 - `InputQueue`, `Session`, and `CodexThread` still expose Goal-specific
@@ -196,6 +220,18 @@ Findings:
 - `ResponsesRequest` test helpers already expose `input()`,
   `message_input_texts(...)`, and `message_input_text_groups(...)`, so final
   acceptance tests can inspect captured `/responses` payloads structurally.
+- `rust-v0.136.0` does not appear to contain the local `GoalContext`,
+  `GoalContextRole`, `GoalSteeringRole`, or concrete Goal injection/carry
+  symbols. These are current local fork cleanup terrain, not upstream-v136
+  baseline obligations.
+- `rust-v0.136.0` app-server raw response handling emits raw response item
+  notifications without Goal-specific suppression. The current local raw
+  suppression branch is a fork overlay to delete.
+- `rust-v0.139.0` and `rust-v0.140.0` show later `GoalService` migration
+  terrain, and `rust-v0.140.0` shows typed replay precedent through
+  `InterAgentCommunication`. WA06 must preserve migration compatibility
+  without copying authority-conflicting model-input materialization into Goal
+  evidence.
 
 ## Ownership Split For This Work Area
 
@@ -269,7 +305,7 @@ Do this Work Area only after the following are true in code:
      `<goal_context>`, non-Goal internal context, and mixed ordinary content
    - raw app-server Goal suppression has been removed or is explicitly being
      removed in this Work Area
-   - compaction and reconstruction no longer use concrete pre-finalizer Goal
+   - compaction and reconstruction no longer use concrete pre-shaper Goal
      carry
 
 If any precondition is missing, do not land Work Area 06. Finish the owning earlier
@@ -315,7 +351,7 @@ Not allowed:
 - any active producer calling `GoalContext::new(...)`
 - any role abstraction named `GoalContextRole`
 - any conversion path from a Goal prompt body to `ResponseInputItem` outside
-  `goal_cadence.rs`
+  `core/src/goal_cadence/`
 - any `ContextualUserFragment` implementation for active Goal steering
 
 ### 2. Remove Goal Steering Role Config As Active API
@@ -402,7 +438,8 @@ Replace old behavior with already-landed Work Area surfaces:
 - committed carry, if still needed for compaction or diagnostics, is metadata
   about the finalized item, not `ResponseInputItem`.
 - prompt body helpers may remain in `goals.rs` only when they return body text
-  and are called by `goal_cadence.rs` or the accepted prompt-body owner.
+  and are called by `core/src/goal_cadence/` or the accepted prompt-body
+  owner.
 
 Audit carefully before deleting:
 
@@ -415,7 +452,7 @@ Audit carefully before deleting:
 Not allowed:
 
 - constructing a Goal `ResponseItem` or `ResponseInputItem` before the
-  Work Area 02 finalizer
+  Work Area 02 request-input shaper
 - appending a rendered Goal prompt to turn pending input
 - keeping current-turn concrete Goal items as compaction authority
 - marking Initial pending in runtime because a durable active Goal exists on
@@ -442,7 +479,7 @@ Preferred outcome:
 Allowed fallback:
 
 - reduce `steering.rs` to prompt-body helpers only if those helpers are still
-  used by the Work Area 02 finalizer or a shared prompt-body module
+  used by the Work Area 02 request-input shaper or a shared prompt-body module
 
 Required deletion:
 
@@ -461,12 +498,12 @@ Required deletion:
 
 Required replacement posture:
 
-- extension tool, runtime, and app-server adapters call the Work Area 04
-  `GoalService`-style interface
-- service outcomes carry durable facts, previous facts, pending intent
-  metadata, accounting effects, and cadence delivery requests
+- extension tool, runtime, and app-server adapters follow the selected Work
+  Area 04 ordering path
+- selected ordering outcomes carry durable facts, previous facts, pending
+  intent metadata, accounting effects, and cadence delivery requests
 - extension-origin active Goal steering is proven only by final `/responses`
-  payload tests through `goal_cadence.rs`
+  payload tests through `core/src/goal_cadence/`
 
 ### 5. Finish Work Area 05 Consumer Cleanup Audit
 
@@ -498,8 +535,8 @@ Not allowed:
 - reintroducing a local mini-classifier in app-server
 - hiding raw Goal response items because typed projection hides them
 - preserving old `is_goal_context_*` functions under new names
-- adding a helper named or shaped like `has_current_goal_authority(...)` outside
-  the finalizer
+- adding a helper named or shaped like `has_current_goal_authority(...)`
+  outside the request-input shaper
 
 ### 6. Finish App-Server Raw Notification Cleanup
 
@@ -586,18 +623,21 @@ Work Areas 02-05. Do not reset unrelated work.
 ### 8. Add Final Acceptance Tests
 
 Do not add broad tests that merely prove helper text. Use final request input,
-state, projection, or raw notification outputs.
+durable state, Created-event commit metadata where in scope, projection, or
+raw notification outputs.
 
 Required final payload coverage:
 
-- Initial steering reaches `/responses` as exactly one developer-role current
-  Goal internal-context item.
-- ObjectiveUpdated steering reaches `/responses` as exactly one developer-role
-  item rendered from persisted updated durable state.
-- BudgetLimit steering reaches `/responses` as exactly one developer-role item
-  rendered from persisted usage/status state.
-- automatic Continuation reaches `/responses` as exactly one developer-role
-  item only from the idle predicate.
+- Initial steering reaches `/responses` as exactly one current outer
+  developer-role Goal `ResponseItem`.
+- ObjectiveUpdated steering reaches `/responses` as exactly one current outer
+  developer-role Goal `ResponseItem` rendered from persisted updated durable
+  state.
+- BudgetLimit steering reaches `/responses` as exactly one current outer
+  developer-role Goal `ResponseItem` rendered from persisted usage/status
+  state.
+- automatic Continuation reaches `/responses` as exactly one current outer
+  developer-role Goal `ResponseItem` only from the idle predicate.
 - ordinary user turn with active durable Goal and no due cadence emits no fresh
   Goal item.
 - no final `/responses` input contains active `<goal_context>`.
@@ -614,6 +654,25 @@ Required state/commit coverage:
 - resume hydrates existing pending intent but does not create Initial from
   active durable Goal state alone.
 
+Required recorded-evidence coverage when the typed carrier is in scope:
+
+- structured Goal request evidence is written only from the Created-event
+  commit handler for the exact finalized request attempt.
+- evidence records attempt ordinal, item index, item fingerprint, full
+  request-input fingerprint, selected kind, facts version, and commit point for
+  the finalized logical request input.
+- evidence is not emitted as a raw response item, hidden as projection content,
+  classified as a Goal artifact, converted to a `ResponseItem`, or
+  materialized as conversation prose.
+- when replay evidence matters, the committed Goal `ResponseItem` and
+  structured evidence record are written as one logical batch, or partial
+  writes are rejected, retried, or explicitly unreplayable.
+- durable state remains the live correctness owner unless a selected
+  evidence-backed reconstruction path is non-best-effort and tested.
+- ordinary rollout `ResponseItem`s, rollout trace payloads, raw notifications,
+  classifier matches, and rendered Goal text are rejected as structured commit
+  evidence substitutes.
+
 Required projection/raw coverage:
 
 - typed/materialized projection hides pure current Goal internal context.
@@ -625,10 +684,10 @@ Required projection/raw coverage:
 
 Required cleanup coverage:
 
-- compaction does not reinsert pre-finalizer concrete Goal input.
+- compaction does not reinsert pre-shaper concrete Goal input.
 - reconstruction does not recover active Goal state from legacy marker text.
-- old extension/app-server-origin mutations deliver through finalizer payload
-  tests, not prompt helper assertions.
+- old extension/app-server-origin mutations deliver through final request
+  payload tests, not prompt helper assertions.
 - old `goals.steering_role = "user"` config, if still accepted for
   compatibility, cannot affect final payload role.
 
@@ -698,7 +757,8 @@ rg -n "ResponseInputItem|ResponseItem|into_response_input_item|Message \\{ role"
 
 Expected result:
 
-- no Goal prompt-body-to-model-input construction outside `goal_cadence.rs`
+- no Goal prompt-body-to-model-input construction outside
+  `core/src/goal_cadence/`
 - `ResponseInputItem` matches in these files must be unrelated to active Goal
   steering or removed
 
@@ -815,15 +875,15 @@ This Work Area's target state is:
 - no active Goal steering role is configurable
 - no active Goal steering item can be user-role
 - no active Goal prompt body is converted to `ResponseInputItem` outside the
-  finalizer
-- no concrete pre-finalizer Goal `ResponseInputItem` is injected into active
+  request-input shaper
+- no concrete pre-shaper Goal `ResponseInputItem` is injected into active
   turns
-- no concrete pre-finalizer Goal `ResponseInputItem` is stored as current-turn
+- no concrete pre-shaper Goal `ResponseInputItem` is stored as current-turn
   carry
 - runtime-only Initial state is gone or cannot affect cadence
 - resume cannot fabricate Initial from durable active Goal state alone
-- `ext/goal` reachable producers route through service/state cadence outcomes
-  and not model input
+- `ext/goal` reachable producers route through the selected Work Area 04
+  ordering path and not model input
 - app-server external Goal mutation does not bypass shared mutation/accounting
   ordering
 - app-server raw response item notifications emit Goal-looking raw items
@@ -835,13 +895,20 @@ This Work Area's target state is:
   recover active Goal state
 - the only code/test `<goal_context>` matches are legacy artifact classifier,
   projection, compaction, reconstruction, or raw notification fixtures
-- final `/responses` payload tests prove developer-role Goal authority for
-  Initial, ObjectiveUpdated, BudgetLimit, and Continuation
+- final `/responses` payload tests show exactly one current outer
+  developer-role Goal `ResponseItem` for Initial, ObjectiveUpdated,
+  BudgetLimit, and Continuation
 - final `/responses` payload tests prove ordinary user turns do not get blind
   Goal reminders
 - pending Initial, ObjectiveUpdated, and BudgetLimit intent consumes only at
   the final request-input commit point
 - automatic Continuation watermark advances only after Created
+- typed Goal request evidence, when in scope, is Created-event metadata paired
+  with the exact finalized request input and is not raw output, projection
+  content, classifier output, rendered-text recovery, or model input
+- ordinary rollout `ResponseItem`s, rollout trace payloads, raw notifications,
+  classifier matches, and rendered Goal text are not accepted as structured
+  commit evidence
 - upstream Goal product tests for budget, usage, app-server Goal APIs,
   `/goal`, status/footer projection, pause/edit/clear, and extension baseline
   remain active unless explicitly replaced by a product change
@@ -854,7 +921,7 @@ This Work Area does not:
 - implement final request-input shaping
 - implement `model_visible_history_key`
 - implement idle Continuation scheduling
-- introduce `GoalService`
+- introduce a mandatory extension service facade
 - design or implement classifier semantics
 - change app-server Goal API wire contracts
 - change TUI `/goal` product behavior

@@ -72,7 +72,6 @@ Authority:
 - `local/goal_research/goal-authority-model-visible-history-key.md`
 - `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
-- `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
 - `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
 
 Terrain:
@@ -373,6 +372,9 @@ pub(crate) fn finalize_request_input(
 - attempt ordinal allocated immediately before request-input shaping for this
   sampling attempt
 - current durable Goal cadence snapshot from Work Area 01
+- optional turn request metadata that asks the shaper to re-run cadence
+  selection from fresh facts for this attempt; it must not contain rendered
+  Goal text or a prebuilt model input item
 - optional automatic Continuation request, initially `None` in Work Area 02
 - optional model-visible history key for this attempt
 - Goals feature and collaboration-mode eligibility facts for this attempt
@@ -427,6 +429,9 @@ Selection rules:
 - Continuation is never persisted pending cadence intent
 - active durable Goal state alone selects nothing
 - historical rendered Goal items select nothing
+- same-turn or idle turn metadata never guarantees that its originally
+  requested kind is delivered; the shaper rechecks durable facts, pending
+  intent, eligibility, and supersedence for this exact attempt
 
 ### 3. Wire Shaping Into Every Sampling Attempt
 
@@ -477,9 +482,11 @@ Then pass `finalized_goal_input.commit` into `try_run_sampling_request(...)`.
 
 `assemble_goal_request_context_for_attempt(...)` is illustrative placement, not
 a required function name. The important split is that `session/turn.rs` or a
-nearby adapter loads durable snapshots and turn metadata, while
+nearby adapter loads durable snapshots and turn request metadata, while
 `goal_cadence::finalize_request_input(...)` remains a pure request-input
-shaper over `Vec<ResponseItem>` plus typed facts.
+shaper over `Vec<ResponseItem>` plus typed facts. Turn request metadata is an
+input to selection, not a stored prompt, preselected cadence item, or authority
+record.
 
 Do not shape `sampling_request_input` only in `run_turn(...)`; that would miss
 retry attempts that rebuild prompt input from history.

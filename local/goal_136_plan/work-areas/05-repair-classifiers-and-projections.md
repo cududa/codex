@@ -14,10 +14,13 @@ Read this Work Area with
 `goal-work-area-coordination-note.md#accepted-v136-placement-default`.
 Classifiers and internal-context helpers are cleanup/projection infrastructure
 only. They may help identify source-tagged Goal text, wrong-role current Goal
-items, or legacy `<goal_context>` artifacts, but they do not prove authority,
-select cadence, recover durable Goal facts, or construct active model input.
-Any remaining reference to `goal_cadence.rs` means the private
-`core/src/goal_cadence/` module directory.
+items, or legacy `<goal_context>` artifacts, but they do not select cadence,
+recover durable Goal facts, or construct active model input. Active Goal
+authority remains the exact current Goal `ResponseItem` with outer
+`role: "developer"` in final request input.
+
+Use `core/src/goal_cadence/` for request-input shaping. The rejected shape is a
+single growing `goal_cadence.rs` file.
 
 ## Direction Lock
 
@@ -36,15 +39,17 @@ Authority:
 - `local/goal_research/goal-authority-fake-shim-removal-map.md`
 - `local/goal_research/goal-authority-final-request-input-and-commit.md`
 - `local/goal_research/goal-authority-model-visible-history-key.md`
+- `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
 - `local/goal_research/goal-test-deletion-map.md`
-- `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
+- `local/goal_136_plan/AGENTS.md`
 - `local/goal_136_plan/work-areas/AGENTS.md`
+- `local/goal_136_plan/work-areas/goal-work-area-coordination-note.md`
 - `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 
-Terrain:
+Local terrain:
 
 - `codex-rs/core/src/context/goal_context.rs`
   - owns active `<goal_context>` rendering
@@ -103,6 +108,27 @@ Terrain:
   - `codex-rs/core/src/session/tests.rs`
   - `codex-rs/app-server/tests/suite/v2/thread_resume.rs`
 
+Upstream terrain:
+
+- `rust-v0.136.0` has generic `internal_model_context.rs` helper terrain with
+  source validation and legacy `<goal_context>` matching. It is useful
+  rendering and parsing terrain, but it is user-role contextual helper
+  infrastructure and not Goal authority.
+- `rust-v0.136.0` app-server emits raw response item notifications without the
+  local Goal suppression overlay. That confirms raw Goal suppression is local
+  fork behavior to remove, not an upstream baseline to preserve.
+- `rust-v0.136.0` compaction and rollout reconstruction do not carry the local
+  Goal-only filter/carry shape as a baseline requirement. The local filters are
+  replacement terrain created by the fork overlay.
+- `rust-v0.139.0` keeps the same internal-model-context helper direction. It
+  does not change the local authority rule that helper output is not active
+  Goal authority.
+- `rust-v0.140.0` adds typed replay precedent through
+  `RolloutItem::InterAgentCommunication` and reconstructs that item as model
+  input via `to_model_input_item()`. That is migration terrain for structured
+  replay carriers only. Goal request evidence must remain metadata-only and
+  must not get a `to_model_input_item`-style active steering path.
+
 Code-shape temptation:
 
 - keep `GoalContext` because it already renders and detects marker text
@@ -111,18 +137,25 @@ Code-shape temptation:
 - let compaction or reconstruction "repair" active Goal state from rendered
   artifacts
 - hide raw response items because typed projections hide Goal artifacts
-- make classifier output prove that current Goal authority exists
+- make classifier output stand in for current Goal authority
+- treat `GoalRequestEvidence` as a raw item, projection item, classifier result,
+  or rendered-text recovery path
+- copy the v140 typed replay materialization pattern instead of keeping Goal
+  request evidence as commit metadata
 
 Locked direction:
 
 - introduce a strict shared classifier for pure current Goal internal-context
   items and pure legacy `<goal_context>` artifacts
 - keep whole-message purity as the central classifier invariant
-- route active request cleanup/repair through `goal_cadence.rs`
+- route active request cleanup/repair through `core/src/goal_cadence/`
 - convert typed/materialized projection, history boundary, compaction, and
   reconstruction callsites to use classifier output only for cleanup/hiding
 - remove app-server raw Goal suppression so raw response item notifications
   remain raw
+- keep `GoalRequestEvidence` as structured Created-event commit metadata only;
+  projection, classifier, compaction, reconstruction, and raw-notification
+  helpers must not emit it as conversation prose or treat it as authority
 - replace old marker-preservation tests with classifier/projection tests and
   final request-input cleanup tests
 
@@ -132,6 +165,7 @@ Exclusions:
 - no durable cadence state changes
 - no extension mutation conversion
 - no app-server Goal product API redesign
+- no recorded-request-evidence carrier implementation
 - no final deletion sweep of every old Goal shim symbol; Work Area 06 owns final
   dead-code deletion and global acceptance
 - no user-role active Goal steering compatibility
@@ -176,6 +210,23 @@ Files read directly for this Work Area:
   - `codex-rs/app-server/tests/suite/v2/thread_resume.rs`
   - `codex-rs/app-server-protocol/src/protocol/thread_history.rs`
 
+Upstream terrain read for the v136/v139/v140 bridge:
+
+- `rust-v0.136.0:codex-rs/core/src/context/internal_model_context.rs`
+- `rust-v0.136.0:codex-rs/core/src/context/contextual_user_message.rs`
+- `rust-v0.136.0:codex-rs/core/src/context/mod.rs`
+- `rust-v0.136.0:codex-rs/core/src/event_mapping.rs`
+- `rust-v0.136.0:codex-rs/core/src/compact.rs`
+- `rust-v0.136.0:codex-rs/core/src/compact_remote.rs`
+- `rust-v0.136.0:codex-rs/core/src/session/rollout_reconstruction.rs`
+- `rust-v0.136.0:codex-rs/app-server/src/bespoke_event_handling.rs`
+- `rust-v0.136.0:codex-rs/app-server-protocol/src/protocol/thread_history.rs`
+- `rust-v0.139.0:codex-rs/core/src/context/internal_model_context.rs`
+- `rust-v0.140.0:codex-rs/protocol/src/protocol.rs`
+- `rust-v0.140.0:codex-rs/core/src/session/rollout_reconstruction.rs`
+- `rust-v0.140.0:codex-rs/rollout/src/policy.rs`
+- `rust-v0.140.0:codex-rs/thread-store/src/live_thread.rs`
+
 Findings:
 
 - there is no current generic source-tagged internal-context classifier in the
@@ -215,6 +266,16 @@ Findings:
   `<goal_context>`, `GoalContextRole`, raw suppression, and concrete carry.
   Work Area 05 should replace only the projection/classifier/repair-support
   coverage, leaving final dead-code deletion to Work Area 06.
+- upstream v136/v139 internal-model-context helper code is useful source
+  validation and rendering terrain, but its contextual user conversion path is
+  not a Goal authority path.
+- upstream v136 app-server raw response handling emits raw items without the
+  local Goal suppression overlay; WA05 should remove the fork overlay, not move
+  it behind a new classifier.
+- upstream v140 typed replay shows how a structured `RolloutItem` can survive
+  persistence and reconstruction. For Goal request evidence, this is metadata
+  carrier precedent only; WA05 must not introduce a model-input materialization
+  path or projection surface for evidence.
 
 ## Ownership Split For This Work Area
 
@@ -250,7 +311,7 @@ Goal authority module.
   `codex-rs/core/src/state/turn.rs` should no longer provide concrete Goal
   carry to compaction paths. If Work Area 02/03 committed carry metadata exists,
   Work Area 05 may consume only that metadata as repair context through the
-  finalizer.
+  request-input shaper.
 
 ## Required Edits
 
@@ -318,8 +379,9 @@ Source validation:
   equals
 
 This module may render text and classify pure internal-context text. It must
-not construct active Goal `ResponseItem`s for cadence delivery unless called by
-`goal_cadence.rs`.
+not construct active Goal `ResponseItem`s for cadence delivery. The only caller
+that wraps selected Goal text into active model input is
+`core/src/goal_cadence/`.
 
 ### 2. Add Shared Goal Artifact Classifier
 
@@ -396,11 +458,14 @@ Classifier semantics:
   says so
 - `MixedOrOrdinary` must be preserved by projection, compaction, and
   reconstruction unless another non-Goal rule applies
+- `GoalRequestEvidence` or an equivalent committed metadata carrier is not a
+  `ResponseItem`, not classifier input, not projection content, and not hidden
+  or emitted by classifier helpers
 
 Do not expose a classifier method named like `has_current_goal_authority`.
 That would invite callers to treat classification as authority.
 
-### 3. Convert Finalizer Cleanup To Shared Classification
+### 3. Convert Request-Input Shaper Cleanup To Shared Classification
 
 Edit:
 
@@ -410,8 +475,8 @@ Edit:
 Replace any Work Area 02 private Goal-looking cleanup predicates with the shared
 classifier.
 
-`goal_cadence.rs` remains the only caller that may use classifier output to
-repair active Goal authority in final request input.
+`core/src/goal_cadence/` remains the only caller that may use classifier output
+to repair active Goal authority in final request input.
 
 Required behavior:
 
@@ -427,9 +492,9 @@ Required behavior:
 - never consume pending intent because a classifier found an artifact
 
 If Work Area 02 has a narrow private internal-context renderer in
-`goal_cadence.rs`, move it behind the generic internal-context module in this
-Work Area. `goal_cadence.rs` should call the generic renderer; it still constructs
-the developer-role `ResponseItem`.
+`core/src/goal_cadence/`, move it behind the generic internal-context module in
+this Work Area. `core/src/goal_cadence/` should call the generic renderer; it
+still constructs the developer-role `ResponseItem`.
 
 ### 4. Convert Contextual User Parsing
 
@@ -561,8 +626,8 @@ with:
 - shared classifier calls for filtering pure Goal artifacts
 - committed Goal carry metadata from Work Area 02/03 as repair context, when
   needed
-- `goal_cadence.rs` finalizer repair for any active request that actually
-  needs a current Goal item after compaction
+- `core/src/goal_cadence/` request-local repair for any active request that
+  actually needs a current Goal item after compaction
 
 Required behavior:
 
@@ -577,10 +642,13 @@ Required behavior:
 - mid-turn compaction no longer reinjects concrete Goal `ResponseInputItem`s
   from `TurnState`
 - mid-turn compaction may preserve committed Goal carry metadata only as
-  request-local repair context for the next finalizer pass
+  request-local repair context for the next request-input shaping pass
 - compaction does not create Goal steering from active durable state alone
 - compaction does not parse rendered Goal artifact text to recover objective,
   goal id, status, facts version, pending intent, or watermark data
+- compaction does not synthesize `GoalRequestEvidence`, accept rollout trace
+  payloads as committed Goal delivery metadata, or use raw notification output
+  as a reconstruction source
 
 If implementation cannot remove `sess.current_turn_goal_steering_items()` from
 both local and remote compaction in this Work Area because prior Work Areas have not
@@ -595,7 +663,7 @@ Add focused tests:
 - `goal_artifact_process_compacted_history_preserves_mixed_messages`
 - `goal_artifact_mid_turn_compaction_does_not_reinject_pre_finalizer_goal_input`
 
-Use integration request-shape tests only for behavior that cannot be proven by
+Use integration request-shape tests only for behavior that cannot be validated by
 unit tests around `process_compacted_history(...)` or
 `should_keep_compacted_history_item(...)`.
 
@@ -621,9 +689,14 @@ Required behavior:
 - preserve mixed ordinary messages
 - never reconstruct active Goal facts, pending cadence intent, current
   objective, or Continuation watermark by parsing rendered Goal artifacts
-- if structured committed Goal metadata says a recorded cadence item was lost,
-  reconstruction may request recorded-history repair through
-  `goal_cadence.rs`; it must not parse artifact text to invent that metadata
+- if structured committed Goal request evidence says a recorded cadence item was
+  lost, reconstruction may request recorded-history repair through
+  `core/src/goal_cadence/`
+- reconstruction must pair any structured committed Goal request evidence with
+  the surviving item fingerprint before treating it as replay metadata
+- ordinary rollout `ResponseItem`s, rollout trace payloads, raw notifications,
+  classifier matches, and rendered Goal text are not structured committed Goal
+  request evidence and must not be used to invent repair metadata
 
 Add tests:
 
@@ -632,6 +705,8 @@ Add tests:
 - `goal_artifact_reconstruction_does_not_recover_goal_state_from_legacy_text`
 - `goal_artifact_reconstruction_uses_committed_metadata_for_recorded_repair`
   if Work Area 02/03 exposes structured committed metadata to this path
+- `goal_artifact_reconstruction_rejects_unstructured_evidence_substitutes`
+  if structured committed metadata is available in this path
 
 If committed metadata is not yet available to reconstruction, Work Area 05 should
 still filter artifacts and should leave recorded-history reconstruction repair
@@ -666,6 +741,8 @@ Required behavior:
   unchanged
 - typed/materialized projection hiding remains separate and does not affect
   raw streams
+- `GoalRequestEvidence` is not a raw response item. It must not be routed
+  through raw response item notifications or materialized as conversation prose.
 
 Replace the local-only test:
 
@@ -698,6 +775,9 @@ it with classifier/projection coverage:
   `ThreadItem::UserMessage`
 - mixed user-role marker-like prose remains a `ThreadItem::UserMessage`
 - hook prompt response items still rebuild `ThreadItem::HookPrompt`
+- structured committed Goal request evidence, when implemented, remains typed
+  replay metadata. It must not become a `ThreadItem::UserMessage`, hook prompt,
+  raw response item, or any other user-visible conversation item.
 
 Do not add app-server-only Goal marker classifiers. App-server should use core
 projection behavior or exact rollout replay rules, not duplicate authority
@@ -722,7 +802,7 @@ Required treatment:
   rewritten under Work Area 00/04 posture
 - tests that assert concrete `ResponseInputItem` carry is persisted or
   reinserted by compaction must be rewritten to committed metadata plus
-  finalizer behavior
+  request-input shaping behavior
 - tests that assert raw Goal suppression must be replaced in this Work Area
 
 Do not convert every old active steering test into a classifier test. Classifier
@@ -738,7 +818,7 @@ The classifier must make these cases unambiguous:
 
 | Input shape | Classification | Caller consequence |
 | --- | --- | --- |
-| developer-role pure current `source="goal"` internal context | `CurrentGoalInternalContext` | finalizer may keep/replace/dedupe; typed projection hides; raw emits |
+| developer-role pure current `source="goal"` internal context | `CurrentGoalInternalContext` | request-input shaper may keep/replace/dedupe; typed projection hides; raw emits |
 | user-role pure current `source="goal"` internal context | `CurrentGoalInternalContext` | cleanup terrain only, never valid authority; typed projection hides; raw emits |
 | developer/user pure legacy `<goal_context>` | `LegacyGoalContextArtifact` | legacy cleanup/projection only; raw emits |
 | pure non-Goal internal context | `NonGoalInternalContext` | not Goal; caller applies generic contextual rules if any |
@@ -747,7 +827,7 @@ The classifier must make these cases unambiguous:
 | images or output text mixed with Goal-looking text | `MixedOrOrdinary` | preserve as ordinary/mixed content |
 
 The classifier must not expose durable Goal facts. It must not take a
-`ThreadGoal` snapshot. Durable matching belongs to `goal_cadence.rs`.
+`ThreadGoal` snapshot. Durable matching belongs to `core/src/goal_cadence/`.
 
 ## Focused Tests
 
@@ -771,7 +851,7 @@ Required tests:
 Use `pretty_assertions::assert_eq` and prefer equality over field-by-field
 assertions where possible.
 
-### Finalizer Cleanup Tests
+### Request-Input Cleanup Tests
 
 Add or update tests in:
 
@@ -787,8 +867,8 @@ Required tests:
 - `goal_authority_duplicate_current_goal_items_are_deduped`
 - `goal_authority_active_goal_without_pending_intent_does_not_repair_every_turn`
 
-Assertions must inspect final `/responses` input or the finalizer output, not
-generic classifier output alone.
+Assertions must inspect final `/responses` input or request-input shaper output,
+not generic classifier output alone.
 
 ### Projection And History Tests
 
@@ -827,7 +907,10 @@ Required tests:
 - rollout reconstruction filters pure current and legacy Goal artifacts
 - rollout reconstruction preserves mixed marker-like prose
 - rollout reconstruction does not recover Goal state from legacy text
-- mid-turn compaction no longer reinjects pre-finalizer concrete Goal input
+- rollout reconstruction rejects ordinary rollout `ResponseItem`, rollout
+  trace payload, raw notification, classifier match, and rendered Goal text as
+  structured committed Goal request evidence
+- mid-turn compaction no longer reinjects pre-shaper concrete Goal input
 
 ### Raw Notification Tests
 
@@ -909,10 +992,12 @@ This Work Area's target state is:
   pure legacy `<goal_context>` artifacts, non-Goal internal context, and mixed
   ordinary content
 - whole-message purity is enforced for every Goal artifact classification
-- `goal_cadence.rs` uses the classifier for final request-input cleanup while
+- `core/src/goal_cadence/` uses the classifier for final request-input cleanup while
   remaining the only active repair/cadence authority
 - no classifier, projection, compaction, reconstruction, or raw-notification
   helper consumes pending intent or advances Continuation watermarking
+- no classifier, projection, compaction, reconstruction, or raw-notification
+  helper writes, emits, hides, or materializes `GoalRequestEvidence`
 - typed/materialized projections hide pure current Goal internal-context items
   and pure legacy artifacts
 - typed/materialized projections preserve mixed marker-like ordinary prose
@@ -920,28 +1005,32 @@ This Work Area's target state is:
   without treating mixed messages as pure artifacts
 - local and remote compaction filter pure Goal artifacts and preserve mixed
   messages
-- compaction no longer reinjects pre-finalizer concrete Goal
+- compaction no longer reinjects pre-shaper concrete Goal
   `ResponseInputItem`s as authority
 - rollout reconstruction filters pure current and legacy Goal artifacts
 - rollout reconstruction does not recover active Goal state, current objective,
   pending intent, or watermark state from rendered artifact text
+- rollout reconstruction treats structured committed Goal request evidence as
+  metadata only and rejects ordinary rollout items, rollout trace payloads, raw
+  notifications, classifier matches, and rendered Goal text as substitutes
 - app-server raw response item notifications emit pure current Goal, pure
   legacy Goal, and mixed Goal-looking items unchanged
 - old app-server raw Goal suppression helpers are removed
 - old local tests that preserve raw suppression or active `<goal_context>`
   projection behavior are deleted or rewritten
-- focused tests prove classifier, projection, compaction, reconstruction, raw
-  notification, and finalizer cleanup behavior
+- focused tests cover classifier, projection, compaction, reconstruction, raw
+  notification, and request-input cleanup behavior
 
 ## Non-Goals
 
 This Work Area does not:
 
 - decide whether Initial, ObjectiveUpdated, BudgetLimit, or Continuation is due
-- construct active Goal model input outside `goal_cadence.rs`
+- construct active Goal model input outside `core/src/goal_cadence/`
 - consume durable pending cadence intent
 - advance automatic Continuation watermarks
 - create or mutate durable Goal facts
+- create, append, or interpret recorded Goal request evidence
 - implement extension mutation/accounting ownership
 - redesign app-server Goal product APIs
 - parse rendered Goal artifacts to recover active Goal state
@@ -954,8 +1043,8 @@ This Work Area does not:
 
 Work Area 05 should be implemented after Work Areas 02-04 because it depends on:
 
-- final request-input cleanup and commit ownership in `goal_cadence.rs`
-- committed Goal carry metadata replacing pre-finalizer concrete carry
+- final request-input cleanup and commit ownership in `core/src/goal_cadence/`
+- committed Goal carry metadata replacing pre-shaper concrete carry
 - extension/app-server producers no longer depending on active
   `GoalContext` injection
 
@@ -967,17 +1056,17 @@ Allowed continuation state while Work Area 06 remains:
   Work Area 06 is explicitly removing them
 - app-server typed projection remains implemented through
   `codex_core::parse_turn_item(...)`
-- finalizer cleanup uses classifier output, but final global grep/audit is left
-  to Work Area 06
+- request-input cleanup uses classifier output, but final global grep/audit is
+  left to Work Area 06
 
 Not allowed for this Work Area's target state:
 
 - `GoalContext` or `GoalContextRole` retained as active steering architecture
-- classifier output treated as proof of active Goal authority
+- classifier output treated as active Goal authority
 - request repair emitting Goal on every ordinary active-Goal turn
 - app-server raw Goal suppression
-- compaction preserving active Goal authority by carrying pre-finalizer
+- compaction preserving active Goal authority by carrying pre-shaper
   `ResponseInputItem`s
 - reconstruction parsing rendered Goal text to recover Goal state or intent
-- tests that prove only helper text while final request input or projection
+- tests that assert only helper text while final request input or projection
   output remains untested

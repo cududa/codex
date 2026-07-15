@@ -44,7 +44,7 @@ them:
 - generic internal context may render and classify Goal text, but it is not an
   authority mechanism
 - active Goal steering must not use `GoalContext`, `GoalContextRole`, active
-  `<goal_context>`, user-role steering, or pre-finalizer concrete Goal item
+  `<goal_context>`, user-role steering, or pre-shaper concrete Goal item
   injection
 - Initial, ObjectiveUpdated, and BudgetLimit use durable pending cadence intent
   until the matching developer-role Goal item reaches final request input and
@@ -98,7 +98,7 @@ a file, the edit must still fit that file's ownership role here.
 | --- | --- | --- |
 | `codex-rs/state/src/runtime/goals.rs` | Durable Goal facts, facts version, pending Initial/ObjectiveUpdated/BudgetLimit intent, exact-key intent consumption, and Continuation watermark storage APIs. | Cadence selection for a request, model roles, prompt rendering, `ResponseItem` / `ResponseInputItem` construction, request repair, or idle scheduling. |
 | `codex-rs/core/src/goal_cadence/` | The private core request-input shaping module directory. It owns per-attempt final request-input shaping, cleanup of active Goal artifacts, cadence selection from durable snapshots and request metadata, current Goal prompt-body-to-developer-item construction as a final developer-role `ResponseItem`, model-visible history key projection, commit metadata, and internal abort-before-submit outcomes for stale Goal-owned synthetic turns. | Tool/app-server lifecycle mutation ordering, durable SQL ownership, extension service ownership, or background idle scheduling. |
-| `codex-rs/core/src/session/turn.rs` | Sampling orchestration. It calls the finalizer for every attempt after the attempt's base `Vec<ResponseItem>` is known and before `build_prompt(...)`; it commits selected Goal delivery on `ResponseEvent::Created`. | Goal cadence policy, prompt-body rendering, state mutation semantics, or extension ownership. |
+| `codex-rs/core/src/session/turn.rs` | Sampling orchestration. It calls the request-input shaper for every attempt after the attempt's base `Vec<ResponseItem>` is known and before `build_prompt(...)`; it commits selected Goal delivery on `ResponseEvent::Created`. | Goal cadence policy, prompt-body rendering, state mutation semantics, or extension ownership. |
 | `codex-rs/core/src/goals.rs` | v136 legacy terrain plus transitional adapter work: runtime event adapter, tool/lifecycle adapter, accounting hook adapter, and prompt-body helpers when useful. | Long-lived Goal service/runtime/orchestration ownership, final request-input authority, role selection, or concrete active model-input injection after the producer is converted. |
 | `codex-rs/core/src/session/input_queue.rs` and `codex-rs/core/src/state/turn.rs` | Pending non-Goal work queues, active-turn metadata, same-turn cadence delivery requests, and committed carry metadata for finalized Goal delivery. | Prebuilt Goal model input as authority, rendered Goal prompt carry, pending-intent consumption, Continuation watermark advancement, or model-role selection. |
 | `codex-rs/core/src/codex_thread.rs` | Public thread-facing adapter for extension and app-server callers. It may translate public request facts into private `goal_cadence` turn metadata or wake/recheck requests. | Active `ResponseItem` construction, final request-input shaping, pending-intent consumption, or private cadence type leakage to `ext/goal`. |

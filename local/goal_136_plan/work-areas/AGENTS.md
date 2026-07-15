@@ -66,7 +66,7 @@ planning from targeted request-construction reads, not a prep-map layer.
   advance Continuation watermarks, or commit delivery.
 - Do not treat baseline product behavior as permission to preserve
   user-role active steering, active `<goal_context>`, `GoalContextRole`,
-  concrete pre-finalizer Goal injection, or Goal-every-turn behavior.
+  concrete pre-shaper Goal injection, or Goal-every-turn behavior.
 
 ## Core Adapter Rule
 
@@ -97,11 +97,11 @@ docs:
   interface should stay small; callers pass base request input plus typed
   facts/request metadata and receive a submit-or-internal-abort outcome.
 - `codex-rs/core/src/session/turn.rs` owns sampling placement: call the
-  finalizer before `build_prompt(...)` on every attempt and commit on
-  `ResponseEvent::Created`.
+  request-input shaper before `build_prompt(...)` on every attempt and commit
+  on `ResponseEvent::Created`.
 - `codex-rs/core/src/goals.rs` is v136 legacy terrain and transitional
   adapter/prompt-body helper work. It is not the long-lived service,
-  scheduler, finalizer, role owner, or model-input owner.
+  scheduler, request-input shaper, role owner, or model-input owner.
 - `codex-rs/core/src/session/input_queue.rs` and
   `codex-rs/core/src/state/turn.rs` may carry pending-work state,
   cadence-delivery metadata, and committed carry metadata. They must not carry

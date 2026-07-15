@@ -3,7 +3,7 @@
 This Work Area completes the automatic Continuation side of Goal cadence:
 
 - real `model_visible_history_key` projection
-- persisted latest automatic Continuation watermark for resume/restart
+- state-owned latest automatic Continuation watermark for resume/restart
 - `MaybeContinueIfIdle` staging for pending work, pending durable cadence
   intent, then automatic Continuation
 - request-input-shaped Continuation insertion and watermark commit through the
@@ -11,6 +11,12 @@ This Work Area completes the automatic Continuation side of Goal cadence:
 
 It does not implement `ext/goal` conversion, broad classifier/projection
 cleanup, or final Goal shim deletion.
+
+Recorded request evidence may be added by the Created-event commit path when
+the typed carrier exists, but WA03's live duplicate-suppression correctness
+uses the state-owned Continuation watermark table by default. Ordinary rollout
+`ResponseItem`s, rollout trace payloads, raw notifications, classifier matches,
+or rendered Goal text must not suppress automatic Continuation.
 
 ## Realignment Note
 
@@ -39,7 +45,7 @@ central idle rewrite:
 - `03d-idle-pending-durable-intent-delivery.md`
   - idle delivery of pending Initial / ObjectiveUpdated / BudgetLimit using
     typed metadata, not rendered model input
-- `03e-automatic-continuation-preflight-finalizer-recheck.md`
+- `03e-automatic-continuation-preflight-shaper-recheck.md`
   - automatic Continuation candidate preflight and request-input shaper
     recheck before any synthetic request is submitted
 - `03f-continuation-created-commit.md`
@@ -57,13 +63,14 @@ idle, key, watermark, and retry work into independently mergeable states.
 
 Testing posture:
 
-- each implementation pass should include focused validation for behavior it
+- each implementation pass should name focused validation for behavior it
   actually introduces
-- state-only APIs should have focused state tests in the same pass
+- state-only APIs should have focused state tests when that pass reaches a
+  runnable state boundary
 - projection logic should have direct unit tests before lifecycle tests depend
   on it
 - `03h` is the representative failure/retry/stale synthetic-turn acceptance
-  layer; it does not replace pass-local tests for 03a-03g
+  layer; it does not replace pass-local test plans for 03a-03g
 
 ## Direction Lock
 
@@ -80,8 +87,13 @@ Authority:
 - `local/goal_research/goal-authority-grounding-truth.md`
 - `local/goal_research/goal-authority-primary-cadence-contract.md`
 - `local/goal_research/goal-authority-idle-continuation-contract.md`
+- `local/goal_research/goal-authority-final-request-input-and-commit.md`
 - `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
+- `local/goal_research/goal-authority-recorded-request-evidence.md`
+- `local/goal_research/goal-authority-durable-cadence-state.md`
+- `local/goal_research/goal-authority-repair-classifier-integration.md`
+- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-test-deletion-map.md`
 - `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
 - `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
 
@@ -114,8 +126,8 @@ Terrain:
   - Work Area 02 introduces committed carry metadata for finalized Goal items
 - `codex-rs/core/src/session/turn.rs`
   - retry attempts rebuild prompt input from `clone_history().for_prompt(...)`
-  - Work Area 02 finalizer must run inside `run_sampling_request(...)` before
-    `build_prompt(...)`
+  - Work Area 02 request-input shaper must run inside
+    `run_sampling_request(...)` before `build_prompt(...)`
   - `ResponseEvent::Created` is the commit point for selected Goal delivery
 - `codex-rs/core/src/client_common.rs`
   - `Prompt.input` is the logical final model request input
@@ -154,7 +166,8 @@ Code-shape temptation:
 - keep runtime-only Initial because it is already near Continuation
 - treat `ContextManager::history_version()` as the Continuation key
 - let the idle hook advance the watermark when it selects or reserves a turn
-- let a preflight key replace finalizer-owned per-attempt key computation
+- let a preflight key replace request-input-shaper-owned per-attempt key
+  computation
 - send an empty synthetic Goal-owned request when a stale candidate is
   rejected late
 
@@ -165,14 +178,16 @@ Locked direction:
 - compute the key from the same logical model-visible input used for the
   request attempt, before inserting a new Continuation item
 - use a preflight key only to avoid unnecessary synthetic turn launches; the
-  finalizer recomputes and owns the committed key
-- persist the latest committed automatic Continuation watermark so resume does
-  not permit duplicates for unchanged history and unchanged Goal facts
+  request-input shaper recomputes the key for the exact attempt, and the
+  Created-event commit handler commits it
+- persist the latest committed automatic Continuation watermark in state so
+  resume does not permit duplicates for unchanged history and unchanged Goal
+  facts
 - refactor `MaybeContinueIfIdle` into the contracted stage order:
   pending non-Goal work first, pending durable cadence delivery second,
   automatic Continuation last
-- replace idle-owned concrete Goal input injection with structured Goal idle
-  request intent consumed by the Work Area 02 finalizer
+- replace idle-owned concrete Goal input injection with structured
+  `GoalTurnRequest` metadata consumed by the Work Area 02 request-input shaper
 
 Exclusions:
 
@@ -186,25 +201,26 @@ Exclusions:
 
 ## Ownership Split For This Work Area
 
-Work Area 03 adds Continuation policy on top of the Work Area 02 finalizer. Use this
-file split while implementing:
+Work Area 03 adds Continuation policy on top of the Work Area 02 final
+request-input seam. Use this file split while implementing:
 
 - `codex-rs/core/src/goal_cadence/` owns `ModelVisibleHistoryKey`
-  projection, request-input shaper recheck of structured idle requests, Continuation
-  item construction, and Continuation commit metadata.
-- `codex-rs/state/src/runtime/goals.rs` owns persisted Continuation watermark
-  storage and clearing. It does not decide whether a request should emit
-  Continuation.
+  projection, request-input shaper recheck of structured turn requests,
+  Continuation item construction, and Continuation commit metadata helpers. It
+  does not perform durable watermark mutation by itself.
+- `codex-rs/state/src/runtime/goals.rs` owns the state-backed Continuation
+  watermark record and clearing. It does not decide whether a request should
+  emit Continuation, and it is not a recorded request evidence carrier.
 - `codex-rs/core/src/goals.rs` owns the v136 idle lifecycle adapter:
   `MaybeContinueIfIdle` staging, resume hydration, and synthetic-turn
-  reservation requests. It stores typed `GoalIdleRequest` metadata for the
-  finalizer, not rendered prompt text or concrete model input.
-- `codex-rs/core/src/session/turn.rs` continues to own finalizer placement and
-  Created-event commit execution. It does not compute the key independently of
-  `goal_cadence/`.
+  reservation requests. It stores typed `GoalTurnRequest` metadata for the
+  request-input shaper, not rendered prompt text or concrete model input.
+- `codex-rs/core/src/session/turn.rs` continues to own request-input shaper
+  placement and Created-event commit execution. It does not compute the key
+  independently of `goal_cadence/`.
 - `codex-rs/core/src/session/input_queue.rs`,
   `codex-rs/core/src/state/turn.rs`, and `codex-rs/core/src/session/mod.rs`
-  may carry idle request metadata and pending-work state. They must not inject
+  may carry Goal turn request metadata and pending-work state. They must not inject
   automatic Continuation as `ResponseInputItem`.
 
 ## Required Edits
@@ -234,7 +250,7 @@ Add conversion helpers:
 
 ```rust
 impl ModelVisibleHistoryKey {
-    pub(crate) fn from_finalizer_base_input(input: &[ResponseItem]) -> Self;
+    pub(crate) fn from_cleaned_base_input(input: &[ResponseItem]) -> Self;
     pub(crate) fn as_storage_key(&self) -> String;
 }
 ```
@@ -264,8 +280,8 @@ struct ModelVisibleProgressProjection {
 }
 ```
 
-The projection is computed from the finalizer base input for this attempt,
-after Work Area 02 request cleanup has removed or ignored pure Goal-only artifacts,
+The projection is computed from the cleaned base input for this attempt, after
+Work Area 02 request cleanup has removed or ignored pure Goal-only artifacts,
 and before the selected Goal item is inserted.
 
 Include ordered model-visible items that can represent real work progress:
@@ -304,7 +320,7 @@ contains marker-like strings remains eligible progress.
 `latest_eligible_progress_fingerprint` is the digest of the last eligible
 entry, or `None` if there are no eligible entries.
 `compaction_basis_fingerprint` is a digest of ordered explicit compaction
-entries when such entries are available in the finalizer base input, otherwise
+entries when such entries are available in the cleaned base input, otherwise
 `None`. Compaction summaries converted into ordinary assistant messages still
 participate in the main eligible progress fingerprint.
 
@@ -322,6 +338,14 @@ Use the next available goals migration number if 01a and 01b land with a
 different migration layout. In the split Work Area 01 plan, 01a uses `0002` for
 `facts_version` and 01b uses `0003` for pending cadence intent, so this
 watermark pass should normally use `0004`.
+
+WA03 selects this state-owned watermark table as the default live correctness
+owner for automatic Continuation suppression. Structured recorded request
+evidence can be appended from the same Created-event commit path for replay or
+audit, but it does not replace this table unless a later implementation pass
+explicitly selects a non-best-effort evidence-backed reconstruction strategy
+and carries the failure policy from
+`goal-authority-recorded-request-evidence.md`.
 
 Add migration:
 
@@ -348,6 +372,10 @@ ON thread_goal_continuation_watermarks(thread_id, goal_id);
 This table is not pending cadence intent. It records that an automatic
 Continuation already reached model execution for a specific
 `{ goal_id, model_visible_history_key, durable_facts_version }` triple.
+It is also not `GoalRequestEvidence`: it stores the suppression triple and
+item fingerprint needed by the state-owned duplicate-suppression path, not the
+full finalized request-input fingerprint, attempt ordinal, item index, or
+replay pairing metadata.
 
 Add model types equivalent to:
 
@@ -422,7 +450,14 @@ Clear the watermark when:
 Leaving a stale row with a mismatched `goal_id` must not suppress a new Goal,
 but cleanup should keep state reviewable.
 
-### 4. Extend Work Area 02 Finalizer Runtime Request
+Resume, rollback, fork, and compaction code must not reconstruct this
+watermark by parsing rendered Goal text or by treating ordinary rollout
+`ResponseItem`s as commit evidence. If structured `GoalRequestEvidence` is
+later used to reconstruct a missing watermark, it must be paired by fingerprint
+with the surviving committed Goal item and must come from a persistence path
+stronger than current fire-and-log rollout append behavior.
+
+### 4. Extend Work Area 02 Request-Input Shaper Runtime Request
 
 Edit:
 
@@ -432,35 +467,41 @@ Edit:
 - `codex-rs/core/src/state/turn.rs`
 - `codex-rs/core/src/session/mod.rs`
 
-Extend the Work Area 02 request shape with structured idle intent:
+Extend the Work Area 02 request shape with shared structured turn request
+metadata:
 
 ```rust
-pub(crate) enum GoalIdleRequest {
-    PendingCadenceDelivery {
-        goal_id: String,
-        kind: GoalCadenceKind,
-        facts_version: i64,
-    },
-    AutomaticContinuation {
-        goal_id: String,
-        facts_version: i64,
-        preflight_history_key: ModelVisibleHistoryKey,
-    },
+pub(crate) enum GoalTurnRequest {
+    SameTurnCadenceRecheck(GoalPendingCadenceDelivery),
+    IdlePendingCadence(GoalPendingCadenceDelivery),
+    IdleAutomaticContinuation(GoalAutomaticContinuationRequest),
+}
+
+pub(crate) struct GoalPendingCadenceDelivery {
+    pub goal_id: String,
+    pub kind: GoalCadenceKind,
+    pub facts_version: i64,
+}
+
+pub(crate) struct GoalAutomaticContinuationRequest {
+    pub goal_id: String,
+    pub facts_version: i64,
+    pub preflight_history_key: ModelVisibleHistoryKey,
 }
 
 pub(crate) struct GoalRuntimeRequest {
     pub cadence_snapshot: ThreadGoalCadenceSnapshot,
-    pub idle_request: Option<GoalIdleRequest>,
+    pub turn_request: Option<GoalTurnRequest>,
 }
 ```
 
-Store `GoalIdleRequest` as turn metadata, not as pending model input:
+Store `GoalTurnRequest` as turn metadata, not as pending model input:
 
 ```rust
-TurnState::set_goal_idle_request(...)
-TurnState::goal_idle_request(...)
-Session::set_goal_idle_request_for_reserved_turn(...)
-Session::goal_idle_request_for_turn(...)
+TurnState::set_goal_turn_request(...)
+TurnState::goal_turn_request(...)
+Session::set_goal_turn_request_for_reserved_turn(...)
+Session::goal_turn_request_for_turn(...)
 ```
 
 The exact names may change. The shape may not:
@@ -469,31 +510,61 @@ The exact names may change. The shape may not:
 - no rendered Goal text
 - no role-bearing model item
 - no durable pending Continuation
-- only structured request intent for the Work Area 02 finalizer
+- only structured request intent for the Work Area 02 request-input shaper
 
-Work Area 02 finalizer changes for Work Area 03:
+Metadata lifecycle rules:
+
+- Same-turn metadata is accepted only as a request to re-run cadence selection
+  from fresh durable facts on the current regular turn. It must not guarantee
+  the originally requested kind, and it must not be created when the current
+  task cannot run another sampling opportunity; in that case durable pending
+  intent remains for a later ordinary turn or idle delivery.
+- Idle metadata is written only for a Goal-owned reserved synthetic turn:
+  `IdlePendingCadence` for pending Initial / ObjectiveUpdated / BudgetLimit
+  delivery, or `IdleAutomaticContinuation` for automatic Continuation.
+- Turn metadata lives until the active turn is cleared, the synthetic turn is
+  aborted before submit, or Created-event commit state makes the metadata
+  irrelevant. It is not consumed merely because one shaping attempt inspected
+  it; retry before Created must be able to re-run shaping from the same
+  metadata and fresh durable facts.
+- Metadata supersedence is handled by the request-input shaper's fresh
+  selection order. If same-turn metadata was originally requested for
+  ObjectiveUpdated but BudgetLimit becomes due before the next attempt, the
+  shaper selects BudgetLimit and returns commit metadata for BudgetLimit.
+- Metadata is not current-turn carry. Mid-turn compaction may preserve
+  committed carry metadata for a Goal item that reached Created; it must not
+  treat uncommitted `GoalTurnRequest` metadata as proof that model-visible Goal
+  authority exists.
+- If a synthetic Goal-owned turn becomes stale, the shaper returns
+  `AbortSyntheticGoalTurn` or equivalent. The caller clears the reserved turn
+  and metadata without consuming pending intent, advancing the watermark, or
+  surfacing a user-facing model error.
+
+Work Area 02 request-input shaper changes for Work Area 03:
 
 ```text
 receive base Vec<ResponseItem> for this attempt
 clean or ignore Goal-only request artifacts under Work Area 02 rules
 compute ModelVisibleHistoryKey from the cleaned base input
-load current durable Goal snapshot and latest Continuation watermark
+receive a fresh cadence snapshot and latest Continuation watermark in
+  GoalRequestContext assembled by the caller for this attempt
 select pending durable BudgetLimit / ObjectiveUpdated / Initial if due
-else select AutomaticContinuation only when idle_request carries a matching
+else select AutomaticContinuation only when turn_request carries a matching
   candidate and the latest watermark does not match the recomputed triple
 insert exactly one selected developer-role Goal ResponseItem when selected
 return commit metadata containing the exact recomputed key for Continuation
 ```
 
 If an automatic Continuation candidate's preflight key differs from the
-recomputed per-attempt key, the finalizer must not insert Continuation.
+recomputed per-attempt key, the request-input shaper must not insert
+Continuation.
 
 If a Goal-owned synthetic turn has no selected pending intent and no valid
-automatic Continuation after finalizer recheck, the implementation must abort
-that synthetic request before model submission. Do not send an empty
+automatic Continuation after request-input shaper recheck, the implementation
+must abort that synthetic request before model submission. Do not send an empty
 Goal-owned request just because the scheduler reserved a turn.
 
-The abort shape can be an internal finalizer outcome such as:
+The abort shape can be an internal request-input shaping outcome such as:
 
 ```rust
 pub(crate) enum GoalFinalizationRequestDisposition {
@@ -512,21 +583,33 @@ Edit:
 - `codex-rs/core/src/session/turn.rs`
 - `codex-rs/state/src/runtime/goals.rs`
 
-Extend `GoalRequestCommit` from Work Area 02 so Continuation commits require:
+Extend `GoalRequestCommit` from Work Area 02 so Continuation commit metadata
+requires:
 
 ```rust
 pub model_visible_history_key: ModelVisibleHistoryKey,
 ```
 
-for `GoalCadenceKind::Continuation`. Non-Continuation commits may still carry
-`None` only if the Work Area 02 continuation state is being implemented before
-Work Area 03; after Work Area 03, the key is available for diagnostics but
-watermarking uses it only for Continuation.
+for `GoalCadenceKind::Continuation`. Non-Continuation commit metadata may
+still carry `None` only if the Work Area 02 continuation state is being
+implemented before Work Area 03; after Work Area 03, the key is available for
+diagnostics but watermarking uses it only for Continuation.
+
+Continuation commits inherit the Work Area 02 exact request identity fields:
+attempt ordinal, item index, selected item fingerprint, full finalized
+request-input fingerprint, and inserted-or-verified placement. The watermark
+table does not store every one of those evidence fields, but the Created-event
+commit handler must receive them so it can verify that the watermark update
+refers to the exact finalized request attempt.
 
 On `ResponseEvent::Created`, `commit_goal_request(...)` must:
 
+- verify the finalized request identity before side effects:
+  - the selected Continuation item is still at `item_index`
+  - the selected item still matches `item_fingerprint`
+  - the logical finalized input still matches `request_input_fingerprint`
 - record the finalized developer-role Continuation item as model-visible Goal
-  steering
+  steering through the same committed request path used by Work Area 02
 - upsert `thread_goal_continuation_watermarks` with:
   - `thread_id`
   - `goal_id`
@@ -536,6 +619,8 @@ On `ResponseEvent::Created`, `commit_goal_request(...)` must:
   - `committed_turn_id`
   - `item_fingerprint`
   - current commit timestamp
+- append structured `GoalRequestEvidence` or equivalent typed metadata from
+  this same Created-event path when the typed evidence carrier is implemented
 - record committed current-turn carry metadata from Work Area 02
 
 Do not advance the watermark when:
@@ -553,6 +638,22 @@ If a retryable stream failure happens after `ResponseEvent::Created`, the
 watermark remains advanced. The retry must rebuild from committed
 state/history and must not emit a duplicate automatic Continuation for the
 same key.
+
+Evidence relationship:
+
+- durable watermark upsert is the live duplicate-suppression correctness path
+  selected by this Work Area
+- structured evidence, when implemented, is replay/audit metadata tied to the
+  exact finalized request attempt
+- ordinary rollout `ResponseItem`s, rollout trace payloads, raw response item
+  notifications, classifier matches, and rendered Goal text must not be
+  accepted as substitutes for the structured evidence record
+- if replay evidence matters for resume, rollback, fork, or reconstruction,
+  the committed Goal `ResponseItem` and typed evidence record must be appended
+  as one logical thread-history batch with a non-best-effort failure policy
+- evidence append failure must not silently weaken live duplicate suppression;
+  either durable state remains the correctness owner, or the implementation
+  explicitly chooses and tests a stronger evidence-backed path
 
 ### 6. Refactor Idle Hook Stage Order
 
@@ -612,6 +713,13 @@ After acquiring the Goal lock, re-check active turn and pending non-Goal work
 before reading or selecting Goal cadence. If pending work appeared, release
 the lock and return.
 
+After reserving a Goal-owned synthetic turn, check that the reservation still
+points at the same `TurnState`, that no pending non-Goal work appeared, and
+that the durable Goal snapshot still supports the stored `GoalTurnRequest`.
+If any check fails, clear the reservation and return. A reservation is not a
+commit and does not consume pending intent or advance the Continuation
+watermark.
+
 ### 7. Deliver Pending Durable Cadence Intent From Idle
 
 Edit:
@@ -628,17 +736,20 @@ intent:
 read ThreadGoalCadenceSnapshot
 choose BudgetLimit > ObjectiveUpdated > Initial
 reserve an ActiveTurn with no prebuilt Goal model input
-store GoalIdleRequest::PendingCadenceDelivery as turn metadata
+store GoalTurnRequest::IdlePendingCadence as turn metadata
 create a default TurnContext for the reserved turn
-re-check active Goal state, pending intent, active turn, and pending non-Goal work
+re-check the active Goal state, selected pending intent, same active-turn
+  reservation, and pending non-Goal work
 start a regular task with empty user input
 ```
 
-The finalizer consumes the durable pending intent. The idle hook does not.
+The request-input shaper selects from durable pending cadence intent and
+returns inert commit metadata. The Created-event commit handler consumes the
+exact-key pending intent. The idle hook does neither.
 
-If the finalizer later finds the pending intent is gone, stale, or superseded,
-it must abort the synthetic request before model submission unless another
-valid cadence item is selected by normal supersedence.
+If the request-input shaper later finds the pending intent is gone, stale, or
+superseded, it must abort the synthetic request before model submission unless
+another valid cadence item is selected by normal supersedence.
 
 Delivering pending durable cadence intent must not advance the automatic
 Continuation watermark.
@@ -651,13 +762,13 @@ Remove idle-path use of:
 - `GoalContinuationCandidate.items`
 - `extend_goal_pending_input_for_turn_state(...)`
 
-for finalizer-owned Goal work.
+for request-input-shaper-owned Goal work.
 
 The old functions may remain temporarily only while reachable old producers
-await later Work Areas, but this Work Area's target state must not use them
-for core idle lifecycle delivery.
+await later Work Areas, but WA03-owned idle lifecycle delivery must not use
+them.
 
-### 8. Launch Automatic Continuation With Preflight And Finalizer Recheck
+### 8. Launch Automatic Continuation With Preflight And Request-Input Shaper Recheck
 
 Edit:
 
@@ -679,23 +790,23 @@ require durable Goal exists and status is Active
 create candidate TurnContext so input modalities are known
 compute preflight base input from clone_history().for_prompt(...)
 compute preflight ModelVisibleHistoryKey using the same projection function as
-  the finalizer
+  the request-input shaper
 load latest Continuation watermark
 if watermark matches { goal_id, preflight key, facts_version }, return
 reserve ActiveTurn
-store GoalIdleRequest::AutomaticContinuation as turn metadata
+store GoalTurnRequest::IdleAutomaticContinuation as turn metadata
 re-read durable Goal and watermark
-re-check active turn and pending non-Goal work
+re-check the same active-turn reservation and pending non-Goal work
 start regular task with empty user input
 ```
 
 The preflight key is a launch suppression check only. It is not committed.
 
-During `run_sampling_request(...)`, the Work Area 02 finalizer recomputes
-`ModelVisibleHistoryKey` from the actual per-attempt base input. Automatic
-Continuation is inserted only if:
+During `run_sampling_request(...)`, the Work Area 02 request-input shaper
+recomputes `ModelVisibleHistoryKey` from the actual per-attempt base input.
+Automatic Continuation is inserted only if:
 
-- the turn carries `GoalIdleRequest::AutomaticContinuation`
+- the turn carries `GoalTurnRequest::IdleAutomaticContinuation`
 - the durable Goal still matches `goal_id`
 - durable facts version still matches
 - no pending durable Initial, ObjectiveUpdated, or BudgetLimit intent is due
@@ -748,6 +859,14 @@ The first call is hydration. The later idle hook is allowed to:
 Resume must not reconstruct active Goal state, pending intent, or watermark by
 parsing rendered Goal text.
 
+If structured recorded request evidence is present during resume or
+reconstruction, WA03 may treat it as replay metadata only. It must not create
+durable Goal facts, pending intent, or a Continuation watermark from evidence
+unless the implementation has explicitly selected a non-best-effort
+evidence-backed reconstruction path. The default path is to load the
+state-owned watermark record and compare it with the key recomputed from
+reconstructed model-visible history.
+
 ### 10. Compaction, Rollback, Fork, And Reconstruction Key Behavior
 
 Edit:
@@ -764,8 +883,8 @@ make the key correct for the model-visible input it sees.
 
 Rules:
 
-- compute the key from `for_prompt(...)` output or from the finalizer's
-  cleaned base input, not from raw rollout counts
+- compute the key from `for_prompt(...)` output or from the request-input
+  shaper's cleaned base input, not from raw rollout counts
 - pure current Goal internal-context items and pure legacy `<goal_context>`
   artifacts do not contribute
 - compaction summaries or compaction items that alter the model-visible
@@ -774,12 +893,23 @@ Rules:
   item projection
 - rollback and fork naturally compute keys from surviving reconstructed
   history
+- structured `GoalRequestEvidence`, when present, may help replay committed
+  Continuation metadata only under the recorded-evidence rules; it is not part
+  of the eligible progress projection
+- ordinary rollout `ResponseItem`s that happen to contain Goal text are not
+  Continuation watermark evidence by themselves
 - `ContextManager::history_version()` may be logged for diagnostics but must
   not suppress or permit Continuation by itself
 
 If the implementation needs helper access to raw prompt-history items for unit
 tests, add a narrowly named helper in `goal_cadence/` rather than changing
 `ContextManager` into a Goal authority component.
+
+Compaction must not synthesize or carry a new Continuation watermark merely
+because it removed, summarized, or repaired Goal-looking items. The state-owned
+watermark remains the correctness owner unless a later pass deliberately
+implements the structured evidence carry-forward path described in
+`goal-authority-recorded-request-evidence.md`.
 
 ### 11. Failure And Retry Semantics
 
@@ -793,22 +923,29 @@ Required behavior:
 
 - retry attempts recompute `ModelVisibleHistoryKey` from the rebuilt base input
   for that attempt
+- retry attempts receive a fresh cadence snapshot and the latest persisted
+  Continuation watermark before request-input shaping
 - request construction failure before final request input contains the
   Continuation item does not advance the watermark
 - client stream setup failure before `ResponseEvent::Created` does not advance
   the watermark
 - stream error before `ResponseEvent::Created` does not advance the watermark
 - stream error after `ResponseEvent::Created` leaves the watermark committed
+- no structured request evidence is written before `ResponseEvent::Created`
 - retry after Created does not insert another automatic Continuation for the
   same `{ goal_id, model_visible_history_key, facts_version }`
 
-If finalizer aborts a stale synthetic Goal-owned turn, clear the reserved
-active turn and finish without emitting a user-visible error. Do not convert
-the abort into a normal assistant request.
+If the request-input shaper aborts a stale synthetic Goal-owned turn, clear the
+reserved active turn and finish without emitting a user-visible error. Do not
+convert the abort into a normal assistant request.
 
-## Focused Tests
+## Focused Test Coverage
 
-Add or update tests in:
+Add or update these tests as the branch reaches the relevant runnable surfaces.
+Do not add compatibility shims, no-op adapters, or old-path preservation solely
+to make WA03 independently testable before WA04-WA06 finish the rewrite.
+
+Likely test locations:
 
 - `codex-rs/core/src/session/tests.rs`
 - `codex-rs/core/tests/suite/goal_authority.rs`
@@ -854,13 +991,16 @@ Add state tests with names like:
 - `goal_cadence_continuation_watermark_replaced_for_new_commit`
 - `goal_cadence_continuation_watermark_cleared_when_goal_deleted`
 - `goal_cadence_continuation_watermark_does_not_consume_pending_intent`
+- `goal_cadence_continuation_watermark_is_not_request_evidence`
+  - watermark rows do not store rendered prompt text, full finalized request
+    input, ordinary rollout items, or rollout trace payloads
 
 These tests must not render Goal prompt text or inspect model roles.
 
 ### Idle Lifecycle Tests
 
 Replace old behavior tests that assert `<goal_context>` or resume-fabricated
-Initial. Required tests:
+Initial. Planned coverage:
 
 - `goal_idle_starts_queued_next_turn_work_before_goal_owned_turn`
   - queued response item exists
@@ -876,14 +1016,14 @@ Initial. Required tests:
   - Continuation watermark is unchanged
 - `goal_idle_delivers_pending_objective_updated_after_injection_unavailable`
   - pending ObjectiveUpdated survives unavailable same-turn delivery
-  - idle hook later delivers it through finalizer
+  - idle hook later delivers it through the request-input shaper
 - `goal_idle_delivers_pending_budget_limit_and_supersedes_older_intent`
   - pending BudgetLimit suppresses older Initial / ObjectiveUpdated for same
     Goal
   - final request payload renders current durable budget state
 - `goal_idle_pending_durable_intent_suppresses_automatic_continuation`
   - active Goal and eligible history exist
-  - pending durable intent exists
+  - pending durable cadence intent exists
   - idle hook delivers pending intent, not Continuation
 - `goal_idle_automatic_continuation_requires_changed_history_key`
   - first automatic Continuation commits watermark on Created
@@ -906,13 +1046,28 @@ Initial. Required tests:
 - `goal_idle_candidate_rejected_if_pending_work_appears_after_reservation`
   - pending work appears after Goal-owned reservation
   - reservation is cleared; no intent is consumed; no watermark advances
+- `goal_idle_automatic_continuation_preflight_mismatch_aborts_before_submit`
+  - preflight key differs from the per-attempt recomputed key
+  - no `/responses` request is submitted for the stale synthetic turn
+  - no watermark or evidence is written
 - `goal_idle_request_failure_before_created_does_not_advance_watermark`
   - stream fails before Created
   - retry or later idle opportunity can still deliver Continuation
+  - no structured request evidence is written
 - `goal_idle_retry_after_created_does_not_duplicate_continuation`
   - stream emits Created then retryable error
   - watermark remains committed
   - retry does not emit another Continuation for the same key
+- `goal_idle_continuation_created_commit_records_evidence_metadata`
+  - final request payload contains exactly one developer-role Continuation item
+  - Created-event commit writes the state-owned watermark
+  - if the typed evidence carrier exists, the evidence fingerprints match the
+    exact item and full finalized logical request input
+- `goal_idle_resume_ignores_ordinary_rollout_goal_text_for_watermark`
+  - surviving ordinary rollout `ResponseItem` with Goal text does not
+    reconstruct Continuation suppression by itself
+  - resume uses the state-owned watermark, or an explicitly selected structured
+    evidence path, never rendered text
 
 Tests that currently assert resumed active Goal emits Initial, active
 `<goal_context>` output, or user-role Goal steering must be deleted or
@@ -923,10 +1078,11 @@ rewritten according to `local/goal_research/goal-test-deletion-map.md`.
 Docs-only validation for this planning Work Area:
 
 ```powershell
-git diff --check -- local/goal_136_plan
+git diff --check -- local\goal_research local\goal_136_plan
 ```
 
-Implementation validation for Work Area 03:
+When the branch reaches a runnable point for these surfaces, use focused
+validation such as:
 
 ```powershell
 cd codex-rs
@@ -960,32 +1116,40 @@ cargo test -p codex-core --test suite goal_authority
 Do not run broad workspace or full crate suites by default on this
 workstation.
 
-## Target State
+## WA03-Owned Branch Continuation State
 
-This Work Area's target state is:
+This state describes the branch after WA03-owned implementation work has been
+applied. It is not a build, PR, merge, release, or final acceptance checkpoint;
+later Work Areas may still be required before the whole Goal rewrite compiles,
+runs, or satisfies acceptance.
 
 - `ModelVisibleHistoryKey` exists as structured key data, not a
   `history_version()` alias
-- the key is computed from the finalizer base input before inserting a new
-  Continuation item
+- the key is computed from the request-input shaper's cleaned base input before
+  inserting a new Continuation item
 - pure current Goal internal-context and pure legacy `<goal_context>` items do
   not change the Continuation key
 - ordinary user, assistant, tool, reasoning, mailbox, and eligible compaction
   progress changes can change the key
 - the automatic Continuation item itself does not change the key that permits
   another automatic Continuation
-- latest automatic Continuation watermark is persisted or otherwise
-  reconstructable after resume/restart
+- latest automatic Continuation watermark is persisted in state and reloadable
+  after resume/restart
 - watermark advances only after the Continuation item reaches final request
   input and the stream reaches `ResponseEvent::Created`
+- structured request evidence, when implemented, is written only from the same
+  Created-event commit path and does not replace the state-owned watermark by
+  default
 - retry before Created does not advance the watermark
 - retry after Created does not duplicate Continuation for the same key
 - `MaybeContinueIfIdle` runs pending non-Goal work first, pending durable Goal
   cadence intent second, automatic Continuation last
 - pending Initial, ObjectiveUpdated, and BudgetLimit delivery from idle uses
-  durable pending intent and the Work Area 02 finalizer, not prebuilt Goal input
-- automatic Continuation launch uses structured idle request intent and the
-  Work Area 02 finalizer, not concrete `ResponseInputItem` injection
+  durable pending cadence intent and the Work Area 02 request-input shaper, not
+  prebuilt Goal input
+- automatic Continuation launch uses structured `GoalTurnRequest` metadata and
+  the Work Area 02 request-input shaper, not concrete `ResponseInputItem`
+  injection
 - resume hydrates durable state and pending intent without fabricating Initial
 - final request payload tests prove automatic Continuation emits exactly one
   developer-role Goal item when due
@@ -998,12 +1162,14 @@ This Work Area's target state is:
 This Work Area does not:
 
 - create persisted pending Continuation intent
+- use recorded request evidence as the default live Continuation suppression
+  owner
 - change the upstream Goal product API surface
 - convert `ext/goal`
 - finish broad raw-response, typed projection, or materialized projection
   cleanup
-- finish compaction carry conversion beyond key correctness for finalizer base
-  input
+- finish compaction carry conversion beyond key correctness for request-input
+  shaper base input
 - delete every `GoalContext` helper
 - parse rendered Goal text to recover active Goal state, pending intent, or
   watermark state
@@ -1017,17 +1183,23 @@ Work Area 03 should be implemented after Work Area 01 and Work Area 02 have esta
 durable cadence state, final request-input shaping, and the Created commit
 seam.
 
-Allowed continuation state while later Work Areas remain:
+Branch continuation state while later Work Areas remain:
 
-- `goal_cadence/` owns the key projection, and after 03f owns
-  Continuation commit metadata and commit handling
-- `MaybeContinueIfIdle` uses durable pending intent and structured idle request
-  metadata
+- `goal_cadence/` owns the key projection and, after 03f, Continuation commit
+  metadata helpers
+- `session/turn.rs` owns Created-event commit execution and uses the exact
+  commit metadata returned by request-input shaping
+- state APIs own durable watermark mutation
+- structured request evidence, if already implemented, is metadata written by
+  the Created-event commit path; it is not the default watermark correctness
+  owner
+- `MaybeContinueIfIdle` uses durable pending cadence intent and structured
+  `GoalTurnRequest` metadata
 - `ext/goal` still awaits Work Area 04 conversion
 - broad classifier/projection cleanup still awaits Work Area 05
 - final dead-code deletion still awaits Work Area 06
 
-Not allowed for this Work Area's target state:
+Not allowed in WA03-owned idle and Continuation paths after this work:
 
 - `ThreadResumed` marking Initial pending from active Goal state alone
 - automatic Continuation selected from active durable Goal state alone

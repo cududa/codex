@@ -380,7 +380,7 @@ carry explicitly so later agents do not rediscover or reopen them.
 - Commit happens at `ResponseEvent::Created` unless a code walk proves a more
   precise local execution point.
 - Current-turn carry records committed metadata for an item already included in
-  final request input; it does not carry pre-finalizer model input.
+  final request input; it does not carry pre-shaper model input.
 
 ### Work Area 03 Must Carry
 
