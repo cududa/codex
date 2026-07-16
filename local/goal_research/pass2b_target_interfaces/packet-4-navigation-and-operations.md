@@ -1,6 +1,7 @@
 # Packet 4: Navigation And Operations
 
-This is a Pass 2B prep artifact. It is not authority, does not supersede any source contract in `local/goal_research`, and does not close any Pass 2A row.
+This is a Pass 2B prep artifact. It is not future implementation authority and
+does not close any Pass 2A row.
 
 Shared Pass 2B rules live in [README.md](README.md).
 
@@ -311,17 +312,26 @@ Purpose:
 
 - Define the operational instruction surface for agents working in
   `local/goal_research`.
-- Keep authority order, conflict handling, required reading posture,
+- Keep the direct-implementation authority order, Pass 2C doc-worker
+  reconciliation posture, conflict handling, required reading posture,
   Direction Lock, working posture, design-deliverable gate, test-prep pointer,
   and verification expectations enforceable without making `AGENTS.md` a
   replacement for target contracts.
 
 Owns:
 
-- The statement that Goal research docs are design contracts, not
-  brainstorming notes.
+- The distinction between direct implementation posture and Pass 2C
+  doc-worker posture.
+- The statement that current Goal authority docs are design contracts, not
+  brainstorming notes, for direct implementation and version planning until
+  successor docs are cut over.
 - The rule that version-specific implementation plans outside this directory
-  must conform to `local/goal_research` authority.
+  must conform to `local/goal_research` authority for direct implementation,
+  unless an explicit later authority update says otherwise.
+- The Pass 2C rule that current source docs are the source corpus and relevant
+  `local/goal_136_plan/work-areas` decisions are required reconciliation
+  inputs that win on conflict or uncertainty when they preserve the underlying
+  concept and latest researched v136 design.
 - Required authority order and conflict behavior before cutover, including the
   instruction to stop and name conflicts.
 - Navigation roles for `README.md` and `CONTEXT.md` as aids that do not
@@ -354,13 +364,17 @@ Shared / Local Non-Negotiables:
 
 - `AGENTS.md` carries operational force. Its short lists may point to
   authority, but they must not become the only place behavior is specified.
-- Source authority docs control until cutover. After cutover, AGENTS should
-  point to the successor authority set rather than preserving obsolete source
-  order.
+- For direct implementation, source authority docs control until cutover.
+  After cutover, AGENTS should point to the successor authority set rather than
+  preserving obsolete source order.
+- For Pass 2C doc-worker tasks, source docs are corpus and work-area decisions
+  are reconciliation inputs; faithful concept retention is the boundary, not
+  preservation of duplicate old prose.
 - Conflicts among controlling docs must be stopped and named; agents must not
   silently choose an implementation shape that weakens the grounding truth.
-- Existing Rust code and local implementation plans remain terrain unless
-  source authority explicitly incorporates a settled plan detail.
+- Existing Rust code remains terrain. Local implementation plans remain terrain
+  for direct implementation unless source authority incorporates them, but
+  `local/goal_136_plan/work-areas` is a required Pass 2C reconciliation source.
 - Operational reminders for non-negotiables should stay short and pointer-like
   after target contracts own the full behavior.
 - Docs-only work should keep cheap whitespace verification visible; Rust work
@@ -412,11 +426,15 @@ Concept Ledger Inputs:
 Fidelity Tripwires / Review Debt:
 
 - Do not let AGENTS become a compact substitute for the target contracts.
-- Preserve the conflict rule and authority-order force until successor
-  authority docs replace the current source order.
+- Preserve the conflict rule and direct-implementation authority-order force
+  until successor authority docs replace the current source order.
+- Preserve the Pass 2C doc-worker exception: current source docs are source
+  corpus, and `local/goal_136_plan/work-areas` can clarify or supersede older
+  wording during rewrite when the concept is retained.
 - Preserve the distinction between navigation aids and authority docs.
 - Preserve the instruction that version-specific plans must conform to
-  `local/goal_research`, not the other way around.
+  `local/goal_research` for direct implementation work, while Pass 2C performs
+  source/work-area reconciliation before successor docs are cut over.
 - Preserve Direction Lock and terrain-not-mission posture for implementation
   work.
 - Preserve upstream Goal product baseline reminders as operational pointers,
@@ -432,8 +450,9 @@ Pass 2C Rewrite Notes:
   working posture, and verification.
 - Replace long non-negotiable duplicates with short invariant reminders and
   links only after target contracts carry the full behavior.
-- Keep source-vs-plan precedence explicit because later implementation plans
-  will continue to live outside `local/goal_research`.
+- Keep implementation-vs-doc-worker precedence explicit because later
+  implementation plans will continue to live outside `local/goal_research`,
+  while Pass 2C must integrate settled work-area decisions into successor docs.
 
 True Open Questions:
 

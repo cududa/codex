@@ -1,6 +1,7 @@
 # Batch 3: Cleanup, Evidence, And Reconstruction
 
-This is part of the Pass 2B.5 repeated-authority canonicalization workspace. It is not authority and does not supersede any source contract in `local/goal_research`.
+This is part of the Pass 2B.5 repeated-authority canonicalization workspace.
+It is not future implementation authority.
 
 Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and Pass 2C usage.
 

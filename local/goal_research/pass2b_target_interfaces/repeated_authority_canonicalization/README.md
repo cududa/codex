@@ -1,15 +1,25 @@
 # Pass 2B.5 Repeated Authority Canonicalization
 
-This is a Pass 2B.5 prep artifact. It is not authority, does not supersede any
-source contract in `local/goal_research`, and does not close any Pass 2A row.
+This is a Pass 2B.5 prep artifact. It is not future implementation authority
+and does not close any Pass 2A row.
 
 Use this workspace before Pass 2C source-bounded rewrite slices. Its job is to keep
 intentional repeated authority visible while deciding which successor target
 should carry canonical text, which targets need local reminders, and which
 targets should use pointer-only references.
 
-Source authority docs still control. If this workspace and a source contract
-differ, follow the source contract and fix this workspace.
+For direct implementation work before cutover, source authority docs still
+control. For Pass 2C doc-worker tasks, current source docs are the source
+corpus and this workspace is the compression plan for translating repeated
+clauses into canonical text, local reminders, pointer-only references, or
+operational/test reminders.
+
+If this workspace and a source contract differ during direct implementation
+work, follow the source contract and fix this workspace. If a Pass 2C slice
+finds that older source-doc wording and a relevant
+`local/goal_136_plan/work-areas` decision differ, use the work-area route when
+it preserves the underlying concept and latest researched v136 design, then
+record the reconciliation in the slice closure.
 
 ## Purpose
 
@@ -26,13 +36,13 @@ For each repeated authority family below:
 - `Operational/test reminder` means the target may keep a short checklist or
   proof obligation, but not behavior ownership.
 
-Do not use this artifact to rewrite source authority text from memory. Pass 2C
-still rewrites source-bounded slices and audits each slice for fidelity.
+Do not use this artifact to rewrite source-doc text from memory. Pass 2C still
+rewrites source-bounded slices and audits each slice for fidelity.
 
 ## Canonicalization Rules
 
-- Preserve repeated authority until the canonical target and local reminders
-  are written.
+- Preserve repeated concepts until the canonical target and local reminders are
+  written. This is not a requirement to preserve duplicate prose forever.
 - Do not collapse a repeated clause into a pointer if the local target can
   directly violate the rule.
 - Do not let support seams become authority engines while preserving local

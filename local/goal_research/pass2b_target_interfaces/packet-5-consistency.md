@@ -1,6 +1,7 @@
 # Packet 5: 2B Consistency
 
-This is a Pass 2B prep artifact. It is not authority, does not supersede any source contract in `local/goal_research`, and does not close any Pass 2A row.
+This is a Pass 2B prep artifact. It is not future implementation authority and
+does not close any Pass 2A row.
 
 Shared Pass 2B rules live in [README.md](README.md).
 
@@ -32,8 +33,8 @@ Packet focus:
 ## Consistency Review
 
 This packet reviewed the completed Pass 2B target interface entries together.
-No source authority docs were rewritten, renamed, rehomed, or deleted. No Pass
-2C source-bounded rewrite slices were started.
+No source-doc content was rewritten, renamed, rehomed, or deleted. No Pass 2C
+source-bounded rewrite slices were started.
 
 The review found no source-backed duplicate ownership, conflicting target
 boundary, missing high-risk concept route, or support-target behavior takeover
@@ -153,7 +154,7 @@ That readiness means:
 It does not mean:
 
 - successor authority prose has been written
-- source authority docs have been renamed, rehomed, merged, split, or deleted
+- source docs have been renamed, rehomed, merged, split, or deleted
 - any Pass 2A row has been closed
 - source-bounded fidelity audits can be skipped
 

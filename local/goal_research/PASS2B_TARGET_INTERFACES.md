@@ -1,6 +1,7 @@
 # Pass 2B Target Interfaces
 
-This is a Pass 2B prep artifact. It is not authority, does not supersede any source contract in this directory, and does not close any Pass 2A row.
+This is a Pass 2B prep artifact. It is not future implementation authority and
+does not close any Pass 2A row.
 
 The active Pass 2B target-interface workspace lives in `pass2b_target_interfaces/`.
 
@@ -21,7 +22,12 @@ Read:
 7. [pass2b_target_interfaces/repeated-authority-canonicalization.md](pass2b_target_interfaces/repeated-authority-canonicalization.md)
    - Stable index for the Pass 2B.5 repeated-authority canonicalization workspace.
 
-Source authority docs in this directory still control. The files above design successor document interfaces only; they do not rewrite authority content, rename or rehome source docs, or start Pass 2C source-bounded rewrite slices.
+For direct implementation work before cutover, the source authority docs in
+this directory still control. For Pass 2C doc-worker tasks, those docs are the
+source corpus to translate into successor authority modules, and the files
+above are the interface/compression prep artifacts that guide that translation.
+They do not by themselves rewrite source-doc content, rename or rehome source
+docs, or start Pass 2C source-bounded rewrite slices.
 
 ## Current Status
 

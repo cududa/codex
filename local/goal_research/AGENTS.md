@@ -1,24 +1,44 @@
 # Goal Research Instructions
 
-This directory contains local authority docs for Goal behavior in this fork.
-Treat them as design contracts, not brainstorming notes.
+This directory contains the current Goal research source docs, prep artifacts,
+and operational instructions for this fork.
+
+There are two working postures:
+
+- Direct implementation or version planning: treat the current Goal authority
+  docs as design contracts, not brainstorming notes, until successor docs are
+  cut over.
+- Pass 2C documentation restructuring: treat the current source docs as the
+  required source corpus and concept record, not immutable sentence-level prose.
+  Pass 2C is creating the future authority structure. A doc-worker authority
+  violation is loss, weakening, or distortion of concepts, decisions,
+  exceptions, or implementation-relevant detail, not the act of rewriting or
+  moving old wording through a traced source-bounded slice.
 
 `README.md` and `CONTEXT.md` are navigation aids. They help agents find the
-right authority doc and shared terms, but they do not supersede the authority
-order below. If a navigation aid is incomplete, follow the source authority
-document.
+right source doc and shared terms, but they do not supersede the implementation
+authority order below. If a navigation aid is incomplete for implementation
+work, follow the source authority document and update the navigation aid.
 
-Version-specific implementation plans may live outside this directory, such as
-`local/goal_136_plan`. Those plans are execution artifacts, not peer authority.
-They must conform to the authority order here.
+Version-specific implementation-route plans may live outside this directory.
+For direct implementation work, those plans are execution artifacts, not peer
+authority, unless a later explicit authority update says otherwise. For Pass 2C
+rewrite work, the researched implementation-route material named by the active
+planning handoff or slice record is a required reconciliation input when a
+concept depends on implementation-shaped design details. When that material is
+more precise or appears to conflict with older source-doc wording, prefer the
+route decision during Pass 2C if it preserves the underlying Goal concept and
+represents the latest researched implementation design. Integrate that decision
+into successor docs instead of leaving future agents to cite the route plan.
 
 Before editing docs or implementing Goal authority work, read the applicable
 files directly top to bottom. Do not rely on grep-only scans for these docs.
 
 ## Authority Order
 
-Use this order when a task touches Goal authority, cadence, steering shape,
-resume behavior, compaction repair, legacy Goal artifacts, or Goal tests:
+For direct implementation or version planning before successor cutover, use
+this order when a task touches Goal authority, cadence, steering shape, resume
+behavior, compaction repair, legacy Goal artifacts, or Goal tests:
 
 1. `goal-authority-grounding-truth.md`
    - Behavioral truth and anti-patterns.
@@ -41,14 +61,23 @@ resume behavior, compaction repair, legacy Goal artifacts, or Goal tests:
 If these files appear to conflict, stop and name the conflict. Do not silently
 choose an implementation shape that weakens the grounding truth.
 
+For Pass 2C doc-worker tasks, use the same list as the source read order, then
+validate affected concepts against the relevant implementation-route material
+named by the active handoff or slice record before closing a slice.
+
 ## Navigation And Document Roles
 
 Use `README.md` for the reader map, document roles, supporting seams, terrain
 anchors, and Pass 2 guardrails. Use `CONTEXT.md` for vocabulary.
 
-Those files are not peer authority and do not replace top-to-bottom reading of
-the source contracts. If a navigation aid and a source contract differ, follow
-the source contract and update the navigation aid.
+For implementation work, those files are not peer authority and do not replace
+top-to-bottom reading of the source contracts. If a navigation aid and a source
+contract differ, follow the source contract and update the navigation aid.
+
+For Pass 2C doc-worker tasks, they are still navigation aids, but the task is
+allowed to improve the authority structure itself. Do not use navigation wording
+as a reason to preserve duplicate old prose when the concepts are retained
+canonically, locally, by pointer, or as operational/test reminders.
 
 A complete implementation plan usually needs the authority order above plus
 the supporting seam docs named by `README.md`. Do not rely on this file as a
@@ -68,6 +97,11 @@ When the checklist marks all required deliverables Ready, the next step is an
 implementation execution plan. Do not reopen the core architecture unless a
 code walk finds a direct conflict with these authority docs or a later
 authority update explicitly supersedes them.
+
+This gate constrains implementation planning. It does not forbid Pass 2C from
+reorganizing the docs into successor authority modules when the rewrite keeps
+the concepts traceable and validates settled implementation-route details
+against the current route material named by the active planning handoff.
 
 ## Non-Negotiables
 
@@ -120,6 +154,11 @@ A separate product change is required to replace that behavior.
 
 Existing Rust code is terrain, not mission. It can show where implementation
 will land, but it must not override the local authority docs.
+
+For Pass 2C, implementation-route material named by the active handoff is not
+ordinary Rust terrain. It is a researched implementation-design record to
+reconcile with the source docs before successor prose is written. Current Rust
+code remains terrain unless the source docs or route record explicitly adopt it.
 
 Known terrain that must not become the design:
 

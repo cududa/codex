@@ -1,7 +1,7 @@
 # Pass 2 Concept Ledger
 
-This is a Pass 2A coverage artifact. It is not authority and does not
-supersede any source contract in this directory.
+This is a Pass 2A coverage artifact. It is not future implementation authority
+and does not close any source row.
 
 Use this file to track cross-cutting Goal concepts before rewriting source
 docs into successor docs. Repetition in the source docs is recorded here as
@@ -35,16 +35,23 @@ ownership here.
 Debt markers are not permission to keep settled behavior ambiguous. Before
 Pass 2B or Pass 2C treats a row as unresolved, classify it:
 
-- Authority-settled rows should be rewritten deterministically from the source
-  contracts, even if they remain high-risk fidelity guardrails.
-- Implementation details clarified outside `local/goal_research` must first be
-  written into the applicable source authority doc before this ledger treats
-  them as settled. This ledger should cite the source contract, not the
-  planning artifact.
+- Rows settled by the source corpus should be rewritten deterministically, even
+  if they remain high-risk fidelity guardrails.
+- For direct implementation work, implementation details clarified outside
+  `local/goal_research` should be represented in the applicable authority docs
+  before an implementation plan relies on them.
+- For Pass 2C doc-worker tasks, relevant
+  `local/goal_136_plan/work-areas` decisions are required reconciliation
+  inputs. If they are more precise than, or appear to conflict with, older
+  source-doc wording, use the work-area route when it preserves the underlying
+  concept and latest researched v136 design, then record that reconciliation
+  in the successor-doc slice closure.
 - Target-home ownership questions should name owner/shared/pointer-only
   routing without changing behavior.
-- Plan/authority conflicts require fixing the source contract or the plan
-  explicitly; do not let plan wording silently supersede authority.
+- Direct implementation plan/authority conflicts require fixing the source
+  contract or the plan explicitly. Pass 2C source/work-area conflicts should be
+  reconciled under the rule above unless the work-area route would drop,
+  invert, or weaken a core concept.
 - True design gaps require design debt, not authoritative prose pretending the
   answer exists.
 

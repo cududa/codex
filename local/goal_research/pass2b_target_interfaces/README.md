@@ -1,9 +1,9 @@
 # Pass 2B Target Interfaces Workspace
 
-This is a Pass 2B setup artifact. It is not authority, does not supersede any
-source contract in `local/goal_research`, and does not close any Pass 2A row.
+This is a Pass 2B setup artifact. It is not future implementation authority
+and does not close any Pass 2A row.
 
-Use this file to design successor document interfaces before any authority
+Use this file to design successor document interfaces before any source-doc
 content is rewritten, renamed, rehomed, merged, split, or deleted.
 
 The top-level index is [../PASS2B_TARGET_INTERFACES.md](../PASS2B_TARGET_INTERFACES.md).
@@ -37,20 +37,30 @@ Use these files for Pass 2B:
 - `PASS2_SECTION_TRACEABILITY.md`
 - `PASS2_CONCEPT_LEDGER.md`
 
-Source authority docs remain controlling. If a Pass 2B packet finds that a
-source contract and a prep artifact disagree, follow the source contract and
-fix the prep artifact before continuing.
+For direct implementation work before cutover, source authority docs remain
+controlling. For Pass 2C doc-worker tasks, those docs are the source corpus,
+and relevant `local/goal_136_plan/work-areas` decisions are required
+reconciliation inputs when they clarify the latest researched v136 route.
+
+If a Pass 2B packet finds that a source contract and a prep artifact disagree,
+follow the source contract and fix the prep artifact before continuing. If a
+Pass 2C slice finds that older source-doc wording and a work-area decision
+disagree, use the work-area route when it preserves the underlying concept and
+record the reconciliation in the slice closure.
 
 ## Constraints
 
-- Do not rewrite source authority content in Pass 2B.
-- Do not rename, rehome, or delete source authority files in Pass 2B.
+- Do not rewrite source-doc content in Pass 2B.
+- Do not rename, rehome, or delete source files in Pass 2B.
 - Do not start Pass 2C source-bounded rewrite slices from this artifact alone.
-- Do not promote current Rust terrain or `local/goal_136_plan` above
-  `local/goal_research` source authority.
-- If implementation-plan details are settled and needed, they must be
-  represented in the applicable source authority doc before this artifact
-  relies on them.
+- Do not promote current Rust terrain above `local/goal_research` source docs.
+- For direct implementation work, settled implementation-plan details should be
+  represented in the applicable authority doc before implementation relies on
+  them.
+- For Pass 2C rewrite work, validate affected concepts against
+  `local/goal_136_plan/work-areas` and integrate the work-area decision into
+  successor docs when it preserves the concept and reflects the latest
+  researched v136 design.
 - Treat existing Rust code as terrain, not mission.
 
 ## Target-Home Reading Rule
@@ -67,8 +77,9 @@ Each Pass 2B packet must classify mappings as:
   can violate the rule.
 - `pointer-only`: the target references the rule, but another target owns the
   semantics.
-- `wrong/stale`: the mapping implies ownership that contradicts source
-  authority or current settled authority.
+- `wrong/stale`: the mapping implies ownership that contradicts the source
+  corpus, current settled implementation authority, or the Pass 2C
+  source/work-area reconciliation rule.
 
 ## Status Reading Rule
 
@@ -84,10 +95,12 @@ Each Pass 2B packet must classify mappings as:
 
 Before treating a row as unresolved, classify it as one of:
 
-- authority-settled and ready for deterministic interface placement
+- settled by the source corpus and ready for deterministic interface placement
 - source-backed ownership routing work
 - fidelity debt for Pass 2C audit
-- plan/authority conflict requiring a source authority or plan update
+- direct implementation plan/authority conflict requiring a source authority
+  or plan update
+- Pass 2C source/work-area reconciliation to record during slice closure
 - true design debt
 
 ## Target Interface Template
@@ -128,7 +141,7 @@ Pass 2C Rewrite Notes:
 - ...
 
 True Open Questions:
-- None, unless source authority check proves otherwise.
+- None, unless source-corpus or work-area reconciliation proves otherwise.
 ```
 
 ### Field Meanings
@@ -378,9 +391,10 @@ Pass 2C should not start until:
   is compressed
 - every `Leave` item has a cutover rationale
 - support targets are confirmed not to own behavior contracts
-- source authority docs still control over this artifact
-- any plan-derived settled detail used by this artifact has been written into
-  the applicable source authority doc
+- for direct implementation before cutover, current authority docs remain
+  controlling over this artifact
+- for Pass 2C, relevant `local/goal_136_plan/work-areas` decisions have been
+  reconciled with source-doc wording and recorded in slice closure
 
 ## Verification
 

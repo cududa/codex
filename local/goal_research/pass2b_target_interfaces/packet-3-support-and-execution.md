@@ -1,6 +1,7 @@
 # Packet 3: Support And Execution
 
-This is a Pass 2B prep artifact. It is not authority, does not supersede any source contract in `local/goal_research`, and does not close any Pass 2A row.
+This is a Pass 2B prep artifact. It is not future implementation authority and
+does not close any Pass 2A row.
 
 Shared Pass 2B rules live in [README.md](README.md).
 

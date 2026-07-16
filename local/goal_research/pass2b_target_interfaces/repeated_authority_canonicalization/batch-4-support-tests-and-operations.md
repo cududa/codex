@@ -1,6 +1,7 @@
 # Batch 4: Support, Tests, And Operations
 
-This is part of the Pass 2B.5 repeated-authority canonicalization workspace. It is not authority and does not supersede any source contract in `local/goal_research`.
+This is part of the Pass 2B.5 repeated-authority canonicalization workspace.
+It is not future implementation authority.
 
 Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and Pass 2C usage.
 
@@ -244,7 +245,9 @@ Canonical text:
 
 Local reminders:
 
-- Each may keep short warnings that source/target authority controls.
+- Each may keep short warnings that direct implementation follows the current
+  source or successor authority, while Pass 2C doc-worker tasks reconcile
+  source docs with relevant work-area decisions.
 - `OP-AGENTS` may keep compact non-negotiables only after targets own the full
   clauses.
 
@@ -274,8 +277,13 @@ Source sections carrying repeated authority:
 
 Clauses that must not be lost:
 
-- Navigation aids do not supersede authority.
-- Version-specific plans must conform to `local/goal_research`.
+- Navigation aids do not supersede authority for direct implementation work.
+- Version-specific plans must conform to `local/goal_research` for direct
+  implementation unless an explicit later authority update says otherwise.
+- Pass 2C doc-worker tasks use current docs as source corpus and validate
+  affected concepts against `local/goal_136_plan/work-areas`; work-area
+  decisions win on conflict or uncertainty when they preserve the underlying
+  concept and latest researched v136 design.
 - Existing Rust code is terrain, not mission.
 - Agents must read applicable source docs directly and top to bottom; grep or
   navigation summaries cannot replace source-contract reading.

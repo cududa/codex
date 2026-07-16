@@ -4,6 +4,14 @@ This file is a navigation aid for the Goal authority docs in this directory.
 It does not supersede `AGENTS.md` or any authority contract. If this reader map
 is incomplete or imprecise, follow the source document it points to.
 
+For direct implementation or version planning, the current source authority
+docs remain the contracts until successor docs are cut over. For Pass 2C
+documentation restructuring, the current docs are the required source corpus
+and concept record; the rewrite may reorganize, synthesize, and compress prose
+as long as concepts, edge cases, and implementation-relevant detail are
+faithfully retained. Pass 2C slices must also validate affected concepts
+against the relevant `local/goal_136_plan/work-areas` docs.
+
 Start with:
 
 1. `AGENTS.md`
@@ -123,8 +131,9 @@ terrain, not mission; do not infer desired architecture from current local code.
 
 ## Pass 2 Guardrails
 
-Do not move or rewrite authority content until the navigation layer has been
-reviewed against the full source docs.
+Do not move or rewrite source-doc content except through a traced Pass 2C
+source-bounded slice after the navigation, coverage, target-interface, and
+repeated-authority prep artifacts have been reviewed.
 
 Use `PASS2_SECTION_TRACEABILITY.md` and `PASS2_CONCEPT_LEDGER.md` as the
 review inventory before any content is renamed, rehomed, merged, split, or
@@ -147,5 +156,8 @@ that maps every existing section to its new location. The review must check for:
   test-prep behavior
 - changes that make a support helper look like the authority mechanism
 
-Pass 1 may add navigation around authority. Pass 2 may move authority only with
-traceability and a fidelity review.
+Pass 2C may rewrite and reorganize old wording when the source slice is
+accounted for, repeated authority follows canonical/local/pointer/operational
+routing, and any conflict or uncertainty with `local/goal_136_plan/work-areas`
+is reconciled in favor of the work-area route when it preserves the underlying
+concept and reflects the latest researched v136 design.
