@@ -1,6 +1,6 @@
 # Pass 2C Rewrite Plan
 
-Status: clean planning scaffold. This is an index, not a successor authority
+Status: planning scaffold closed. This is an index, not a successor authority
 document, source-slice record, trace closure artifact, or cutover artifact.
 
 Pass 2C planning must stay smaller than the work it organizes. Each packet in
@@ -32,6 +32,12 @@ No packet should contain a giant target map, source table, workflow template,
 and audit policy at once. If a packet needs more than one decision family, split
 it before adding content.
 
+Splitting is a closeability tool, not a deferral tool. An active unblocked
+packet should make the concrete decision named by its title and scope. Split
+only when that named decision cannot be grounded and closed honestly by one
+fresh agent, or when the packet has started answering a different decision
+family.
+
 Use the packet README as the working index:
 
 - `local/goal_research/pass2c_rewrite_plan/README.md`
@@ -46,9 +52,9 @@ The clean scaffold uses small packets in this order:
 4. Route-verification, workflow, repeated-authority, audit, and cutover
    decisions.
 
-Later agents should close the earliest open packet whose prerequisites are
-closed. Do not skip ahead to ordered source-slice tables until the unit,
-source-doc split, and dependency-order packets are closed.
+Packets 00-13 are closed. Later Pass 2C work should begin from the execution
+workspace and ordered source-slice queue defined by the closed packets, not by
+adding another planning layer.
 
 ## Verification
 
