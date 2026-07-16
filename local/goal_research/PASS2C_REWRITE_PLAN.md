@@ -3,6 +3,11 @@
 Status: planning scaffold closed. This is an index, not a successor authority
 document, source-slice record, trace closure artifact, or cutover artifact.
 
+Execution status: do not add another planning layer by default. Begin Pass 2C
+execution from `pass2c_rewrite_plan/PASSFORWARD.md`, using Packet 08 as the
+ordered source-slice queue and Packets 09-13 as the route, record, compression,
+audit, and cutover rules around that queue.
+
 Pass 2C planning must stay smaller than the work it organizes. Each packet in
 `pass2c_rewrite_plan/` owns one closeable planning decision and should be
 tractable for one fresh agent to ground, edit, verify, and hand off in one

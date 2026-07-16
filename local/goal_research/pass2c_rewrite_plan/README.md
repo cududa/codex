@@ -3,6 +3,11 @@
 This directory holds bounded Pass 2C planning packets. It is not the successor
 authority workspace and it is not a source-slice execution workspace.
 
+Status: all planning packets are closed. Treat this directory as the reference
+scaffold for Pass 2C execution, not as the next place to add planning packets
+by default. Start from `PASSFORWARD.md`, execute Packet 08 rows as the queue,
+and apply Packets 09-13 as the governing execution and cutover checks.
+
 ## Packet Rules
 
 - One packet owns one closeable planning decision. When that packet is active
