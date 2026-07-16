@@ -126,7 +126,7 @@ Known terrain that must not become the design:
 - resume fabricating Initial for any active Goal
 - runtime-only Initial pending state as the durable cadence model
 - ObjectiveUpdated or BudgetLimit steering being dropped after failed
-  same-turn injection
+  concrete same-turn injection
 - pre-finalizer concrete Goal `ResponseInputItem` carry as proof of authority
 - Goal-only fake provenance machinery as active steering machinery
 - special local raw-response suppression for Goal context
@@ -151,5 +151,5 @@ git diff --check -- local/goal_research
 ```
 
 For Rust implementation work, follow the repository root `AGENTS.md` validation
-rules and keep tests focused on final model payloads, recorded rollout items,
-or the specific Goal behavior being changed.
+rules and keep tests focused on final model payloads, structured recorded
+request evidence, or the specific Goal behavior being changed.

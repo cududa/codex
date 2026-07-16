@@ -218,8 +218,9 @@ In this contract, `final model request input` means the actual logical input
 list for the request that will be sent to the model. In current code, this is
 the `Vec<ResponseItem>` that becomes `Prompt.input` and then
 `ResponsesApiRequest.input`, before any transport-specific full request or
-WebSocket incremental delta is derived. For rollout reconstruction tests, the
-recorded rollout item must represent that same model input shape.
+WebSocket incremental delta is derived. For replay or reconstruction tests,
+structured recorded request evidence must represent that same logical model
+input shape; an ordinary rollout `ResponseItem` alone is not enough.
 
 A cadence item is recorded only when final model request input contains exactly
 one current Goal steering item whose outer model role is `developer`.
@@ -299,10 +300,12 @@ The continuation idle predicate must account for at least:
 
 Continuation does not consume durable pending cadence intent. It updates only
 runtime continuation accounting after the Continuation item reaches the
-final model request input used for sampling or equivalent recorded rollout execution. A
-reservation or lock may prevent concurrent launches before then, but the
-duplicate-suppression watermark must not be advanced merely because an idle
-hook fired, a turn was reserved, or a prompt string was rendered.
+final model request input used for sampling, or an explicitly supported
+structured recorded request evidence path with an equivalent persistence and
+error policy. A reservation or lock may prevent concurrent launches before
+then, but the duplicate-suppression watermark must not be advanced merely
+because an idle hook fired, a turn was reserved, or a prompt string was
+rendered.
 
 ### ObjectiveUpdated
 
@@ -398,17 +401,20 @@ Intent must not be consumed when:
 
 - a prompt string is merely rendered
 - a `ResponseInputItem` is merely constructed
-- active-turn injection is attempted but rejected
+- same-turn cadence recheck/request metadata is requested, accepted, rejected,
+  or unavailable
 - a synthetic continuation turn is reserved
 - a legacy `<goal_context>` artifact is discovered
 - a raw response notification is emitted
 
 If request construction fails before final model request input contains the
 item, the intent should remain pending unless the implementation has a clear
-recorded-attempt policy and tests that prove retry behavior remains correct.
+structured recorded request evidence policy and tests that prove retry
+behavior remains correct.
 
 If final model request input is constructed but the request is not submitted to
-the model client and no equivalent rollout request is recorded, pending intent
+the model client and no structured recorded request evidence with an
+equivalent persistence and error policy records the request, pending intent
 must remain pending and the Continuation watermark must not advance.
 
 If submission begins and then fails before any response is created, the
@@ -703,15 +709,23 @@ account in-flight Goal usage if needed
 persist durable Goal mutation
 persist pending cadence intent when the mutation creates Initial,
   ObjectiveUpdated, or BudgetLimit work
-try same-turn injection only if the active turn can still accept it
-leave pending intent intact if same-turn injection is unavailable
+request same-turn cadence recheck only if the active turn can still
+  accept turn-local cadence request metadata
+leave pending intent intact if same-turn recheck is unavailable or
+  rejected
 run pending user/mailbox/work before automatic idle Continuation
 ```
 
+Same-turn cadence recheck is metadata/wake behavior only. It must not
+construct active model input, choose the active role, or consume pending
+intent. If the active turn accepts the request, pending intent is still
+consumed only after that turn's final model request input contains the
+matching outer developer-role Goal item and reaches the commit point.
+
 ## Verification Checklist
 
-An implementation satisfies this contract only when final model payload or
-recorded rollout tests prove:
+An implementation satisfies this contract only when final model payload tests
+or structured recorded request evidence tests prove:
 
 - Initial intent is persisted for a newly active Goal
 - Initial is recorded once and consumed only when final model request input
@@ -729,8 +743,11 @@ recorded rollout tests prove:
 - ordinary user turns may consume pre-existing pending Initial,
   ObjectiveUpdated, or BudgetLimit intent
 - ObjectiveUpdated renders from persisted updated durable state
-- ObjectiveUpdated remains pending if same-turn injection is unavailable
+- ObjectiveUpdated remains pending if same-turn cadence recheck is unavailable
+  or rejected
 - BudgetLimit renders from persisted usage/status state
+- BudgetLimit remains pending if same-turn cadence recheck is unavailable or
+  rejected
 - BudgetLimit supersedes older active-state pending intent for the same Goal
 - active Goal steering is developer-role
 - active Goal steering is inserted or verified in the final model request input
@@ -765,5 +782,5 @@ Future version plans must identify:
 - the narrow cases where repair records reconstructed cadence history
 - the shared classifier API for current internal-context items and legacy
   `<goal_context>` artifacts
-- tests that inspect final model payloads or recorded rollout items for every
-  verification checklist item above
+- tests that inspect final model payloads or structured recorded request
+  evidence for every verification checklist item above

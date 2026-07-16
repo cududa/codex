@@ -66,7 +66,7 @@ Important current terrain:
 - `ResponseEvent::Created` currently has no Goal commit behavior
 - current Goal steering builds concrete `ResponseInputItem`s through
   `GoalContext::into_response_input_item(...)`
-- current same-turn injection and carry store concrete Goal
+- current concrete same-turn injection and carry store concrete Goal
   `ResponseInputItem`s before final request shaping
 
 The final request-input shaping point must run for every request attempt after
@@ -106,6 +106,7 @@ finalize_goal_request_input(
 `attempt_context` must include the logical equivalents of:
 
 - thread id and turn id
+- attempt ordinal for this model request attempt
 - current durable Goal snapshot, including facts version
 - pending Initial, ObjectiveUpdated, and BudgetLimit intent snapshot
 - optional runtime Continuation request selected by the idle predicate
@@ -122,6 +123,12 @@ input: Vec<ResponseItem>
 commit: Option<GoalRequestCommit>
 repair_report: GoalRepairReport
 ```
+
+If the Goals feature is disabled or collaboration mode does not allow Goal
+steering for the attempt, final request-input shaping must select no active
+Goal item and must not consume pending cadence intent. Eligibility facts are
+delivery gates. They are not cadence authority, not durable Goal facts, and not
+proof that Goal steering reached final model request input.
 
 ## Shaping Responsibilities
 
@@ -165,11 +172,14 @@ Logical fields:
 GoalRequestCommit {
   thread_id,
   turn_id,
+  attempt_ordinal,
   goal_id,
   kind: Initial | ObjectiveUpdated | BudgetLimit | Continuation,
   facts_version,
   model_visible_history_key,
   item_fingerprint,
+  request_input_fingerprint,
+  item_index,
   inserted_or_verified,
 }
 ```
@@ -178,6 +188,13 @@ GoalRequestCommit {
 final request input. It may be a structured fingerprint rather than a persisted
 copy of the whole item, but it must be enough for tests and commit logic to
 prove the commit refers to the item actually sent.
+
+`request_input_fingerprint` and `item_index` must identify the full finalized
+logical request input and the selected item's position inside it. They are
+commit identity for the per-attempt input that becomes `Prompt.input` /
+`ResponsesApiRequest.input`, not raw transport deltas and not helper output.
+The Created-event commit path may enrich this metadata with commit point and
+timestamp fields when it writes structured recorded request evidence.
 
 ## Recorded Request Evidence
 
@@ -277,6 +294,9 @@ plan must name it. Until then, use `ResponseEvent::Created`.
 
 Commit behavior:
 
+- before any side effects, commit verifies that the finalized logical request
+  input still matches the request-input fingerprint and that the selected item
+  at `item_index` still matches the item fingerprint
 - Initial, ObjectiveUpdated, and BudgetLimit commit consumes matching pending
   intent by exact key
 - BudgetLimit commit may clear superseded Initial or ObjectiveUpdated intent

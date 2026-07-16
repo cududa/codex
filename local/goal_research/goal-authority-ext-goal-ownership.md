@@ -50,6 +50,12 @@ the shared finalizer. It must not turn those facts into model-visible
 pending intent, or commit delivery before the final request-input path sees the
 actual per-attempt `Prompt.input`.
 
+Typed delivery does not mean `ext/goal` imports or names private cadence or
+finalizer implementation types. The extension-facing seam should be a
+producer-facing adapter that carries mutation facts or cadence request
+metadata across to the owners of durable state, idle lifecycle, and final
+request-input shaping.
+
 Extension-origin Goal creation remains a valid mutation entry point. An
 agent-callable `create_goal` tool may stay extension-owned; when no Goal
 currently exists, a successful create writes an active durable Goal plus
@@ -184,6 +190,11 @@ request_goal_cadence_delivery(thread_id, kind, goal_id, facts_version)
 or an equivalent typed request that carries cadence intent metadata, not model
 input.
 
+That request is an adapter seam for producers. It must not expose private
+cadence/finalizer internals to `ext/goal`, and it must not let producers pass
+rendered Goal text, a model role, a prebuilt `ResponseItem`, or a prebuilt
+`ResponseInputItem`.
+
 ## Configuration
 
 User-role active Goal steering must not survive as compatibility.
@@ -266,7 +277,8 @@ Focused tests must prove:
 - BudgetLimit from `ext/goal` persists usage/status facts and pending cadence
   intent before delivery
 - same-turn extension mutation cannot drop pending ObjectiveUpdated or
-  BudgetLimit intent when active-turn injection is unavailable
+  BudgetLimit intent when same-turn cadence recheck/request metadata is
+  unavailable or rejected
 - extension state/runtime tests alone do not establish active Goal authority;
   final request payload coverage must inspect captured final `/responses`
   input or the equivalent final request-input seam

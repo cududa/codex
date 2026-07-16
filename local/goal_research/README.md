@@ -125,8 +125,15 @@ terrain, not mission; do not infer desired architecture from current local code.
 Do not move or rewrite authority content until the navigation layer has been
 reviewed against the full source docs.
 
-Use `PASS2_TRACEABILITY.md` as the review inventory before any content is
-renamed, rehomed, merged, split, or rewritten.
+Use `PASS2_SECTION_TRACEABILITY.md` and `PASS2_CONCEPT_LEDGER.md` as the
+review inventory before any content is renamed, rehomed, merged, split, or
+rewritten.
+
+Use `PASS2B_TARGET_INTERFACES.md` and `pass2b_target_interfaces/` as the Pass
+2B target-interface workspace. Its repeated-authority canonicalization
+workspace is Pass 2B.5 prep for deciding which repeated clauses become
+canonical text, local reminders, pointer-only references, or operational/test
+reminders before Pass 2C source-bounded rewrites.
 
 Before any content is rehomed, create or maintain a section traceability table
 that maps every existing section to its new location. The review must check for:

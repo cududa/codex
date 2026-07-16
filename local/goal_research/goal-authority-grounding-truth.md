@@ -121,12 +121,13 @@ In current code, this is the `Vec<ResponseItem>` that becomes `Prompt.input`
 and then `ResponsesApiRequest.input`, before any transport-specific full
 request or WebSocket incremental delta is derived. A Goal cadence item exists
 only when this input list contains the Goal steering item as an outer
-developer-role message. Rendering, constructing a response item, attempting
-same-turn injection, reserving a turn, or recording harness-local metadata is
-not enough.
+developer-role message. Rendering, constructing a response item, requesting
+same-turn cadence delivery, reserving a turn, or recording harness-local
+metadata is not enough.
 
 If that input list is built but the request is not submitted to the model
-client and no equivalent rollout request is recorded, pending cadence intent
+client and no structured recorded request evidence with an equivalent
+persistence and error policy records the request, pending cadence intent
 remains pending. A send failure before any response is created must have an
 explicit retry policy; the default is to keep pending Initial,
 ObjectiveUpdated, and BudgetLimit intent pending.
@@ -169,7 +170,8 @@ Cadence, not request repair, decides when Goal should speak.
 
 The record step happens only when the final model request input contains the
 outer developer-role Goal item, not when a prompt is rendered, a response item
-is constructed, same-turn injection is attempted, or a turn is reserved.
+is constructed, same-turn cadence delivery is requested, or a turn is
+reserved.
 
 A Continuation is not “any next request.” It is due only when the lifecycle says the thread is idle and Goal
 continuation should run.
@@ -341,7 +343,8 @@ Do not make request repair the primary mechanism that decides when Goal steering
 
 ## Acceptance Standard
 
-Success is proven at the final model payload or recorded rollout item.
+Success is proven at the final model payload, or by structured recorded
+request evidence when replay or audit evidence is in scope.
 
 For each relevant scenario, verify:
 
@@ -398,7 +401,8 @@ Any implementation plan must identify:
 - resume behavior for pending intent versus already-introduced active Goals
 - repair insertion points
 - legacy artifact predicates
-- tests that inspect final model payloads or rollout items
+- tests that inspect final model payloads or structured recorded request
+  evidence
 
 Implementation plans may add version-specific routing or test sequencing, but they must conform to this
 document.

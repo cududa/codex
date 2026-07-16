@@ -101,7 +101,8 @@ contracts replace.
 Replacement coverage comes later:
 
 - resume hydration without fabricated Initial
-- pending durable cadence intent surviving failed same-turn injection
+- pending durable cadence intent surviving unavailable or rejected same-turn
+  cadence recheck
 - upstream objective limit behavior from the command/validation baseline
 
 ## Delete Local-Only App-Server Steering Overlay
@@ -274,8 +275,10 @@ Durable pending cadence intent:
 - creating an active Goal persists pending Initial intent
 - Initial intent is consumed only when final model request input contains the
   matching developer-role item
-- ObjectiveUpdated intent remains pending when same-turn injection is unavailable
-- BudgetLimit intent remains pending when same-turn injection is unavailable
+- ObjectiveUpdated intent remains pending when same-turn cadence recheck is
+  unavailable or rejected
+- BudgetLimit intent remains pending when same-turn cadence recheck is
+  unavailable or rejected
 - BudgetLimit supersedes older Initial or ObjectiveUpdated intent for the same
   Goal
 

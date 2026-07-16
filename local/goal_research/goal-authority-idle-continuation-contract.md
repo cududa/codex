@@ -205,7 +205,8 @@ Pending intent must not be consumed when:
 - a prompt string is rendered
 - a response item is constructed
 - a turn is reserved
-- active-turn injection is attempted
+- same-turn cadence recheck/request metadata is requested, accepted, rejected,
+  or unavailable
 - an idle hook fires
 
 Pending intent is consumed only when the final model request input contains the
@@ -218,8 +219,9 @@ If request construction fails before final model request input contains the
 matching outer developer-role Goal item, the pending intent remains pending.
 
 If final model request input contains the matching item but the request is not
-submitted to the model client and no equivalent rollout request is recorded,
-the pending intent remains pending.
+submitted to the model client and no structured recorded request evidence with
+an equivalent persistence and error policy records the request, the pending
+intent remains pending.
 
 Delivering pending durable cadence intent must not advance the automatic
 Continuation watermark.
@@ -286,8 +288,8 @@ The watermark must not advance when:
 - request construction fails before final model request input contains the
   Continuation item as an outer developer-role message
 - final model request input contains the Continuation item, but the request is
-  not submitted to the model client and no equivalent rollout request is
-  recorded
+  not submitted to the model client and no structured recorded request
+  evidence with an equivalent persistence and error policy records the request
 
 After the watermark advances, repeated idle-hook calls with the same
 `goal_id`, `model_visible_history_key`, and `durable_facts_version` must not
@@ -400,18 +402,24 @@ account in-flight Goal usage if needed
 persist durable Goal mutation
 persist pending cadence intent when mutation creates Initial,
   ObjectiveUpdated, or BudgetLimit work
-try same-turn injection only if an active turn can still accept it
-leave pending intent intact if same-turn injection is unavailable
+request same-turn cadence recheck only if an active turn can still accept
+  turn-local cadence request metadata
+leave pending intent intact if same-turn recheck is unavailable or
+  rejected
 run pending non-Goal work before any Goal-owned synthetic turn
 ```
 
-If same-turn injection succeeds, the pending intent is still consumed only when
-that active turn's final model request input contains the matching outer
-developer-role Goal item.
+Same-turn cadence recheck is metadata/wake behavior only. It must not
+construct active model input, choose the active role, or consume pending
+intent.
 
-If same-turn injection is unavailable or rejected because the injection phase is
-closed, the pending intent remains for a later ordinary user turn or idle-hook
-cadence-delivery turn.
+If same-turn recheck is accepted, the pending intent is still consumed only
+when that active turn's final model request input contains the matching outer
+developer-role Goal item and reaches the commit point.
+
+If same-turn recheck is unavailable or rejected because the turn cannot accept
+new cadence request metadata, the pending intent remains for a later ordinary
+user turn or idle-hook cadence-delivery turn.
 
 ObjectiveUpdated and BudgetLimit must not be dropped merely because no turn was
 active at mutation time.
@@ -454,7 +462,7 @@ The current code also has terrain that must not become the design:
 - resume marks Initial pending for any active Goal
 - Initial pending state is runtime-only
 - ObjectiveUpdated and BudgetLimit steering can be dropped after failed
-  same-turn injection
+  concrete same-turn injection
 - pending durable cadence intent is not represented as structured durable state
 - automatic Continuation duplicate suppression is not the explicit
   `{ goal_id, model_visible_history_key, durable_facts_version }` watermark
@@ -477,10 +485,10 @@ Implementation should include focused tests proving:
 - A resumed active Goal with already-consumed Initial does not receive another
   Initial.
 - A resumed active Goal with persisted pending Initial still receives Initial.
-- Pending ObjectiveUpdated intent remains pending when same-turn injection is
-  unavailable, then the idle hook delivers it.
-- Pending BudgetLimit intent remains pending when same-turn injection is
-  unavailable, then the idle hook delivers it.
+- Pending ObjectiveUpdated intent remains pending when same-turn cadence
+  recheck is unavailable or rejected, then the idle hook delivers it.
+- Pending BudgetLimit intent remains pending when same-turn cadence recheck is
+  unavailable or rejected, then the idle hook delivers it.
 - BudgetLimit supersedes older Initial or ObjectiveUpdated pending intent for
   the same Goal.
 - Pending Initial, ObjectiveUpdated, or BudgetLimit intent suppresses automatic
