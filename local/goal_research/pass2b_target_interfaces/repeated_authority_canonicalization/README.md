@@ -69,6 +69,11 @@ Pass 2C rewrite instruction:
 - [Batch 3: Cleanup, Evidence, And Reconstruction](batch-3-cleanup-evidence-reconstruction.md)
 - [Batch 4: Support, Tests, And Operations](batch-4-support-tests-and-operations.md)
 
+## Current Status
+
+Batches 1-4 are complete enough to feed Pass 2C planning. They do not close
+source rows or replace source-bounded fidelity audits.
+
 ## Batch Order Recommendation
 
 Use this order before or during Pass 2C planning:

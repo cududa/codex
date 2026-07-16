@@ -125,8 +125,9 @@ Known terrain that must not become the design:
 
 - resume fabricating Initial for any active Goal
 - runtime-only Initial pending state as the durable cadence model
-- ObjectiveUpdated or BudgetLimit steering being dropped after failed
-  concrete same-turn injection
+- ObjectiveUpdated or BudgetLimit intent being dropped when old concrete
+  same-turn injection terrain fails instead of remaining pending after
+  unavailable or rejected metadata-only same-turn cadence recheck
 - pre-finalizer concrete Goal `ResponseInputItem` carry as proof of authority
 - Goal-only fake provenance machinery as active steering machinery
 - special local raw-response suppression for Goal context

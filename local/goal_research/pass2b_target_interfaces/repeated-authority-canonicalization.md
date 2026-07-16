@@ -23,6 +23,7 @@ Source authority docs still control. If this workspace and a source contract dif
 
 - Repeated authority canonicalization has been split into a workspace README plus four batch files.
 - The split is organizational only; it does not rewrite source authority content or start Pass 2C.
+- Batches 1-4 are complete enough to feed Pass 2C planning.
 - Use this workspace before Pass 2C source-bounded rewrite slices to decide which repeated clauses become canonical text, local reminders, pointer-only references, or operational/test reminders.
 
 ## Verification

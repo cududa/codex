@@ -31,7 +31,9 @@ Source authority docs in this directory still control. The files above design su
 - Packet 3 Support And Execution is complete and bottom-up reviewed.
 - Packet 4 Navigation And Operations is complete and bottom-up reviewed.
 - Packet 5 2B Consistency is complete.
-- Pass 2B.5 Repeated Authority Canonicalization is split into a stable index plus batch files.
+- Pass 2B.5 Repeated Authority Canonicalization is split into a stable index
+  plus batch files.
+- Pass 2B.5 batches 1-4 are complete enough to feed Pass 2C planning.
 
 ## Verification
 

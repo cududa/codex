@@ -155,22 +155,22 @@ True Open Questions:
 
 ## Repeated Authority Handling
 
-Pass 2B must keep these as local non-negotiables inside every interface whose
-seam can violate them:
+Pass 2B assigned local non-negotiables to the target interfaces whose seams can
+violate them. Pass 2B.5 then split repeated-authority canonicalization into
+the workspace at
+[repeated-authority-canonicalization.md](repeated-authority-canonicalization.md).
 
-- final request-input developer-role proof
-- pending Initial, ObjectiveUpdated, and BudgetLimit intent surviving until
-  final-input commit
-- automatic Continuation being idle-selected and not any next request
-- request repair being request-local and not cadence
-- resume being hydration and not cadence
-- raw response item notifications remaining raw
-- extension reachability and steering-role config compatibility
-- current-turn carry being committed metadata, not pre-finalizer concrete input
+Use the Pass 2B.5 workspace before Pass 2C rewrites to decide:
 
-Pass 2B may later canonicalize repeated prose with explicit pointers only after
-the local non-negotiables above are assigned to the target interfaces that can
-violate them.
+- which target carries canonical text
+- which targets keep local reminders because their seams can violate the rule
+- which targets use pointer-only references
+- which operational/test/navigation surfaces keep short non-authoritative
+  reminders
+
+Do not use the Pass 2B interfaces or Pass 2B.5 batches to rewrite source
+authority from memory. Pass 2C still needs source-bounded slice rewrites and
+fidelity audits.
 
 ## Packet Plan
 
@@ -368,8 +368,9 @@ Pass 2C should not start until:
 
 - every target key has a completed interface entry
 - every interface names what it owns and does not own
-- every repeated high-risk authority clause is assigned as local,
-  canonical-with-pointer, or pointer-only
+- every repeated high-risk authority clause is assigned to canonical owner
+  text, local reminders, pointer-only references, or operational/test
+  reminders
 - every `Review debt` item has a named fidelity tripwire
 - every `Split` item has per-target owner/shared/pointer-only routing
 - every `Canonicalize` item has preserved concept coverage first

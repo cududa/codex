@@ -56,7 +56,7 @@ For Pass 2B:
 | --- | --- |
 | `Open` | Section has been inventoried but not rewritten. |
 | `Split` | Section is expected to feed more than one target interface. |
-| `Canonicalize` | Repeated authority should become canonical text plus explicit pointers. |
+| `Canonicalize` | Use the Pass 2B.5 repeated-authority plan: canonical owner text, local reminders where seams can violate the rule, pointer-only references elsewhere, and operational/test reminders where appropriate. |
 | `Leave` | Section should remain in its existing operational/navigation role. |
 | `Review debt` | Section needs special fidelity review before rewrite closure; it is not by itself a claim that behavior is unresolved. |
 
@@ -69,6 +69,9 @@ Before treating a row as unresolved, classify the debt:
   inventory treats them as settled.
 - Target-home ownership questions may remain as owner/shared/pointer-only
   routing work without reopening behavior.
+- `Canonicalize` rows should follow
+  `pass2b_target_interfaces/repeated-authority-canonicalization.md`; they are
+  not instructions to duplicate prose forever.
 - Plan/authority conflicts must stop and fix either the source authority doc
   or the plan explicitly.
 - True design gaps are design debt, not successor-doc prose.
@@ -81,12 +84,12 @@ Before treating a row as unresolved, classify the debt:
 | `AGENTS.md` / Authority Order | Current read order and conflict rule | Grounding truth, primary cadence, idle continuation, fake-shim map, and test deletion map have ordered force; conflicts must be stopped and named. | n/a | `OP-AGENTS`, `NAV-README` | Leave; may simplify duplicated navigation after target docs exist |
 | `AGENTS.md` / Navigation And Document Roles | Distinguishes navigation aids from authority | README/CONTEXT help agents find source docs; top-to-bottom reading remains required. | n/a | `OP-AGENTS`, `NAV-README`, `GLOSSARY` | Leave |
 | `AGENTS.md` / Design Deliverables | Readiness gate before implementation planning | Ready means design input, not file/function/slice implementation plan. | n/a | `OP-AGENTS`, `T-READINESS` | Leave; pointer may change after Pass 2 |
-| `AGENTS.md` / Non-Negotiables | Operational short list of authority invariants | Developer-role final input, no GoalContext active path, persisted Initial/ObjectiveUpdated/BudgetLimit, runtime Continuation watermark, ordinary user turns not cadence, repair not cadence, resume hydration, raw remains raw, upstream product baseline. | n/a | `OP-AGENTS`, `T-BEHAVIOR`, `T-CADENCE`, `T-DURABLE`, `T-FINAL`, `T-IDLE`, `T-HISTORY`, `T-CLEANUP`, `T-EXT`, `T-SHIM`, `T-TEST-PREP` | Canonicalize after target docs close; `OP-AGENTS` keeps operational pointer only |
+| `AGENTS.md` / Non-Negotiables | Operational short list of authority invariants | Developer-role final input, no GoalContext active path, persisted Initial/ObjectiveUpdated/BudgetLimit, runtime Continuation watermark, ordinary user turns not cadence, repair not cadence, resume hydration, raw remains raw, upstream product baseline. | n/a | `OP-AGENTS`, `T-BEHAVIOR`, `T-CADENCE`, `T-DURABLE`, `T-FINAL`, `T-IDLE`, `T-HISTORY`, `T-CLEANUP`, `T-EXT`, `T-SHIM`, `T-TEST-PREP` | Use Pass 2B.5 canonical/local/pointer routing after target docs close; `OP-AGENTS` keeps operational pointer only |
 | `AGENTS.md` / Test Prep Posture | Prep instruction for rewrite | Delete false-compatibility overlay, restore upstream baseline, add replacement tests later. | Test files named in `goal-test-deletion-map.md` | `OP-AGENTS`, `T-TEST-PREP` | Leave; keep as operational pointer |
 | `AGENTS.md` / Working Posture | Direction-lock posture | Existing Rust is terrain, not mission; names terrain that must not become design. | `codex-rs/core/src/goals.rs`, `codex-rs/core/src/state/turn.rs`, app-server raw suppression | `OP-AGENTS`, `NAV-README` | Leave |
 | `AGENTS.md` / Verification | Docs-only and Rust verification posture | Use `git diff --check -- local/goal_research` for docs-only; Rust follows root instructions. | n/a | `OP-AGENTS` | Leave |
 | `README.md` / title and intro | Reader map | Navigation only; does not supersede AGENTS or authority contracts. | n/a | `NAV-README` | Leave; update after cutover |
-| `README.md` / Authority Spine | Reader-level spine | Repetition among spine docs is authority reinforcement until canonicalized. | n/a | `NAV-README` | Leave; later point to successor contracts |
+| `README.md` / Authority Spine | Reader-level spine | Repetition among spine docs is authority reinforcement until Pass 2B.5 canonical/local/pointer routing is applied during Pass 2C. | n/a | `NAV-README` | Leave; later point to successor contracts |
 | `README.md` / Core Through-Line | High-level synthesis | Durable cadence state plus final request-input shaping carry design; support seams must not become authority. | n/a | `NAV-README` | Leave; validate against `PASS2_CONCEPT_LEDGER.md` |
 | `README.md` / Supporting Seams | Question-to-doc routing | Maps implementation questions to seam docs. | n/a | `NAV-README` | Leave; replace with target interface map after Pass 2B |
 | `README.md` / Current Terrain Anchors | Code anchor map | Terrain is not mission; anchors include active fake shim, final input path, durable state, history/reconstruction, cleanup/projection, extension injection. | Many anchors across core/state/app-server/ext | `NAV-README` | Leave; update when target docs close |

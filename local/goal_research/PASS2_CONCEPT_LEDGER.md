@@ -5,13 +5,21 @@ supersede any source contract in this directory.
 
 Use this file to track cross-cutting Goal concepts before rewriting source
 docs into successor docs. Repetition in the source docs is recorded here as
-repeated authority. Later passes may canonicalize repeated prose, but only
-after the repeated clauses and edge cases are represented here.
+coverage, not as a requirement to preserve duplicate prose mechanically.
+
+After Pass 2B.5, repeated authority should be compressed through
+`pass2b_target_interfaces/repeated-authority-canonicalization.md`: canonical
+text in the owner target, local reminders where a seam can violate the rule,
+pointer-only references where another target owns the rule, and
+operational/test reminders where appropriate. That compression still requires
+source-bounded Pass 2C fidelity audits.
 
 Target homes use the provisional interface keys defined in
 `PASS2_SECTION_TRACEABILITY.md`. This ledger should not give a key a second
-meaning; if a concept only needs a pointer from another interface, mark that in
-Pass 2B target interface design rather than broadening ownership here.
+meaning; if a concept only needs a pointer from another interface, keep that
+owner/shared/pointer-only routing consistent with Pass 2B target interface
+design and the Pass 2B.5 canonicalization batches rather than broadening
+ownership here.
 
 ## Status Key
 
@@ -81,7 +89,7 @@ Pass 2B or Pass 2C treats a row as unresolved, classify it:
 | Goal-owned synthetic turns | `T-IDLE` | Idle: Semantic Contract, Stage 2, Stage 3, Lock And Reservation, Acceptance Tests | The idle hook may start synthetic regular cadence-delivery turns for pending intent or automatic Continuation. Pending Initial/ObjectiveUpdated/BudgetLimit delivery from the hook is not automatic Continuation. Synthetic request metadata is uncommitted scheduling metadata until stale abort clears it or Created commit records carry and clears/obsoletes it. Final payload tests must still prove the synthetic turn produces exactly one developer-role Goal item when cadence is delivered and no active `<goal_context>` items. | Idle hook/final payload tests | `T-IDLE`, `T-CADENCE`, `T-FINAL`, `T-TEST-PREP` | High-risk, Test-critical |
 | Lock, reservation, and stale candidates | `T-IDLE` | Idle: Legal Callers, Required Stage Order, Lock And Reservation, Acceptance Tests | Lock/reservation protects scheduling but does not make stale candidates valid. Recheck active turn, pending work, durable state, pending intent, and watermark. If pending work appears or candidate stales, clear reservation without send, consumption, watermark, or user-facing model/request error. Goal-owned launch must not drain newly arrived pending non-Goal work into the synthetic turn; that work remains regular pending work. | `continuation_lock`, `ActiveTurn` | `T-IDLE`, `T-FINAL` | High-risk, Test-critical |
 | External Goal mutation ordering | `T-IDLE` | Primary Cadence: Ordering With Pending Work; Idle: External Goal Mutation Behavior; Ext Ownership: Required Replacement Shape | Account usage if needed, persist durable mutation, persist pending intent when mutation creates cadence work, and request same-turn cadence recheck only if the active turn can accept turn-local cadence request metadata. Same-turn recheck is metadata/wake behavior only: it must not construct active model input, choose role, or consume intent. If accepted, pending intent is still consumed only when that active turn's final request input contains the matching developer-role Goal item and reaches commit. If unavailable or rejected, intent remains pending. Pending non-Goal work still runs before Goal-owned synthetic turns. | `ext/goal/src/runtime.rs`, core Goal mutation paths, turn-local cadence request metadata | `T-IDLE`, `T-EXT`, `T-DURABLE`, `T-CADENCE`, `T-FINAL` | High-risk |
-| `ext/goal` ownership | `T-EXT` | Ext Ownership: Purpose, Ownership Decision, Required Replacement Shape; Fake-Shim Map: Extension Goal Steering Producer; Open Deliverables: ext ownership | Extension may own lifecycle/tools/accounting/mutation and typed cadence request metadata through a producer-facing adapter seam. It must not own active model-input construction, role selection, pending-intent consumption, Continuation watermark, final cleanup/repair, concrete active-turn injection, or private cadence/finalizer implementation types. | `codex-rs/ext/goal`, `codex_thread.rs` | `T-EXT`, `T-FINAL` | High-risk |
+| `ext/goal` ownership | `T-EXT` | Ext Ownership: Purpose, Ownership Decision, Required Replacement Shape; Fake-Shim Map: Extension Goal Steering Producer; Open Deliverables: ext ownership | Extension may own lifecycle/tools/accounting/mutation and typed cadence request metadata through a producer-facing adapter seam. It must not own active model-input construction, role selection, pending-intent consumption, Continuation watermark, final cleanup/repair, prebuilt active-turn model input, or private cadence/finalizer implementation types. Same-turn extension behavior is metadata-only cadence recheck/request metadata. | `codex-rs/ext/goal`, `codex_thread.rs` | `T-EXT`, `T-FINAL` | High-risk |
 | Extension reachability | `T-EXT` | Ext Ownership: Reachability Rule; Fake-Shim Map: Extension producer and Required Work Areas; Test Deletion Map: extension backend baseline | If compiled/reachable active extension steering remains, it must be converted to shared final request-input shaping and cadence delivery; otherwise removed or proven unreachable under every supported configuration. Cannot leave reachable `GoalContext`, user-role internal context, or pre-finalizer concrete items. | Extension tests, config/compile structure, shared finalizer conversion | `T-EXT`, `T-SHIM`, `T-TEST-PREP`, `T-FINAL`, `T-CADENCE` | High-risk, Test-critical |
 | Steering-role config compatibility | `T-EXT` | Grounding Truth: Required Active Steering Shape; Ext Ownership: Configuration; Fake-Shim Map: Core Goal Steering Producer; Test Deletion Map: Revert Steering-Role Config Overlay | User-role active Goal steering must not survive as compatibility. Existing config key must be removed, rejected, or hard-mapped to developer-role behavior; temporary deserialization cannot affect active steering role. | `ConfigToml`, `config.schema.json`, config tests | `T-EXT`, `T-BEHAVIOR`, `T-TEST-PREP` | High-risk |
 | Fake-shim removal | `T-SHIM` | Fake-Shim Map: entire doc; Primary Cadence: Fake-Shim Deletion Target; Grounding Truth: Anti-Patterns/Legacy Handling | `GoalContext`, `GoalContextRole`, active `<goal_context>`, active fake provenance predicates, and active construction paths are deletion terrain. Legacy artifact handling may remain but cannot keep active Goal-specific context architecture alive. | `goal_context.rs`, `goals.rs`, `ext/goal/steering.rs`, consumers | `T-SHIM`, `T-CLEANUP`, `T-FINAL` | High-risk, Cross-cutting |
@@ -111,60 +119,51 @@ Reviewed 2026-07-14 against current v135 terrain, `rust-v0.136.0`,
 | --- | --- | --- | --- |
 | Recorded request evidence | The source docs answer the boundary: final model payload remains the primary live request evidence, and structured recorded request evidence from rollout/thread history is acceptable only when it represents the same logical final model request input. It is not Goal authority, cadence selection, final-input inspection, pending intent storage, or active Goal recovery. | Current v135, v136, and v139 terrain persists ordinary `RolloutItem::ResponseItem(ResponseItem)`, `Compacted`, `TurnContext`, and `EventMsg` records. v140 adds typed replay precedent through `RolloutItem::InterAgentCommunication` and moves more persistence policy responsibility toward thread-store implementations, but it still does not record Goal request commit identity. Optional rollout trace can record upstream inference requests, but it is best-effort diagnostic tracing, not normal replay state. | Design pass resolved in `goal-authority-recorded-request-evidence.md`. The resolved seam uses structured committed Goal request evidence when rollout/thread history is used as replay evidence, while durable state remains the recommended live correctness owner for pending intent and Continuation suppression. |
 
-## High-Risk Repetition To Preserve Intentionally
+## High-Risk Repeated Authority Families
 
-The following repeated clauses appear across multiple source docs and should
-not be silently collapsed during Pass 2C:
+The following repeated clauses appear across multiple source docs and must not
+be silently collapsed during Pass 2C. After Pass 2B.5, "preserve" means keep
+the full source-backed contract in the canonical owner, keep local reminders
+where a seam can directly violate the rule, and use pointer-only or
+operational/test reminders elsewhere.
 
-- Final request-input developer-role proof is repeated in the grounding truth,
-  cadence contract, final-input seam, fake-shim map, and open deliverables.
-- Pending Initial, ObjectiveUpdated, and BudgetLimit intent surviving until
-  final-input commit is repeated in cadence, durable state, idle lifecycle, and
-  final-input docs.
-- Continuation being runtime-only, idle-selected, and not any next request is
-  repeated in cadence, idle lifecycle, model-visible history key, and
-  acceptance-test sections.
-- Repair being request-local and not cadence is repeated in grounding truth,
-  primary cadence, idle lifecycle, final-input repair, and classifier docs.
-- Resume being hydration, not cadence, is repeated in grounding truth, primary
-  cadence, idle lifecycle, model-visible history key, and test prep.
-- Raw response item notifications remaining raw is repeated in grounding
-  truth, primary cadence, fake-shim removal, repair/classifier integration, and
-  test prep.
-- Extension reachability and config compatibility are repeated in ext ownership,
-  fake-shim removal, primary cadence, and test prep.
-- Current-turn carry being committed metadata, not pre-finalizer concrete model
-  input, is repeated in primary cadence, final-input, repair/classifier, idle
-  terrain, fake-shim work areas, and replacement tests.
-- Replacement testing is repeated across every contract; `T-TEST-PREP` should
-  collect the matrix, but each target contract should retain its local test
-  obligations.
+| Repeated family | Pass 2B.5 routing |
+| --- | --- |
+| Final request-input developer-role proof | Batch 1: `T-FINAL` carries proof mechanics, `T-BEHAVIOR` carries behavioral truth, local reminders stay in cadence/cleanup/extension/test prep. |
+| Pending Initial, ObjectiveUpdated, and BudgetLimit until final-input commit | Batch 1: `T-DURABLE` carries pending-intent shape, `T-FINAL` carries commit timing, cadence/idle/extension/test prep keep local reminders. |
+| Exact-key consumption | Batch 1: `T-DURABLE` carries exact-key store semantics, `T-FINAL` carries when consumption may be called, cadence/idle/test prep keep local reminders. |
+| Active durable state alone is not steering or cadence authority | Batch 1: `T-BEHAVIOR`, `T-CADENCE`, and `T-DURABLE` carry the rule at their seams; final/cleanup/idle/extension keep local reminders. |
+| Ordinary user turns are not cadence events | Batch 1: `T-CADENCE` and `T-IDLE` carry the rule; final/test prep keep local reminders. |
+| Automatic Continuation and watermarking | Batch 2: `T-IDLE` owns selection, `T-HISTORY` owns watermark comparison, and `T-FINAL` owns commit-time advancement. |
+| Resume hydration | Batch 2: `T-IDLE` owns lifecycle hydration, `T-DURABLE` owns reloaded facts/pending intent, and `T-HISTORY` owns suppression basis. |
+| Retry, follow-up, and same-turn cadence recheck metadata | Batch 2: `T-FINAL` owns retry/follow-up shaping and commit timing; `T-IDLE` owns synthetic metadata lifecycle and same-turn wake routing; same-turn metadata is not prebuilt model input. |
+| Current-turn carry | Batch 2: `T-FINAL` owns committed carry metadata; cleanup/idle/history/test prep keep local reminders that carry is not pre-finalizer concrete input. |
+| Request repair is request-local, not cadence | Batch 3: `T-CLEANUP` owns repair/classifier semantics, `T-FINAL` owns repair inside final input, and `T-CADENCE` owns the negative cadence rule. |
+| Classifier/provenance/helper output/projection are not authority | Batch 3: `T-CLEANUP` owns classifier/projection details, `T-BEHAVIOR` owns the negative rule, and `T-FINAL` owns the only authority seam. |
+| Structured recorded request evidence | Batch 3: `T-EVIDENCE` owns replay/audit metadata, `T-FINAL` owns finalized-input identity, and durable/history/cleanup/test/readiness keep local boundary reminders. |
+| Raw response item notifications remain raw | Batch 3: `T-CLEANUP` owns raw/projection distinction, evidence/test prep keep local reminders. |
+| Compaction, reconstruction, rollback, and fork | Batch 3: `T-CLEANUP` owns cleanup/reconstruction behavior, `T-HISTORY` owns key effects, `T-EVIDENCE` owns committed metadata, and `T-FINAL` owns carry/repair at final input. |
+| Extension reachability and steering-role config compatibility | Batch 4: `T-EXT` owns lifecycle/config/reachability, while behavior/cadence/durable/final/idle/shim/test prep keep local reminders. |
+| Fake-shim removal | Batch 4: `T-SHIM` owns demolition terrain; cleanup/final/extension/test prep own replacement-seam details. |
+| Replacement testing and upstream baseline | Batch 4: `T-TEST-PREP` owns prep sequence and matrix, while behavior/seam targets keep local proof obligations. |
+| Navigation, glossary, agents, and readiness surfaces | Batch 4: `NAV-README`, `GLOSSARY`, `OP-AGENTS`, and `T-READINESS` stay navigation/vocabulary/operational/handoff surfaces, not behavior engines. |
 
-## Repeated Authority Handling Prep
+## Repeated Authority Canonicalization Alignment
 
-Pass 2B should treat these as local non-negotiables that remain stated inside
-the target interfaces where the local seam can violate them:
+Use `pass2b_target_interfaces/repeated-authority-canonicalization.md` and the
+four batch files as the Pass 2C compression guide. Do not infer from this
+ledger that every repeated sentence should survive in every successor target.
 
-- final request-input developer-role proof
-- pending Initial, ObjectiveUpdated, and BudgetLimit intent surviving until
-  final-input commit
-- automatic Continuation being idle-selected and not any next request
-- request repair being request-local and not cadence
-- resume being hydration and not cadence
-- raw response item notifications remaining raw
-- extension reachability and steering-role config compatibility
-- current-turn carry being committed metadata, not pre-finalizer concrete input
+During Pass 2C:
 
-Pass 2B can canonicalize these with explicit pointers after the local
-non-negotiables above are represented:
-
-- glossary terms that define vocabulary rather than seam behavior
-- repeated navigation/doc-role prose after target interfaces replace source
-  document roles
-- operational `AGENTS.md` short-list clauses after target contracts own the
-  full behavior
-- replacement-test matrix prose, while preserving local test obligations in
-  each target contract that owns behavior
+- write canonical text in the owning target before replacing repeated source
+  prose elsewhere
+- keep a local reminder where the target seam can directly violate the rule
+- use pointer-only references where another target owns the rule and the local
+  seam cannot directly violate it
+- keep operational/test reminders short and explicitly non-authoritative
+- keep source-bounded fidelity audits for every slice even when a concept is
+  represented in this ledger or in the Pass 2B.5 workspace
 
 ## Pass 2A Notes
 

@@ -29,7 +29,8 @@ Read these documents as the stable conceptual spine:
      cadence intent, and automatic Continuation.
 
 The spine intentionally repeats some non-negotiables. Treat that repetition as
-authority reinforcement, not as an invitation to merge or weaken the clauses.
+authority reinforcement until Pass 2B.5 canonical/local/pointer routing is
+applied during Pass 2C; do not merge or weaken those clauses from memory.
 
 ## Core Through-Line
 
