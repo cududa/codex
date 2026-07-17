@@ -8,7 +8,7 @@ The topology is not a source-heading rewrite plan, not a one-to-one expansion
 of Pass 2B target keys, not an implementation execution plan, and not the
 drafting protocol.
 
-## Topology Decisions Resolved Through Packet 2
+## Settled Topology Decisions
 
 - `goal-recorded-request-evidence.md` remains standalone. The v136 route treats
   evidence as metadata-only Created-event commit/replay support, with durable
@@ -19,12 +19,12 @@ drafting protocol.
   strict when two docs claim the same behavioral decision; seam-local ownership
   still controls local details inside a support surface.
 - Current `goal-authority-*` source docs remain the source corpus for this
-  architecture pass. The Packet 2 corrections have absorbed the settled v136
-  route decisions needed for successor topology closure. Successor drafting
-  must use the corrected `goal_research` docs as standalone inputs, not route
+  architecture pass. The settled v136 route decisions needed for successor
+  topology closure have been absorbed into the corrected `goal_research` docs.
+  Successor drafting must use those local docs as standalone inputs, not route
   records as future authority.
-- Idle and history remain one lifecycle doc for 2.2 because the v136 route uses
-  one WA03 execution region, but the doc must keep idle scheduling ownership
+- Idle and history remain one lifecycle doc because the v136 route uses one
+  WA03 execution region, but the doc must keep idle scheduling ownership
   distinct from model-visible history key and watermark ownership.
 - Repair/projection boundaries are sharpened by splitting request
   repair/classification from projection/reconstruction/raw behavior. Final
@@ -88,7 +88,7 @@ Proposed working names:
 - Recorded request evidence remains a standalone successor authority surface.
 - Fake-shim demolition terrain does not remain a long-lived successor
   authority surface. Treat that terrain as separate demolition work outside
-  successor authority topology, without moving files in this topology packet.
+  successor authority topology.
 
 ## Authority Order
 
@@ -315,8 +315,8 @@ not outrank successor behavior or seam docs.
 - Behavior, cadence, durable state, and final request input remain separate
   because they answer different high-risk questions: what authority is, when it
   is due, what pending state persists, and what final payload proves it.
-- Idle and history remain one lifecycle route for 2.2 because pending work,
-  pending durable intent, automatic Continuation, resume, key projection, and
+- Idle and history remain one lifecycle route because pending work, pending
+  durable intent, automatic Continuation, resume, key projection, and
   watermarking are executed together in the v136 route. The doc must still
   make idle scheduling and history/watermark ownership separate inside it.
 - Cleanup support is split because classifier/request repair and
@@ -379,7 +379,7 @@ It is not a drafting order and does not replace source coverage checks.
 No source concept and settled route decision currently conflicts at the
 topology level. This map records how the blueprint absorbed those decisions; it
 is not future authority, a drafting order, or a requirement that successor
-readers open route-plan files.
+readers open route records.
 
 | Route record | Successor-doc reconciliation | Boundaries carried forward |
 | --- | --- | --- |
@@ -415,7 +415,7 @@ authority unless a later explicit update says so.
 | `goal-authority-open-design-deliverables.md` | Source corpus for readiness/handoff posture and consolidated-doc discipline. It does not own behavior after seam docs exist. |
 | `goal-authority-recorded-request-evidence-design-pass-handoff.md` | Provenance-only source explaining why the recorded-evidence seam exists; the recorded-evidence authority comes from the actual evidence doc and successor evidence doc. |
 | `PASS2_CONCEPT_LEDGER.md`, `PASS2_SECTION_TRACEABILITY.md`, `PASS2B_TARGET_INTERFACES.md`, and `pass2b_target_interfaces/` | Coverage, interface, and compression aids. They remain rewrite check tools, not successor authority. |
-| v136 work-area route records | Temporary reconciliation input already absorbed by the Packet 2 series. They are not successor authority, not a future dependency for successor readers, and not a drafting order. |
+| v136 work-area route records | Temporary reconciliation input already absorbed into the corrected local docs and topology blueprint. They are not successor authority, not a future dependency for successor readers, and not a drafting order. |
 
 ## Closure Status
 
@@ -429,17 +429,18 @@ authority unless a later explicit update says so.
 - The extension route is settled as adapter/runtime conversion by default; no
   ordinary facade or default `GoalService` uncertainty remains in the topology.
 - Idle/history/watermark, extension, cleanup/projection, test prep, and
-  readiness entries no longer require successor readers to open route-plan
-  files for the truths captured by Packets 2A-2D.
+  readiness entries no longer require successor readers to open route records
+  for the route decisions absorbed into the corrected local docs.
 - This blueprint does not override or supersede stale authority prose. If a
-  direct mismatch is later found, the owning 2A-2D packet must resume before
-  successor drafting.
-- Packet 3 successor drafting has not started.
+  direct mismatch is later found, correct the owning authority/support doc
+  before successor drafting.
+- Successor authority drafting has not started.
 
-## Explicit Non-Decisions For Later Sessions
+## Explicit Non-Decisions For Later Work
 
 - Source coverage, concept coverage, and traceability checks are not converted
-  into a writing order here; Session 3 must define the check method.
+  into a writing order here; the drafting protocol must define the check
+  method.
 - Drafting protocol, rewrite sequence, and successor authority prose are not
   started here.
 - Current source docs are not renamed, rehomed, deleted, or weakened by this

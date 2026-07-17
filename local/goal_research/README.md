@@ -13,16 +13,17 @@ docs remain the contracts until future successor docs replace them. For future
 successor-doc architecture design or concept-preserving rewrite planning, the
 current docs are the required source corpus and concept record; the rewrite may
 reorganize, synthesize, and compress prose as long as concepts, edge cases, and
-implementation-relevant detail are faithfully retained. The Packet 2 alignment
-series absorbed the relevant v136 route decisions into the current
-authority/support docs and topology blueprint; successor drafting should use
-those corrected local docs as standalone inputs.
+implementation-relevant detail are faithfully retained. Relevant v136 route
+decisions must be burned down from the active `TEMP_136` records into the
+current authority/support docs before successor authority drafting begins.
+Successor drafting should use the corrected local docs as standalone inputs,
+not temporary route files.
 
 Start with:
 
 1. `AGENTS.md`
-   - Local instructions, authority order, non-negotiables, and verification
-     posture.
+   - Local instructions, authority order, 136 absorption posture,
+     non-negotiables, and verification posture.
 2. `CONTEXT.md`
    - Glossary for the Goal authority domain language.
 3. `goal-authority-grounding-truth.md`
@@ -165,8 +166,29 @@ that maps every existing section to its new location. The review must check for:
 
 Future concept-preserving rewrite planning may reorganize old wording when the
 source coverage inventory is accounted for, repeated authority follows
-canonical/local/pointer/operational routing, and the Packet 2-corrected
+canonical/local/pointer/operational routing, and the corrected
 authority/support docs plus topology blueprint are used as standalone
-successor-drafting inputs. If a later packet explicitly reopens an
-implementation-route conflict, resolve that conflict before drafting instead
-of using navigation prose as an override.
+successor-drafting inputs. If a later source/route conflict is identified,
+resolve that conflict before drafting instead of using navigation prose as an
+override.
+
+## 136 Absorption Before Successor Drafting
+
+The immediate pre-drafting work is a burn-down integration pass over the active
+`TEMP_136` records:
+
+- `TEMP_136_ROUTE_DECISION_INVENTORY.md`
+- `TEMP_136_AUTHORITY_ALIGNMENT_PACKETS.md`
+
+Use these records as the controlling source for settled v136 route decisions
+during absorption. The task is not to create a separate audit log. The task is
+to update the owning current `goal_research` authority/support docs so the
+route decisions live in the local docs that successor drafting will read.
+
+When `TEMP_136` and existing `goal_research` prose differ, use `TEMP_136` if
+it preserves the underlying Goal concept and represents the latest researched
+v136 route. Stop only for a true source/route conflict, such as a route
+decision that would drop, invert, or weaken an existing Goal concept.
+
+After the `TEMP_136` burn-down is complete, use
+`SUCCESSOR_DOC_DRAFTING_PROTOCOL.md` to start successor authority drafting.
