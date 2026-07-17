@@ -33,6 +33,12 @@ It consolidates the previous cadence-module, finalizer/commit, and
 context helper layer. The replacement is per-attempt ownership of the actual
 model request input.
 
+In the v136 route, this ownership belongs in a private
+`core/src/goal_cadence/` module directory. That module owns final request-input
+shaping, cleanup decisions for the request, selected developer-role Goal item
+construction, commit metadata, committed carry, and Continuation commit
+support. `goals.rs` remains adapter and prompt-body terrain.
+
 ## Code Terrain
 
 The actual model request path is:
@@ -413,6 +419,10 @@ It must not own:
 - pending-intent selection for a request attempt
 - Continuation watermark policy
 - pre-shaper concrete Goal item injection as authority
+
+Those final-input responsibilities belong to the private
+`core/src/goal_cadence/` route or an equivalent narrowly scoped cadence module,
+not to `goals.rs` as a service object or request-input owner.
 
 ## Tests
 

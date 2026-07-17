@@ -44,8 +44,9 @@ User authority:
 - The topology blueprint controls the proposed successor doc list,
   control/conflict order, ownership boundaries, routing, and reconciliation
   posture.
-- `TEMP_136_ROUTE_DECISION_INVENTORY.md` is reconciliation/provenance input,
-  not future authority for successor readers.
+- Temporary route inventory is optional reconciliation/provenance input only
+  when a conflict or missing represented route decision is suspected, not
+  future authority for successor readers.
 - If a route decision needed for drafting is not represented in corrected
   local source docs or the topology blueprint, stop and name the missing owner
   or conflict. Do not make successor docs depend on temporary route inventory.
@@ -91,7 +92,6 @@ Read first:
 - local/goal_research/SUCCESSOR_DOC_TOPOLOGY_BLUEPRINT.md
 - local/goal_research/PASS2_CONCEPT_LEDGER.md
 - local/goal_research/PASS2_SECTION_TRACEABILITY.md
-- local/goal_research/TEMP_136_ROUTE_DECISION_INVENTORY.md
 
 Target output:
 - Create local/goal_research/SUCCESSOR_DOC_DRAFTING_PROTOCOL.md
@@ -100,8 +100,9 @@ Fill only:
 - Purpose and scope of the drafting protocol.
 - Drafting order for the successor docs listed in the topology blueprint.
 - Required inputs for each successor doc.
-- Route-inventory intake rule:
-  - use route inventory only as reconciliation/provenance
+- Optional route-provenance check:
+  - use temporary route provenance only if a conflict or missing represented
+    route decision is suspected and a provenance copy is available
   - require successor prose to stand on corrected local docs and topology
   - stop if a needed route decision is not represented in corrected local docs
     or the topology blueprint
@@ -208,14 +209,12 @@ Read first:
 - local/goal_research/SUCCESSOR_DOC_TOPOLOGY_BLUEPRINT.md
 - local/goal_research/PASS2_CONCEPT_LEDGER.md
 - local/goal_research/PASS2_SECTION_TRACEABILITY.md
-- local/goal_research/TEMP_136_ROUTE_DECISION_INVENTORY.md
-- local/goal_136_plan/work-areas/implementation-route-index.md
 
 Use targeted reads as needed:
-- relevant local/goal_136_plan/work-areas route docs only when a drafting
-  review check needs implementation-shaped detail not clear from the corrected
-  local docs, topology blueprint, or route inventory.
 - repeated-authority batch files only when reviewing compression risks.
+- optional temporary provenance only if a source/route conflict or missing
+  represented route decision is suspected and a provenance copy is available.
+  Do not make successor drafting depend on route-plan files.
 
 Target output:
 - Update local/goal_research/SUCCESSOR_DOC_DRAFTING_PROTOCOL.md

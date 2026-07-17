@@ -19,7 +19,7 @@ This protocol covers Sessions 3.1 through 3.3:
 
 - drafting order
 - per-doc required inputs
-- route-inventory intake rule
+- optional route-provenance check
 - stop conditions
 - concept coverage checks
 - traceability and source-coverage checks
@@ -38,17 +38,28 @@ Every successor doc uses these common inputs:
 - `SUCCESSOR_DOC_TOPOLOGY_BLUEPRINT.md`
 - `PASS2_CONCEPT_LEDGER.md`
 - `PASS2_SECTION_TRACEABILITY.md`
+- `PASS2B_TARGET_INTERFACES.md`
+- `pass2b_target_interfaces/` repeated-authority and packet guidance as
+  coverage, interface, and compression check inputs
 - corrected current `goal_research` source docs for the doc's owned concepts
-- `TEMP_136_ROUTE_DECISION_INVENTORY.md` as reconciliation/provenance input
-  only
-- `local/goal_136_plan/work-areas/implementation-route-index.md` as execution
-  route context only
+- represented v136 route decisions already absorbed into corrected local docs
+  and the topology blueprint
 
 The topology blueprint is the active design input for the successor doc list,
 ownership boundaries, source-corpus treatment, route reconciliation, and
 container posture. The concept ledger and traceability inventory are coverage
-inputs, not a writing order. The work-area route index is implementation
-sequence context, not drafting order, authority order, or prose order.
+inputs, not a writing order. Pass 2B target-interface artifacts and packet
+workspaces are interface, repeated-authority, compression, and coverage aids;
+they do not dictate successor doc boundaries or prose order. Absorbed v136
+decisions are checked through the corrected local docs and topology blueprint,
+not by reopening route-plan files as drafting inputs. If a Pass 2B artifact
+still says future rewrite planning should read route-plan files, treat that as
+pre-absorption process shape and confirm the represented decision through the
+corrected local docs or topology blueprint instead.
+`TEMP_136_ROUTE_DECISION_INVENTORY.md` is not a required common input for
+every successor doc. Use it only as optional provenance if a source/route
+conflict or missing represented route decision is suspected and a provenance
+copy is available.
 
 ## Drafting Order
 
@@ -94,17 +105,17 @@ control/conflict order.
 
 | Successor doc | Required source inputs |
 | --- | --- |
-| `goal-authority-behavior.md` | Topology ownership skeleton and canonical/local/pointer routing; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-final-request-input-and-commit.md`; relevant behavior rows in `PASS2_CONCEPT_LEDGER.md` and `PASS2_SECTION_TRACEABILITY.md`; route-inventory decisions for active authority and final request input. |
-| `goal-cadence-contract.md` | Topology ownership skeleton and routing rows for cadence, ordinary user turns, pending intent, and active-state negatives; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-durable-cadence-state.md`; `goal-authority-idle-continuation-contract.md`; `goal-authority-final-request-input-and-commit.md`; cadence rows in the ledger and traceability inventory; route-inventory decisions for durable intent, idle stage order, same-turn metadata, and test proof. |
-| `goal-durable-state-and-pending-intent.md` | Topology ownership skeleton and route reconciliation for WA01 and WA03 watermark storage; `goal-authority-durable-cadence-state.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-model-visible-history-key.md`; `goal-authority-recorded-request-evidence.md`; durable-state rows in the ledger and traceability inventory; route-inventory decisions for facts version, pending intent, exact-key consumption, state non-ownership, and state-owned Continuation suppression. |
-| `goal-final-request-input.md` | Topology ownership skeleton and routing rows for final-input proof, commit, carry, evidence metadata, classifier cleanup, and extension non-ownership; `goal-authority-final-request-input-and-commit.md`; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-durable-cadence-state.md`; `goal-authority-idle-continuation-contract.md`; `goal-authority-model-visible-history-key.md`; `goal-authority-recorded-request-evidence.md`; `goal-authority-repair-classifier-integration.md`; final-input rows in the ledger and traceability inventory; route-inventory decisions for shaping, Created commit, committed carry, and metadata-only request lifecycle. |
-| `goal-idle-history-lifecycle.md` | Topology ownership skeleton and WA03 reconciliation; `goal-authority-idle-continuation-contract.md`; `goal-authority-model-visible-history-key.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-durable-cadence-state.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-recorded-request-evidence.md`; idle/history rows in the ledger and traceability inventory; route-inventory decisions for idle ordering, `GoalTurnRequest` metadata, model-visible history key, state-owned watermark, resume hydration, stale synthetic abort, retry, and carry boundaries. |
-| `goal-recorded-request-evidence.md` | Topology ownership skeleton and recorded-evidence routing row; `goal-authority-recorded-request-evidence.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-idle-continuation-contract.md`; `goal-authority-model-visible-history-key.md`; `goal-authority-repair-classifier-integration.md`; `goal-authority-recorded-request-evidence-design-pass-handoff.md` as provenance only; evidence rows in the ledger and traceability inventory; route-inventory decisions for Created-event metadata, exact attempt/fingerprint shape, paired-write boundaries, and metadata-only replay/audit limits. |
-| `goal-request-repair-and-artifact-classification.md` | Topology ownership skeleton and cleanup/classifier routing rows; `goal-authority-repair-classifier-integration.md`; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-fake-shim-removal-map.md`; classifier and repair rows in the ledger and traceability inventory; route-inventory decisions for generic internal-context helpers, classifier purity, request cleanup, and non-authority helper output. |
-| `goal-projection-reconstruction-and-raw-history.md` | Topology ownership skeleton and projection/raw/reconstruction routing rows; `goal-authority-repair-classifier-integration.md`; `goal-authority-fake-shim-removal-map.md`; `goal-authority-recorded-request-evidence.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-model-visible-history-key.md`; `goal-test-deletion-map.md` for raw/test posture only; projection, raw, compaction, reconstruction, rollback, fork, and legacy artifact rows in the ledger and traceability inventory; route-inventory decisions for typed/materialized hiding, raw remaining raw, concrete-carry removal, and no rendered-text reconstruction. |
-| `goal-extension-lifecycle-and-reachability.md` | Topology ownership skeleton and WA04 reconciliation; `goal-authority-ext-goal-ownership.md`; `goal-authority-durable-cadence-state.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-idle-continuation-contract.md`; `goal-authority-fake-shim-removal-map.md`; `goal-test-deletion-map.md` for extension baseline caveats only; extension rows in the ledger and traceability inventory; route-inventory decisions for adapter/runtime conversion, blocker-only facade, app-server/core ordering, metadata/wake outcomes, steering-role compatibility removal, and extension proof route. |
-| `goal-test-prep-and-replacement-proof.md` | Topology ownership skeleton, operational/test reminder routing, and WA00/WA06 reconciliation; `goal-test-deletion-map.md`; `goal-authority-grounding-truth.md` acceptance standard; `goal-authority-primary-cadence-contract.md` verification clauses; `goal-authority-final-request-input-and-commit.md` tests; `goal-authority-idle-continuation-contract.md` tests; `goal-authority-model-visible-history-key.md` tests; `goal-authority-recorded-request-evidence.md` tests; `goal-authority-repair-classifier-integration.md` tests; `goal-authority-ext-goal-ownership.md` tests; `goal-authority-open-design-deliverables.md` for readiness boundary only; test-prep rows in the ledger and traceability inventory; route-inventory decisions for false-compatibility deletion, upstream baseline, replacement proof layers, and final audit gates as review gates. |
-| `goal-readiness-and-execution-handoff.md` | Topology ownership skeleton and WA06/readiness reconciliation; `goal-authority-open-design-deliverables.md`; `AGENTS.md`; `README.md`; `SUCCESSOR_DOC_ARCHITECTURE_REQUIREMENTS.md`; `SUCCESSOR_DOC_TOPOLOGY_BLUEPRINT.md`; `goal-test-deletion-map.md` for handoff proof posture only; readiness rows in the ledger and traceability inventory; route-inventory decisions for route index as execution order only, standalone successor posture, fake-shim demolition as separate terrain, and WA06 as cleanup/acceptance only. |
+| `goal-authority-behavior.md` | Topology ownership skeleton and canonical/local/pointer routing; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-final-request-input-and-commit.md`; relevant behavior rows in `PASS2_CONCEPT_LEDGER.md` and `PASS2_SECTION_TRACEABILITY.md`; represented v136 route decisions for active authority and final request input. |
+| `goal-cadence-contract.md` | Topology ownership skeleton and routing rows for cadence, ordinary user turns, pending intent, and active-state negatives; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-durable-cadence-state.md`; `goal-authority-idle-continuation-contract.md`; `goal-authority-final-request-input-and-commit.md`; cadence rows in the ledger and traceability inventory; represented v136 route decisions for durable intent, idle stage order, same-turn metadata, and test proof. |
+| `goal-durable-state-and-pending-intent.md` | Topology ownership skeleton and route reconciliation for WA01 and WA03 watermark storage; `goal-authority-durable-cadence-state.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-model-visible-history-key.md`; `goal-authority-recorded-request-evidence.md`; durable-state rows in the ledger and traceability inventory; represented v136 route decisions for facts version, pending intent, exact-key consumption, state non-ownership, and state-owned Continuation suppression. |
+| `goal-final-request-input.md` | Topology ownership skeleton and routing rows for final-input proof, commit, carry, evidence metadata, classifier cleanup, and extension non-ownership; `goal-authority-final-request-input-and-commit.md`; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-durable-cadence-state.md`; `goal-authority-idle-continuation-contract.md`; `goal-authority-model-visible-history-key.md`; `goal-authority-recorded-request-evidence.md`; `goal-authority-repair-classifier-integration.md`; final-input rows in the ledger and traceability inventory; represented v136 route decisions for shaping, Created commit, committed carry, and metadata-only request lifecycle. |
+| `goal-idle-history-lifecycle.md` | Topology ownership skeleton and WA03 reconciliation; `goal-authority-idle-continuation-contract.md`; `goal-authority-model-visible-history-key.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-durable-cadence-state.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-recorded-request-evidence.md`; idle/history rows in the ledger and traceability inventory; represented v136 route decisions for idle ordering, `GoalTurnRequest` metadata, model-visible history key, state-owned watermark, resume hydration, stale synthetic abort, retry, and carry boundaries. |
+| `goal-recorded-request-evidence.md` | Topology ownership skeleton and recorded-evidence routing row; `goal-authority-recorded-request-evidence.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-idle-continuation-contract.md`; `goal-authority-model-visible-history-key.md`; `goal-authority-repair-classifier-integration.md`; `goal-authority-recorded-request-evidence-design-pass-handoff.md` as provenance only; evidence rows in the ledger and traceability inventory; represented v136 route decisions for Created-event metadata, exact attempt/fingerprint shape, paired-write boundaries, and metadata-only replay/audit limits. |
+| `goal-request-repair-and-artifact-classification.md` | Topology ownership skeleton and cleanup/classifier routing rows; `goal-authority-repair-classifier-integration.md`; `goal-authority-grounding-truth.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-fake-shim-removal-map.md`; classifier and repair rows in the ledger and traceability inventory; represented v136 route decisions for generic internal-context helpers, classifier purity, request cleanup, and non-authority helper output. |
+| `goal-projection-reconstruction-and-raw-history.md` | Topology ownership skeleton and projection/raw/reconstruction routing rows; `goal-authority-repair-classifier-integration.md`; `goal-authority-fake-shim-removal-map.md`; `goal-authority-recorded-request-evidence.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-model-visible-history-key.md`; `goal-test-deletion-map.md` for raw/test posture only; projection, raw, compaction, reconstruction, rollback, fork, and legacy artifact rows in the ledger and traceability inventory; represented v136 route decisions for typed/materialized hiding, raw remaining raw, concrete-carry removal, and no rendered-text reconstruction. |
+| `goal-extension-lifecycle-and-reachability.md` | Topology ownership skeleton and WA04 reconciliation; `goal-authority-ext-goal-ownership.md`; `goal-authority-durable-cadence-state.md`; `goal-authority-primary-cadence-contract.md`; `goal-authority-final-request-input-and-commit.md`; `goal-authority-idle-continuation-contract.md`; `goal-authority-fake-shim-removal-map.md`; `goal-test-deletion-map.md` for extension baseline caveats only; extension rows in the ledger and traceability inventory; represented v136 route decisions for adapter/runtime conversion, blocker-only facade, app-server/core ordering, metadata/wake outcomes, steering-role compatibility removal, and extension proof route. |
+| `goal-test-prep-and-replacement-proof.md` | Topology ownership skeleton, operational/test reminder routing, and WA00/WA06 reconciliation; `goal-test-deletion-map.md`; `goal-authority-grounding-truth.md` acceptance standard; `goal-authority-primary-cadence-contract.md` verification clauses; `goal-authority-final-request-input-and-commit.md` tests; `goal-authority-idle-continuation-contract.md` tests; `goal-authority-model-visible-history-key.md` tests; `goal-authority-recorded-request-evidence.md` tests; `goal-authority-repair-classifier-integration.md` tests; `goal-authority-ext-goal-ownership.md` tests; `goal-authority-open-design-deliverables.md` for readiness boundary only; test-prep rows in the ledger and traceability inventory; represented v136 route decisions for false-compatibility deletion, upstream baseline, replacement proof layers, and final audit gates as review gates. |
+| `goal-readiness-and-execution-handoff.md` | Topology ownership skeleton and WA06/readiness reconciliation; `goal-authority-open-design-deliverables.md`; `AGENTS.md`; `README.md`; `SUCCESSOR_DOC_ARCHITECTURE_REQUIREMENTS.md`; `SUCCESSOR_DOC_TOPOLOGY_BLUEPRINT.md`; `goal-test-deletion-map.md` for handoff proof posture only; readiness rows in the ledger and traceability inventory; represented v136 route decisions for route index as execution order only, standalone successor posture, fake-shim demolition as separate terrain, and WA06 as cleanup/acceptance only. |
 
 ## Concept Coverage Checklist
 
@@ -244,8 +255,8 @@ traceability, and compression checks.
   them part of the contract.
 - Omitted edge case, caveat, exception, or negative rule: preserve the
   non-obvious cases called out by traceability `Review debt`, ledger
-  `High-risk`, repeated-authority batches, and the route inventory. Do not
-  compress them into generic statements.
+  `High-risk`, repeated-authority batches, and represented v136 route
+  decisions. Do not compress them into generic statements.
 - Source coverage gap: every relevant current source section is accounted for
   by the traceability method. A row marked `Leave` must remain in the correct
   container, and a split row must name the local portion without absorbing
@@ -258,11 +269,14 @@ Review findings must name exact files and sections. Small fixes inside the
 draft are allowed during the drafting session; topology gaps, missing owners,
 or source/route conflicts stop the affected doc.
 
-## Route-Inventory Intake Rule
+## Optional Route Provenance Check
 
-Use `TEMP_136_ROUTE_DECISION_INVENTORY.md` only to verify that settled v136
-route decisions have already been absorbed into corrected local source docs
-and the accepted topology blueprint.
+`TEMP_136_ROUTE_DECISION_INVENTORY.md` is not a required common input for
+successor drafting. If a source/route conflict or missing represented route
+decision is suspected and a provenance copy is available, use the temporary
+inventory only to verify whether settled v136 route decisions have already
+been absorbed into corrected local source docs and the accepted topology
+blueprint.
 
 Successor prose must stand on corrected local `goal_research` docs and the
 topology blueprint. It must not cite `TEMP_136_ROUTE_DECISION_INVENTORY.md`,
@@ -276,15 +290,18 @@ temporary inventory.
 
 If the temporary route inventory appears to conflict with a corrected local
 source doc or the topology blueprint, stop and name the exact source section
-and route-inventory decision before drafting.
+and temporary route decision before drafting.
 
 ## Work-Area Reconciliation Review
 
 Use the topology blueprint's settled route reconciliation map as the primary
-work-area routing guide. Use `TEMP_136_ROUTE_DECISION_INVENTORY.md` to check
-provenance and coverage. Use `implementation-route-index.md` only to
-understand implementation pass grouping; do not let its order become drafting
-order, authority order, or prose structure.
+work-area routing guide. Use corrected current docs as the source inputs for
+settled v136 decisions. Use `TEMP_136_ROUTE_DECISION_INVENTORY.md` only as
+optional provenance when a source/route conflict or missing represented route
+decision is suspected and a provenance copy is available. Use
+`implementation-route-index.md` only to understand implementation pass
+grouping; do not let its order become drafting order, authority order, or
+prose structure.
 
 For each successor doc draft:
 

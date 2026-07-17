@@ -108,12 +108,14 @@ model-context path.
 recognized for cleanup or projection hiding only. It must not recover active
 Goal state, decide cadence, or create new active steering.
 
-**Generic internal context** - Source-tagged internal text infrastructure that
-may render and classify internal context and support projection cleanup. It can
-identify provenance, but it is not an authority mechanism by itself.
+**Generic internal context** - Source-tagged internal text infrastructure,
+such as `<codex_internal_context source="goal">...</codex_internal_context>`,
+that may render and classify internal context and support projection cleanup.
+It can identify provenance, but it is not an authority mechanism by itself.
 
-**Pure item** - A model item that wholly consists of one recognized internal or
-legacy representation, with no mixed visible prose.
+**Pure item** - A model item, normally a whole message with one text content
+item, that wholly consists of one recognized internal or legacy representation,
+with no mixed visible prose.
 
 **Mixed or ordinary item** - A model item containing ordinary prose or a mix of
 ordinary prose and marker-like text. It must remain visible ordinary content and

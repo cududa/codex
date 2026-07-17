@@ -38,26 +38,26 @@ plan.
 
 ## 136 Absorption Posture
 
-Before successor authority docs are drafted, burn down the active `TEMP_136`
-integration records into the current `goal_research` authority/support docs
-and topology/protocol artifacts as needed:
+The v136 burn-down is tracked by `TEMP_136_ABSORPTION_POINTER.md` while an
+absorption list is active. When that pointer is complete, successor drafting
+starts from `SUCCESSOR_DOC_DRAFTING_PROTOCOL.md`, the corrected current
+`goal_research` docs, and the topology/protocol artifacts as standalone
+inputs.
 
-- `TEMP_136_ROUTE_DECISION_INVENTORY.md`
-- `TEMP_136_AUTHORITY_ALIGNMENT_PACKETS.md`
+Temporary v136 provenance records, including
+`TEMP_136_ROUTE_DECISION_INVENTORY.md` and
+`TEMP_136_AUTHORITY_ALIGNMENT_PACKETS.md` if present in a working copy, are
+not required drafting inputs for every successor doc. Consult them only as
+optional provenance when a source/route conflict or missing represented route
+decision is suspected. Do not create a separate audit-log layer or make future
+successor readers depend on temporary files. Rely on the owning current
+`goal_research` docs directly so the local docs stand on their own.
 
-For that absorption work, these `TEMP_136` records are the controlling route
-source for settled v136 decisions. Do not create a separate audit-log layer or
-make future successor readers depend on temporary files. Update the owning
-current `goal_research` docs directly so the local docs stand on their own.
-
-If a `TEMP_136` decision and existing `goal_research` prose differ, the
-`TEMP_136` decision wins when it preserves the underlying Goal concept and
-represents the latest researched v136 route. If applying a `TEMP_136` decision
-would drop, invert, or weaken a current source concept, stop and name the
+If a temporary v136 decision appears to differ from existing `goal_research`
+prose, use it only when it preserves the underlying Goal concept and
+represents the latest researched v136 route. If applying the decision would
+drop, invert, or weaken a current source concept, stop and name the
 source/route conflict instead of guessing.
-
-After the `TEMP_136` integration list is burned down, the successor drafting
-protocol is the route into actual successor-doc drafting.
 
 Before editing docs or implementing Goal authority work, read the applicable
 files directly top to bottom. Do not rely on grep-only scans for these docs.

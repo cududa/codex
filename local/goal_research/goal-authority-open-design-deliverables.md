@@ -220,11 +220,15 @@ Status: Ready.
 Readiness assessment: this artifact satisfies the requirements below. It
 inspects local and `rust-v0.136.0` extension terrain, defines extension
 ownership limits, requires reachable extension steering to route through shared
-final request-input shaping, rejects user-role active steering compatibility,
-and names file-specific work areas and tests.
+final request-input shaping, selects adapter/runtime conversion as the v136
+default, keeps app-server Goal mutation on the product processor path through
+cadence-aware state plus metadata-only wake/recheck adapters, limits any thin
+facade to a blocker-triggered follow-up, rejects user-role active steering
+compatibility, and names file-specific work areas and tests.
 
-Remaining execution-plan work: decide exact adapter APIs, remove or convert
-the concrete injection call chain, and map extension tests to specific files.
+Remaining execution-plan work: name the exact adapter APIs for the selected
+route, remove or convert the concrete injection call chain, and map extension
+tests to specific files.
 
 It must inspect upstream and local code before deciding whether extension code:
 

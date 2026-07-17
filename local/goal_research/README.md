@@ -14,10 +14,10 @@ successor-doc architecture design or concept-preserving rewrite planning, the
 current docs are the required source corpus and concept record; the rewrite may
 reorganize, synthesize, and compress prose as long as concepts, edge cases, and
 implementation-relevant detail are faithfully retained. Relevant v136 route
-decisions must be burned down from the active `TEMP_136` records into the
-current authority/support docs before successor authority drafting begins.
-Successor drafting should use the corrected local docs as standalone inputs,
-not temporary route files.
+decisions are tracked by `TEMP_136_ABSORPTION_POINTER.md` while burn-down is
+active. When the pointer is complete, successor drafting uses
+`SUCCESSOR_DOC_DRAFTING_PROTOCOL.md` and the corrected local docs as
+standalone inputs, not temporary route files.
 
 Start with:
 
@@ -174,21 +174,16 @@ override.
 
 ## 136 Absorption Before Successor Drafting
 
-The immediate pre-drafting work is a burn-down integration pass over the active
-`TEMP_136` records:
+The immediate pre-drafting burn-down is tracked by
+`TEMP_136_ABSORPTION_POINTER.md`. When the pointer has an active batch, use it
+to identify the route decisions still being absorbed into the owning current
+`goal_research` authority/support docs.
 
-- `TEMP_136_ROUTE_DECISION_INVENTORY.md`
-- `TEMP_136_AUTHORITY_ALIGNMENT_PACKETS.md`
-
-Use these records as the controlling source for settled v136 route decisions
-during absorption. The task is not to create a separate audit log. The task is
-to update the owning current `goal_research` authority/support docs so the
-route decisions live in the local docs that successor drafting will read.
-
-When `TEMP_136` and existing `goal_research` prose differ, use `TEMP_136` if
-it preserves the underlying Goal concept and represents the latest researched
-v136 route. Stop only for a true source/route conflict, such as a route
-decision that would drop, invert, or weaken an existing Goal concept.
-
-After the `TEMP_136` burn-down is complete, use
-`SUCCESSOR_DOC_DRAFTING_PROTOCOL.md` to start successor authority drafting.
+When the pointer is complete, use `SUCCESSOR_DOC_DRAFTING_PROTOCOL.md`, the
+corrected current docs, and the topology/protocol artifacts to start successor
+authority drafting. Temporary v136 provenance records, including
+`TEMP_136_ROUTE_DECISION_INVENTORY.md` and
+`TEMP_136_AUTHORITY_ALIGNMENT_PACKETS.md` if present in a working copy, are
+optional provenance only when a source/route conflict or missing represented
+route decision is suspected. They are not common inputs for every successor
+doc, and future successor readers must not depend on them.

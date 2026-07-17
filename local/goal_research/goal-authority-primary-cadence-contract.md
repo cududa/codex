@@ -126,7 +126,8 @@ PendingGoalSteeringIntent {
   thread_id,
   goal_id,
   kind: Initial | ObjectiveUpdated | BudgetLimit,
-  durable_facts_version: goal.updated_at_ms or equivalent facts fingerprint,
+  durable_facts_version: monotonic facts_version or equivalent explicit
+    durable facts identity,
   created_at_ms,
 }
 ```
@@ -644,9 +645,14 @@ These classifiers are not authority predicates. Current Goal authority still
 requires final model request input proof that exactly one current Goal item is
 present as outer developer-role model input.
 
-The classifiers must require whole-message purity. A mixed ordinary
-user/developer message must not be hidden, dropped, deduplicated, or treated as
-Goal authority merely because it contains a marker-like substring.
+The classifiers must require whole-message purity: a pure item is a whole
+`ResponseItem::Message` with exactly one text content item whose text wholly
+matches the current internal-context representation or legacy
+`<goal_context>` representation after trimming outer whitespace. A mixed
+ordinary user/developer message must not be hidden, dropped, deduplicated, or
+treated as Goal authority merely because it contains a marker-like substring.
+The classifier API must not expose a `has_current_goal_authority`-style
+predicate; authority proof remains final request-input proof.
 
 Generic internal-context infrastructure owns:
 
@@ -662,8 +668,9 @@ Goal-specific code owns:
 - steering kind selection
 - prompt rendering
 - objective escaping
-- final request-input Goal shaping and commit metadata, or a narrowly named
-  cadence module that owns those responsibilities on Goal's behalf
+- final request-input Goal shaping and commit metadata through the private
+  `core/src/goal_cadence/` route, or an equivalent narrowly named cadence
+  module that owns those responsibilities on Goal's behalf
 
 Legacy Goal artifact code owns only:
 

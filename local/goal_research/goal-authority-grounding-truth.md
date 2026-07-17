@@ -63,6 +63,12 @@ Generic internal context may be used to render the Goal text and identify
 Goal-only active context path is deletion terrain for active Goal steering, not
 an architecture to preserve, keep in place, or design around.
 
+The current source-tagged helper representation may be text shaped like
+`<codex_internal_context source="goal">...</codex_internal_context>`. Validating,
+rendering, parsing, or classifying that wrapper is helper infrastructure only;
+it does not construct active Goal `ResponseItem`s, select cadence, or prove
+authority.
+
 Expected shape:
 
 ```rust
