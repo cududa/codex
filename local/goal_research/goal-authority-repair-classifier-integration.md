@@ -106,6 +106,18 @@ context representation. It is not authority unless final request input also
 contains the selected item as an outer developer-role message matching current
 durable Goal facts.
 
+The source-tagged internal-context helper exists only to render and parse
+helper text such as:
+
+```text
+<codex_internal_context source="goal">...</codex_internal_context>
+```
+
+That helper may validate the source, render the text wrapper, and recognize
+pure internal-context text. It must not construct active Goal `ResponseItem`s,
+select cadence, consume pending intent, advance watermarks, write evidence, or
+prove authority.
+
 `LegacyGoalContextArtifact` identifies old pure `<goal_context>` messages for
 cleanup and projection only.
 
@@ -149,8 +161,10 @@ Classifiers must not:
 - consume pending cadence intent
 - advance Continuation suppression
 - infer active Goal state
+- construct active Goal model input
 - parse rendered objective text
 - create durable Goal facts
+- write or infer recorded request evidence
 
 ## Event Mapping And Typed Projection
 
@@ -210,9 +224,12 @@ Required behavior:
   they are not the selected current cadence item for the final request
 - mid-turn compaction preserves only committed Goal carry metadata for an item
   already included in final request input
-- compaction must not carry pre-finalizer concrete Goal `ResponseInputItem`s as
+- compaction must not carry pre-shaper concrete Goal `ResponseInputItem`s as
   authority
 - compaction must not turn active durable Goal state alone into a new Goal item
+- compaction must not synthesize Goal steering, pending intent, recorded
+  request evidence, current objective, durable facts, or Continuation
+  watermarks from cleanup output or rendered text
 
 Compaction repair of a cadence-required Goal item is request-local unless
 structured reconstruction proves a previously recorded cadence item was lost.
@@ -231,8 +248,12 @@ Required behavior:
 - filter or deduplicate pure current Goal internal-context items according to
   final request-input repair rules
 - preserve mixed ordinary messages
-- never reconstruct active Goal facts, pending cadence intent, or current
-  objective text by parsing rendered Goal artifacts
+- never reconstruct active Goal facts, pending cadence intent, current
+  objective text, recorded evidence, committed carry metadata, or Continuation
+  watermarks by parsing rendered Goal artifacts
+- ordinary rollout `ResponseItem`s, rollout trace payloads, raw notifications,
+  classifier matches, and rendered Goal text are not substitutes for
+  structured committed Goal request evidence
 - if structured committed Goal request evidence records that a cadence item was
   committed and later lost, repair may reconstruct that recorded item
   according to the cadence contract and the evidence fingerprint rules
@@ -247,6 +268,8 @@ Files:
 Required behavior:
 
 - raw response item notifications remain raw
+- raw notifications emit actual Goal-looking `ResponseItem`s unchanged,
+  including pure current, pure legacy, and mixed Goal-looking items
 - do not suppress current Goal internal-context raw items specially
 - do not suppress legacy `<goal_context>` raw items specially unless the
   general raw-response contract changes for all hidden/internal items
@@ -266,6 +289,7 @@ generic internal-context code:
   current internal-context rendering
   pure internal-context parsing
   source extraction
+  no active model-input construction or cadence authority
 
 legacy Goal artifact code:
   pure `<goal_context>` detection only
@@ -295,6 +319,11 @@ Focused tests must prove:
 - typed/materialized projections hide pure current and legacy Goal items
 - raw response item notifications emit Goal items unchanged
 - compaction filters pure legacy artifacts without creating Goal steering
+- compaction no longer carries pre-shaper concrete Goal input as authority
 - rollout reconstruction filters pure legacy artifacts without recovering Goal
-  state
+  state, pending intent, objective text, evidence, or watermarks from rendered
+  text
+- reconstruction rejects ordinary rollout items, rollout trace payloads, raw
+  notifications, classifier matches, and rendered Goal text as evidence
+  substitutes
 - current-turn carry contains committed metadata, not prebuilt model input

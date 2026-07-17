@@ -35,8 +35,9 @@ automatic Continuation for the same active Goal and durable facts version?
 ```
 
 It is not Goal authority. It does not decide Initial, ObjectiveUpdated, or
-BudgetLimit delivery. It does not consume pending intent. It is runtime
-accounting support for `MaybeContinueIfIdle`.
+BudgetLimit delivery. It does not consume pending intent. It is suppression
+accounting support for `MaybeContinueIfIdle`, whose default live correctness
+record is state-owned or equivalently durable/reconstructable.
 
 ## Code Terrain
 
@@ -140,7 +141,7 @@ Logical order:
 base prompt input for this attempt
   -> classify and ignore Goal-only cleanup items for key purposes
   -> compute model_visible_history_key from eligible progress projection
-  -> select pending durable intent or runtime Continuation
+  -> select pending durable intent or automatic Continuation request metadata
   -> insert or verify selected developer-role Goal item when due
 ```
 
@@ -148,7 +149,7 @@ The selected Goal item must not feed the key for the same request. In
 particular, a Continuation steering item must not become the history change
 that permits another automatic Continuation.
 
-## Runtime Watermark
+## Continuation Suppression Record
 
 Automatic Continuation suppression compares:
 
@@ -186,7 +187,9 @@ automatic Continuation when eligible history and durable Goal facts are
 unchanged.
 
 The implementation must persist or reconstruct the latest committed automatic
-Continuation suppression triple.
+Continuation suppression triple. The default is a state-owned latest automatic
+Continuation watermark, or an equivalent durable/reconstructable record with
+the same failure semantics.
 
 Acceptable storage shape:
 
@@ -202,8 +205,9 @@ CREATE TABLE thread_goal_continuation_watermarks (
 );
 ```
 
-This is not persisted pending cadence intent. It records that a Continuation
-already reached model execution for a specific history/facts key.
+This is not persisted pending cadence intent and is not recorded-request
+evidence. It records that a Continuation already reached model execution for a
+specific history/facts key.
 
 An equivalent rollout-derived implementation is acceptable only if it records
 structured committed Continuation metadata through the evidence seam in

@@ -97,6 +97,8 @@ contracts replace.
   - `resumed_active_goal_emits_initial_steering_independent_of_resumed_metric`
   - `late_goal_steering_injection_is_not_persisted_unsampled`
   - `configured_goal_objective_limit_allows_longer_goals`
+- `codex-rs/core/src/goals.rs`
+  - `goal_steering_message_uses_configured_role_for_all_kinds`
 
 Replacement coverage comes later:
 
@@ -104,6 +106,9 @@ Replacement coverage comes later:
 - pending durable cadence intent surviving unavailable or rejected same-turn
   cadence recheck
 - upstream objective limit behavior from the command/validation baseline
+- active Goal role compatibility cannot make final payload steering user-role
+- no replacement test accepts active `<goal_context>` or pre-shaper concrete
+  Goal input as authority
 
 ## Delete Local-Only App-Server Steering Overlay
 
@@ -158,6 +163,8 @@ return Goal tests to the `rust-v0.136.0` baseline. Do not delete the upstream
 Goal product tests from these files.
 
 - `codex-rs/core/src/session/tests.rs`
+- `codex-rs/core/src/goals.rs`
+- `codex-rs/core/src/config/config_tests.rs`
 - `codex-rs/app-server/tests/suite/v2/thread_resume.rs`
 - `codex-rs/tui/src/chatwidget/tests/goal_validation.rs`
 - `codex-rs/tui/src/chatwidget/tests/slash_commands.rs`
@@ -269,6 +276,18 @@ Final model request input:
   launched only by the idle predicate.
 - No replacement steering test requires active `<goal_context>`.
 - No user-role Goal steering item is emitted.
+- App-server-origin Goal create or objective-update scenarios prove captured
+  final `/responses` input contains exactly one current outer developer-role
+  Goal item, no active `<goal_context>` item, and no user-role active Goal
+  item.
+- Extension-related final payload coverage uses either true extension-origin
+  integration through a real core request path with mock Responses, or paired
+  coverage where extension tests prove durable pending intent, accounting,
+  events, and metadata request outcomes while app-server/core tests prove the
+  shared request shaper from equivalent pending intent. The paired route is not
+  end-to-end extension-origin payload coverage.
+- Compatibility steering-role config, if still parseable, cannot make active
+  Goal steering user-role.
 
 Durable pending cadence intent:
 
@@ -303,6 +322,13 @@ Repair and legacy artifacts:
 - legacy `<goal_context>` alone does not create durable Goal state or cadence
   intent
 - raw response item notifications are not specially suppressed for Goal context
+- typed/materialized projection hides only pure current internal-context and
+  pure legacy artifacts
+- mixed marker-like ordinary prose remains visible
+- compaction does not reinsert or preserve pre-shaper concrete Goal input as
+  authority
+- reconstruction filters pure artifacts without recovering Goal facts,
+  objective text, pending intent, evidence, or watermarks from rendered text
 
 Recorded request evidence:
 
@@ -317,6 +343,8 @@ Recorded request evidence:
 - resume, rollback, fork, and compaction use structured evidence only as
   replay evidence and never parse rendered Goal text for Goal facts or
   Continuation suppression
+- classifier matches, raw notifications, ordinary rollout items, rollout trace
+  payloads, and rendered Goal text are not accepted as evidence substitutes
 
 Local behavior re-additions:
 
@@ -325,6 +353,43 @@ Local behavior re-additions:
 - pause/resume command behavior is tested from the replacement state machine
 - the local configured objective limit extension is re-added only from a
   specific replacement command/config contract
+
+## Final Acceptance Proof Layers
+
+WA06 is cleanup and acceptance only. If final acceptance exposes missing
+cadence policy, state shape, classifier semantics, extension routing, evidence
+behavior, or final-input ownership, the work returns to the owning earlier
+surface instead of inventing new architecture in WA06.
+
+Final acceptance proof must use the correct layer for each invariant:
+
+- final `/responses` payload tests for active Goal authority and role
+- durable state tests for facts, pending intent, exact-key consumption, and
+  Continuation watermarks
+- Created-event commit tests for pending-intent consumption, committed carry,
+  watermark advancement, and evidence emission when evidence is in scope
+- projection/raw tests for typed hiding and raw emission boundaries
+- compaction/reconstruction tests for cleanup without concrete carry or
+  rendered-text recovery
+- extension/app-server tests for durable mutation outcomes and metadata-only
+  wake/recheck, plus final payload proof through the selected true-extension
+  or paired shared-shaper route
+
+Do not accept helper output, classifier output, raw notification output,
+ordinary rollout items, rollout trace payloads, or rendered Goal text as a
+substitute for final payload assertions or structured recorded request
+evidence.
+
+## Final Audit Gates
+
+Final stale-symbol audits are review gates, not architecture. Run the audits
+after implementation, inspect every match, and classify matches as deleted
+terrain, allowed legacy cleanup fixtures, migration comments, local planning
+docs, or explicit rejection comments.
+
+Audit regexes must not become blind deletion scripts or new source-of-truth
+behavior rules. A match that reveals missing cadence, classifier, extension, or
+evidence architecture sends the work back to the owning earlier surface.
 
 ## Snapshot Handling
 

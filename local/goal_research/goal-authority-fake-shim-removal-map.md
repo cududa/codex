@@ -30,7 +30,9 @@ request-input ownership deliberately.
 
 The map is not an architecture to preserve. It is demolition terrain. Any
 remaining `<goal_context>` behavior after this work is legacy artifact handling,
-not an active Goal steering path.
+not an active Goal steering path. This file can inform deletion/conversion
+work, but fake-shim demolition must not become compatibility architecture or a
+long-lived successor authority surface.
 
 The active target is:
 
@@ -71,9 +73,11 @@ Required deletion work:
 - stop using `GoalContext` for active Goal steering
 - stop using `GoalContextRole` as the active steering role abstraction
 - move active Goal text rendering to generic internal-context infrastructure
-  only as a helper if useful
+  only as source-tagged rendering/parsing support if useful
 - leave only legacy pure-artifact detection for old persisted items;
   do not leave a Goal-specific active-context abstraction behind
+- do not treat source-tagged helper output as authority, cadence, commit
+  evidence, pending intent, or active model input by itself
 
 ### Core Goal Steering Producer
 
@@ -125,13 +129,21 @@ Required deletion work:
 
 Scope clarification:
 
-- if an extension path remains compiled and reachable as an active Goal
-  steering producer under any supported configuration, it must be converted in
-  the same completed implementation
-- if a version plan does not use `ext/goal`, it may leave unrelated extension
-  ownership/timing untouched, but it must either convert, remove, or prove
-  unreachable any extension path that would otherwise emit active Goal steering
-  through `GoalContext`
+- the selected v136 route converts reachable app-server and `ext/goal`
+  mutation/accounting producers through adapter/runtime ordering, durable
+  pending intent, and metadata-only cadence wake/recheck
+- full v139/v140 `GoalService` adoption is not the default demolition route
+- a thin facade is blocker-triggered only if adapter/runtime plus durable
+  state, final request-input shaping/commit, and idle metadata delivery cannot
+  carry the shared ordering without duplicating non-trivial outcome logic
+- any facade introduced after that blocker must not return active
+  `ResponseItem` or `ResponseInputItem` values, choose active role, consume
+  pending intent, advance Continuation suppression, or write recorded request
+  evidence
+- any extension path that remains compiled and reachable as an active Goal
+  steering producer under a supported configuration must be converted, removed,
+  or proven unreachable; it must not emit active Goal steering through
+  `GoalContext`
 
 ## Shim-Dependent Consumers To Replace Carefully
 
@@ -198,7 +210,7 @@ Files:
 Current dependency:
 
 - pure legacy Goal marker items are filtered or reinserted through current-turn
-  carry paths
+  concrete carry paths
 
 Required replacement:
 
@@ -209,17 +221,21 @@ Required replacement:
   primary cadence contract
 - do not treat filtering as model authority delivery
 - do not convert active durable Goal state alone into a current Goal item
+- do not preserve active authority by carrying pre-shaper concrete Goal
+  `ResponseInputItem`s through compaction
+- do not synthesize Goal facts, pending intent, recorded request evidence,
+  objective text, or Continuation watermarks from compaction cleanup
 
 Implementation pitfall:
 
 - mid-turn compaction has historically used current-turn Goal carry to carry
-  active steering across compaction. Under the cadence contract, carry is
-  turn-local evidence for preserving a cadence item already included in final
-  model request input. It must
-  not be converted into new durable Goal facts or new structured pending
-  cadence intent. A version plan must decide only whether a given compaction
-  seam is preserving an already included cadence item or applying request-local
-  repair.
+  active steering across compaction. Under the v136 route, the only allowed
+  carry is committed metadata for a finalized request item. It must not be a
+  pre-shaper concrete `ResponseInputItem`, and it must not become new durable
+  Goal facts, pending cadence intent, recorded evidence, or Continuation
+  suppression. A version plan must decide only whether a given compaction seam
+  is preserving committed metadata for an already finalized cadence item or
+  applying request-local repair.
 
 ### Rollout Reconstruction
 
@@ -239,7 +255,12 @@ Required replacement:
 - clean up stale or duplicate pure Goal internal-context messages without
   treating cleanup as cadence delivery
 - retain mixed-content retention
-- never reconstruct active Goal state by parsing a rendered artifact
+- never reconstruct active Goal state, objective text, pending intent,
+  recorded evidence, committed carry, or Continuation watermarking by parsing a
+  rendered artifact
+- ordinary rollout items, rollout trace payloads, raw notifications,
+  classifier matches, and rendered Goal text are not structured evidence or
+  final-payload proof
 
 Implementation pitfall:
 
@@ -296,6 +317,9 @@ Required replacement:
   infrastructure
 - do not solve Goal authority with helper output. Authority is the selected
   developer-role Goal `ResponseItem` in final request input.
+- do not let generic internal-context helpers consume cadence intent, choose
+  roles, advance watermarks, write evidence, or construct active Goal
+  `ResponseItem`s.
 
 Implementation pitfall:
 
@@ -440,7 +464,7 @@ Tests must prove:
   developer role
 - active steering uses `<codex_internal_context source="goal">`
 - active steering no longer emits `<goal_context>`
-- current-turn carry does not move pre-finalizer concrete Goal
+- current-turn carry does not move pre-shaper concrete Goal
   `ResponseInputItem`s as authority
 
 ### Work Area 5: Extension Steering
@@ -464,6 +488,10 @@ Tests must prove:
 - raw response item notifications are not specially suppressed for Goal context
 - stale or duplicate pure Goal internal-context messages and pure legacy
   artifacts are cleaned up
+- compaction and reconstruction do not recover Goal facts, pending intent,
+  objective text, evidence, or watermarks from rendered artifacts
+- compaction does not preserve active authority through pre-shaper concrete
+  Goal input carry
 - ordinary user/developer prose is retained
 
 ## Integration With Cadence Contract

@@ -21,7 +21,7 @@ authoritative.
   `codex-rs/codex-api/src/common.rs`, `codex-rs/core/src/goals.rs`, and
   `codex-rs/core/src/state/turn.rs`.
 - Fidelity note: helper output, active-turn injection, reservation, and
-  pre-finalizer carry are not commits.
+  pre-shaper carry are not commits.
 
 ## Purpose
 
@@ -109,12 +109,25 @@ finalize_goal_request_input(
 - attempt ordinal for this model request attempt
 - current durable Goal snapshot, including facts version
 - pending Initial, ObjectiveUpdated, and BudgetLimit intent snapshot
-- optional runtime Continuation request selected by the idle predicate
+- optional `GoalTurnRequest`-style metadata for same-turn cadence recheck,
+  idle pending-cadence delivery, or idle automatic Continuation
 - collaboration/feature eligibility facts
 - model-visible history key for this attempt
 - transport context needed to account for full request versus WebSocket delta
 - repair context for compaction, resume, rollback, reconstruction, retry, or
   previous-response/model-context transitions
+
+Turn request metadata is metadata only. It may carry goal id, steering kind,
+facts version, same-turn/idle source, and Continuation preflight key, but it
+must not carry rendered prompt text, role-bearing model input, prebuilt
+`ResponseInputItem`s, pending Continuation intent, or authority proof.
+
+Same-turn app-server or extension delivery may contribute only this metadata.
+Its outcomes are logically `AcceptedForActiveTurn`, `NoActiveTurn`, and
+`ActiveTurnCannotAccept`. Acceptance may wake or recheck the active turn, but
+it does not consume pending intent and does not supply model input. The
+no-active-turn and cannot-accept outcomes leave pending intent for an ordinary
+future turn or idle Stage 2 delivery.
 
 `FinalizedGoalRequestInput` must include:
 
@@ -301,10 +314,11 @@ Commit behavior:
   intent by exact key
 - BudgetLimit commit may clear superseded Initial or ObjectiveUpdated intent
   for the same Goal
-- Continuation commit advances runtime Continuation suppression for
+- Continuation commit advances the state-owned latest automatic Continuation
+  watermark, or equivalent durable/reconstructable suppression record, for
   `{ goal_id, model_visible_history_key, facts_version }`
 - committed carry may record that this turn already delivered a specific Goal
-  item, but must not store pre-finalizer concrete `ResponseInputItem`s as
+  item, but must not store pre-shaper concrete `ResponseInputItem`s as
   authority
 
 No commit occurs when:
@@ -330,10 +344,15 @@ Rules:
   unchanged
 - retry after commit reruns shaping against committed state/history
 - same-turn follow-up after tool output or mailbox input reruns shaping
-- uncommitted runtime cadence request metadata may survive retries before
-  `ResponseEvent::Created`, but the Created-event commit must clear or make
-  that metadata obsolete when it records committed carry for the selected Goal
-  item
+- uncommitted `GoalTurnRequest`-style cadence request metadata may survive
+  retries before `ResponseEvent::Created`, but the Created-event commit must
+  clear or make that metadata obsolete when it records committed carry for the
+  selected Goal item
+- stale request metadata must abort internally before model submission when
+  pending intent, durable facts, Continuation preflight key, suppression
+  record, reservation, or pending-work ordering no longer matches the
+  finalized attempt; it must not consume intent, advance suppression, write
+  evidence, or surface as a user-facing request error
 - same-turn follow-up attempts after Created must assemble fresh context from
   durable Goal state, pending intent or Continuation watermark state, optional
   new turn request metadata, and committed carry; they must not reuse stale
@@ -344,8 +363,8 @@ Rules:
 
 ## Current-Turn Carry
 
-Current carry may preserve evidence that a finalized request already contained
-a Goal item.
+Current carry may preserve committed metadata that a finalized request already
+contained a Goal item.
 
 It must not carry prebuilt active Goal `ResponseInputItem`s as authority.
 
@@ -393,7 +412,7 @@ It must not own:
 - commit metadata construction
 - pending-intent selection for a request attempt
 - Continuation watermark policy
-- pre-finalizer concrete Goal item injection as authority
+- pre-shaper concrete Goal item injection as authority
 
 ## Tests
 
@@ -415,4 +434,4 @@ Required coverage:
 - follow-up request reruns shaping from rebuilt prompt input
 - `ResponseEvent::Created` commit updates pending intent or Continuation
   suppression as appropriate
-- current-turn carry records committed metadata, not pre-finalizer model input
+- current-turn carry records committed metadata, not pre-shaper model input

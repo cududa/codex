@@ -233,7 +233,7 @@ It must inspect upstream and local code before deciding whether extension code:
 - or stops producing active Goal steering from the old path
 
 It must not leave reachable `GoalContext`, `GoalContextRole`, active
-`<goal_context>`, pre-finalizer concrete Goal item injection, or user-role
+`<goal_context>`, pre-shaper concrete Goal item injection, or user-role
 active Goal steering alive.
 
 ### 5. Repair And Classifier Integration
@@ -268,6 +268,22 @@ It must map exact callsites for:
 
 Classifiers must be strict pure-item cleanup tools. They must not decide
 cadence, consume intent, prove authority, or infer active Goal state.
+
+## Cleanup And Acceptance Posture
+
+The final cleanup/acceptance pass is not an architecture owner. It may delete
+old active shim terrain, verify replacement surfaces, add final acceptance
+coverage, and run stale-symbol audits after the owning seams exist.
+
+If cleanup finds missing cadence policy, durable state shape, final-input
+ownership, idle/history behavior, extension routing, classifier semantics, or
+evidence behavior, the implementation plan must return to the earlier owning
+surface. Do not use cleanup readiness, final audits, or regex matches to invent
+new behavior.
+
+Final audit commands are review gates. They are useful for finding stale
+symbols, concrete carry, raw suppression, and request-payload proof gaps, but
+they are not architecture and must not replace the authority docs above.
 
 ## Readiness Rule
 

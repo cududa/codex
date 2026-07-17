@@ -4,14 +4,19 @@ This file is a navigation aid for the Goal authority docs in this directory.
 It does not supersede `AGENTS.md` or any authority contract. If this reader map
 is incomplete or imprecise, follow the source document it points to.
 
+This file remains the navigation container for successor topology work. Do not
+split its reader map into a long-lived `goal-navigation-index.md` successor
+authority doc.
+
 For direct implementation or version planning, the current source authority
 docs remain the contracts until future successor docs replace them. For future
 successor-doc architecture design or concept-preserving rewrite planning, the
 current docs are the required source corpus and concept record; the rewrite may
 reorganize, synthesize, and compress prose as long as concepts, edge cases, and
-implementation-relevant detail are faithfully retained. Future rewrite planning
-must also validate affected concepts against the relevant
-`local/goal_136_plan/work-areas` docs.
+implementation-relevant detail are faithfully retained. The Packet 2 alignment
+series absorbed the relevant v136 route decisions into the current
+authority/support docs and topology blueprint; successor drafting should use
+those corrected local docs as standalone inputs.
 
 Start with:
 
@@ -94,7 +99,7 @@ terrain, not mission; do not infer desired architecture from current local code.
 - Final request-input path: `codex-rs/core/src/session/turn.rs`
 - `Prompt.input` carrier: `codex-rs/core/src/client_common.rs`
 - Responses API request input: `codex-rs/codex-api/src/common.rs`
-- Current pre-finalizer Goal carry: `codex-rs/core/src/state/turn.rs`
+- Current pre-shaper Goal carry terrain: `codex-rs/core/src/state/turn.rs`
 - Current durable Goal facts: `codex-rs/state/goals_migrations/0001_thread_goals.sql`
 - Durable Goal model/runtime terrain: `codex-rs/state/src/model/thread_goal.rs`,
   `codex-rs/state/src/runtime/goals.rs`
@@ -124,7 +129,7 @@ terrain, not mission; do not infer desired architecture from current local code.
 | `goal-authority-durable-cadence-state.md` | Durable state seam | Facts version, pending intent storage, atomic mutations, supersedence cleanup, exact-key consumption | Request shaping, repair decisions, prompt rendering, model roles, Continuation policy |
 | `goal-authority-final-request-input-and-commit.md` | Final model-input seam | Per-attempt shaping, cleanup, selected item insertion, commit metadata, item fingerprint, retry/follow-up behavior, current-turn carry replacement | Durable mutation ownership, idle scheduling |
 | `goal-authority-recorded-request-evidence.md` | Recorded evidence seam | Structured committed request evidence carrier, persistence timing, replay semantics, fingerprint inputs, rollback/fork/compaction treatment | Goal authority, cadence selection, durable mutation ownership |
-| `goal-authority-model-visible-history-key.md` | Continuation suppression support | Eligible progress projection, key shape, capture point, runtime watermark, resume/restart suppression, compaction effects | Goal authority, pending intent delivery, pending intent consumption, cadence selection |
+| `goal-authority-model-visible-history-key.md` | Continuation suppression support | Eligible progress projection, key shape, capture point, suppression record, resume/restart suppression, compaction effects | Goal authority, pending intent delivery, pending intent consumption, cadence selection |
 | `goal-authority-ext-goal-ownership.md` | Extension ownership seam | Extension lifecycle, mutation, accounting, typed cadence participation, reachability/config treatment | Model role selection, active model-input construction, commit, pending-intent consumption, Continuation watermark updates |
 | `goal-authority-repair-classifier-integration.md` | Classifier and repair integration | Pure-item classification, projection behavior, history/user-turn handling, compaction, reconstruction, raw notification behavior, request-local repair support | Cadence selection, authority proof, durable Goal recovery, active Goal state inference |
 | `goal-authority-fake-shim-removal-map.md` | Demolition terrain map | Existing active Goal-only context path, dependent consumers to replace, legacy artifact handling | Cadence timing decisions |
@@ -160,7 +165,8 @@ that maps every existing section to its new location. The review must check for:
 
 Future concept-preserving rewrite planning may reorganize old wording when the
 source coverage inventory is accounted for, repeated authority follows
-canonical/local/pointer/operational routing, and any conflict or uncertainty
-with `local/goal_136_plan/work-areas` is reconciled in favor of the work-area
-route when it preserves the underlying concept and reflects the latest
-researched v136 design.
+canonical/local/pointer/operational routing, and the Packet 2-corrected
+authority/support docs plus topology blueprint are used as standalone
+successor-drafting inputs. If a later packet explicitly reopens an
+implementation-route conflict, resolve that conflict before drafting instead
+of using navigation prose as an override.

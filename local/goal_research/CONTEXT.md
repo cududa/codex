@@ -4,6 +4,10 @@ This file defines the domain language used by the Goal authority docs. It is a
 glossary only. It does not define implementation plans, code ownership, or test
 requirements.
 
+This file remains the glossary container for successor topology work. Do not
+split its vocabulary into a long-lived `goal-glossary.md` successor authority
+doc.
+
 ## Glossary
 
 **Goal** - A persisted thread objective with status, budget, usage, and timing
@@ -58,7 +62,7 @@ requires Goal steering for the request.
 
 **Final model request input** - The actual logical input list for the model
 request. Goal authority is proven only at this level, not by helper output,
-rendered text, reservation, or pre-finalizer carry.
+rendered text, reservation, or pre-shaper carry.
 
 **Final request-input shaping** - The per-attempt operation that inspects the
 actual model input list, cleans or repairs Goal-looking items as allowed,
@@ -140,9 +144,10 @@ durable facts version.
 non-Goal progress used to compute the model-visible history key. Goal steering,
 repair, cleanup, and pure internal-context items are excluded.
 
-**Continuation watermark** - Runtime duplicate-suppression state that records a
-committed automatic Continuation for a specific Goal, model-visible history key,
-and durable facts version.
+**Continuation watermark** - A state-owned latest automatic Continuation
+suppression record, or an equivalent durable/reconstructable record, for a
+committed automatic Continuation tied to a specific Goal, model-visible history
+key, and durable facts version.
 
 **Idle lifecycle hook** - The lifecycle operation that runs only when the
 thread may be idle, starts pending non-Goal work first, then delivers pending

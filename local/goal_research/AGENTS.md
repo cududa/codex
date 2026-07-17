@@ -3,6 +3,10 @@
 This directory contains the current Goal research source docs, prep artifacts,
 and operational instructions for this fork.
 
+This file remains the operations container for successor topology work. Do not
+split its operational posture into a long-lived
+`goal-operations-and-authority-order.md` successor authority doc.
+
 There are two working postures:
 
 - Direct implementation or version planning: treat the current Goal authority
@@ -121,7 +125,9 @@ Keep these decisions intact:
 - Initial, ObjectiveUpdated, and BudgetLimit use persisted pending cadence
   intent until final model request input contains the matching developer-role
   Goal item
-- automatic Continuation uses runtime-only watermarking
+- automatic Continuation uses a state-owned latest watermark, or an equivalent
+  durable/reconstructable suppression record, not persisted pending
+  Continuation intent
 - ordinary user turns are not cadence events
 - active durable Goal state alone must not emit Goal steering
 - active durable Goal state alone is not cadence-required authority
@@ -172,9 +178,10 @@ Known terrain that must not become the design:
 - ObjectiveUpdated or BudgetLimit intent being dropped when old concrete
   same-turn injection terrain fails instead of remaining pending after
   unavailable or rejected metadata-only same-turn cadence recheck
-- pre-finalizer concrete Goal `ResponseInputItem` carry as proof of authority
+- pre-shaper concrete Goal `ResponseInputItem` carry as proof of authority
 - Goal-only fake provenance machinery as active steering machinery
 - special local raw-response suppression for Goal context
+- final stale-symbol audits as architecture instead of review gates
 
 Before execution, lock the direction explicitly:
 

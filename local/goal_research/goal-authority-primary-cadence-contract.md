@@ -137,12 +137,14 @@ record, but it must be structured state. It must not be encoded in rollout text,
 events.
 
 Continuation does not require persisted pending intent. Continuation is derived
-from the idle lifecycle predicate and runtime suppression accounting.
+from the idle lifecycle predicate and duplicate-suppression accounting.
 
-### Runtime Continuation Accounting
+### Continuation Suppression Accounting
 
-Automatic Continuation is controlled by runtime accounting, not by a persisted
-pending intent.
+Automatic Continuation is controlled by suppression accounting, not by a
+persisted pending intent. The default live correctness path is a state-owned
+latest automatic Continuation watermark, or an equivalent durable/reconstructable
+suppression record with the same failure semantics.
 
 The implementation must track the logical equivalent of:
 
@@ -156,6 +158,8 @@ last_auto_continuation_attempt {
 
 This watermark suppresses duplicate automatic Continuations for the same active
 Goal when neither model-visible history nor durable Goal facts have changed.
+It is not pending cadence intent and is not recorded-request evidence by
+default.
 
 `model_visible_history_key` is a logical key for the model-visible history
 state that can justify another automatic Continuation. It must not be confused
@@ -174,13 +178,14 @@ The watermark must not suppress:
 
 ### Current-Turn Carry
 
-Current-turn carry is turn-local evidence that a cadence item was already
-included in final model request input for the active turn.
+Current-turn carry is turn-local committed metadata that a finalized cadence
+item was already included in final model request input for the active turn.
 
 It may be used to preserve an already included cadence item across mid-turn
 compaction.
 It must not be treated as durable Goal state or as a source of new cadence
-intent.
+intent. It must not carry pre-shaper concrete `ResponseInputItem` or
+`ResponseItem` values as authority.
 
 ## Cadence Is Primary
 
@@ -293,18 +298,17 @@ The continuation idle predicate must account for at least:
 - no trigger-turn mailbox input waiting
 - collaboration mode allows Goal steering
 - durable Goal exists and is active
-- runtime continuation watermark has not suppressed this exact automatic
-  continuation
+- the latest automatic Continuation suppression record has not suppressed this
+  exact automatic continuation
 - any continuation lock or reservation still refers to the current active Goal
 - the active Goal remains current after the continuation turn is reserved
 
-Continuation does not consume durable pending cadence intent. It updates only
-runtime continuation accounting after the Continuation item reaches the
-final model request input used for sampling, or an explicitly supported
-structured recorded request evidence path with an equivalent persistence and
-error policy. A reservation or lock may prevent concurrent launches before
-then, but the duplicate-suppression watermark must not be advanced merely
-because an idle hook fired, a turn was reserved, or a prompt string was
+Continuation does not consume durable pending cadence intent. It advances only
+the latest automatic Continuation suppression record after the Continuation
+item reaches the final model request input used for sampling and the request
+reaches the commit point. A reservation or lock may prevent concurrent launches
+before then, but the duplicate-suppression watermark must not be advanced
+merely because an idle hook fired, a turn was reserved, or a prompt string was
 rendered.
 
 ### ObjectiveUpdated
@@ -721,6 +725,9 @@ construct active model input, choose the active role, or consume pending
 intent. If the active turn accepts the request, pending intent is still
 consumed only after that turn's final model request input contains the
 matching outer developer-role Goal item and reaches the commit point.
+The same-turn outcomes are logically `AcceptedForActiveTurn`, `NoActiveTurn`,
+and `ActiveTurnCannotAccept`; the latter two leave pending intent for an
+ordinary future turn or idle Stage 2 delivery.
 
 ## Verification Checklist
 
@@ -733,8 +740,8 @@ or structured recorded request evidence tests prove:
 - resume preserves already-pending Initial intent but does not create Initial
   from active Goal state alone
 - Continuation is recorded only from the idle cadence predicate
-- Continuation duplicate suppression uses goal id, history version, and durable
-  facts version or their logical equivalents
+- Continuation duplicate suppression uses goal id, model-visible history key,
+  and durable facts version or their logical equivalents
 - Continuation duplicate-suppression watermark advances only after final model
   request input contains the Continuation item as an outer developer-role
   message, not when an idle hook merely fires

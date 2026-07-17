@@ -57,7 +57,8 @@ The idle hook must honor these decisions:
 - Initial, ObjectiveUpdated, and BudgetLimit are persisted pending cadence
   intent until final model request input contains the matching outer
   developer-role Goal item
-- automatic Continuation uses runtime-only duplicate-suppression watermarking
+- automatic Continuation uses a state-owned latest watermark, or an equivalent
+  durable/reconstructable suppression record, for duplicate suppression
 - pending durable cadence intent outranks automatic Continuation
 - pending user/mailbox/queued work outranks Goal-owned synthetic turns
 - resume hydrates durable state and pending intent; it does not create Initial
@@ -241,7 +242,8 @@ A Continuation candidate is eligible only when:
 - collaboration mode allows Goal steering
 - durable Goal state exists and is active
 - the active Goal remains current after turn reservation
-- the runtime Continuation watermark does not suppress the candidate
+- the latest automatic Continuation suppression record does not suppress the
+  candidate
 
 The Continuation candidate key is the logical equivalent of:
 
@@ -274,8 +276,15 @@ not sufficient.
 `durable_facts_version` must change when durable Goal facts change in a way
 that can justify another automatic Continuation.
 
+The default live suppression record is state-owned. An equivalent
+durable/reconstructable record is acceptable only when it can be recovered
+without parsing rendered Goal text or treating ordinary rollout items, rollout
+trace payloads, raw notifications, classifier matches, or recorded request
+evidence as the default live correctness owner.
+
 The automatic Continuation watermark advances only after the Continuation item
-appears in final model request input as an outer developer-role message.
+appears in final model request input as an outer developer-role message and
+the request reaches the final-input commit point.
 
 The watermark must not advance when:
 
@@ -339,11 +348,13 @@ internal tracing or lifecycle cleanup, but it must not present the stale
 Goal-owned turn as a failed user turn.
 
 Goal-owned synthetic turn request metadata remains uncommitted scheduling
-metadata until one of those outcomes happens. A stale abort clears it without
-commit. A successful `ResponseEvent::Created` commit records committed carry
-and pending-intent or Continuation suppression effects, then clears or makes
-the synthetic request metadata obsolete so same-turn follow-up attempts do not
-reuse it as a still-pending Goal-owned request.
+metadata until one of those outcomes happens. It is metadata-only
+`GoalTurnRequest`-style state, not rendered prompt text, prebuilt model input,
+pending Continuation intent, or authority proof. A stale abort clears it
+without commit. A successful `ResponseEvent::Created` commit records committed
+carry and pending-intent or Continuation suppression effects, then clears or
+makes the synthetic request metadata obsolete so same-turn follow-up attempts
+do not reuse it as a still-pending Goal-owned request.
 
 ## Resume Behavior
 
@@ -354,9 +365,11 @@ Thread resume is hydration, not cadence.
 - reload durable Goal facts
 - reload persisted pending Initial, ObjectiveUpdated, and BudgetLimit intent
 - refresh runtime accounting baselines needed for future Goal usage tracking
-- rebuild the Continuation suppression basis from durable Goal facts and
-  model-visible rollout history, so unchanged history and unchanged durable
-  facts do not permit a duplicate automatic Continuation after resume
+- reload or reconstruct the latest automatic Continuation suppression basis
+  from durable Goal facts, state-owned watermark records or an equivalent
+  durable/reconstructable record, and model-visible history, so unchanged
+  history and unchanged durable facts do not permit a duplicate automatic
+  Continuation after resume
 - clear stopped-goal runtime state when durable Goal status is not eligible for
   active Goal behavior
 
@@ -368,15 +381,15 @@ Thread resume is hydration, not cadence.
 - consume pending intent
 - advance the automatic Continuation watermark
 
-The Continuation watermark itself may remain runtime-only, but the key it
-compares against must be reconstructable after resume from stable inputs:
-current `goal_id`, current durable facts version, and the eligible
-`model_visible_history_key` described above. Resume may initialize the in-memory
-watermark from the last structurally recorded automatic Continuation metadata
-if that is stored, or it may derive an equivalent suppression state from the
-current history/facts key. It must not simply empty the watermark in a way that
-allows duplicate automatic Continuation when no eligible model-visible history
-or durable facts changed.
+The Continuation watermark is not pending Continuation intent and is not
+recorded-request evidence. Resume should load the state-owned watermark record
+or an equivalent durable/reconstructable suppression record. If an
+implementation explicitly supports a non-best-effort evidence-backed
+reconstruction path, it may reconstruct the latest committed Continuation
+triple from structured evidence; otherwise evidence remains audit/replay
+metadata and durable state remains the live correctness owner. Resume must not
+simply empty the suppression basis in a way that allows duplicate automatic
+Continuation when no eligible model-visible history or durable facts changed.
 
 After resume response/snapshot/replay ordering completes, callers may invoke
 `MaybeContinueIfIdle`.
@@ -412,6 +425,12 @@ run pending non-Goal work before any Goal-owned synthetic turn
 Same-turn cadence recheck is metadata/wake behavior only. It must not
 construct active model input, choose the active role, or consume pending
 intent.
+
+Extension or app-server same-turn delivery must report outcomes equivalent to
+`AcceptedForActiveTurn`, `NoActiveTurn`, and `ActiveTurnCannotAccept`.
+`AcceptedForActiveTurn` means only that metadata-only recheck or wake state was
+accepted by the active turn. `NoActiveTurn` and `ActiveTurnCannotAccept` are
+not delivery loss and must leave pending intent intact.
 
 If same-turn recheck is accepted, the pending intent is still consumed only
 when that active turn's final model request input contains the matching outer

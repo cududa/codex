@@ -57,6 +57,8 @@ The state layer owns:
 - monotonic durable facts version allocation
 - pending Initial, ObjectiveUpdated, and BudgetLimit intent persistence
 - exact-key pending intent cleanup and delivery commit
+- the latest automatic Continuation watermark record when the implementation
+  uses the default state-owned suppression path
 - factual transaction outcomes for callers
 
 The state layer must not own:
@@ -64,10 +66,10 @@ The state layer must not own:
 - final request-input shaping
 - model role or `ResponseItem` construction
 - Goal prompt rendering
-- idle continuation selection
+- idle continuation selection or scheduling policy
 - repair decisions
 - legacy/current Goal item classification
-- automatic Continuation watermark policy
+- recorded request evidence carrier fields
 
 ## Storage Shape
 
@@ -193,13 +195,28 @@ clear_superseded_intents(thread_id, goal_id, kinds)
 `consume_pending_intent_exact` must be exact-key. It must not consume intent for
 a newer Goal, a different kind, or a different facts version.
 
+App-server and extension producers may call cadence-aware durable operations
+and receive durable snapshots plus pending-intent summaries as mutation
+outcomes. Those summaries are metadata for later cadence delivery, not active
+model input, cadence selection, pending-intent consumption, or commit proof.
+Durable state APIs must not force app-server mutation paths through
+`codex-goal-extension`.
+
 ## Continuation
 
 Continuation is not persisted pending cadence intent.
 
-This durable-state contract may expose facts versions and committed delivery
-records needed by the model-visible history key design, but state must not
-decide automatic Continuation eligibility.
+The default live duplicate-suppression owner is a state-owned latest automatic
+Continuation watermark record, or an equivalent durable/reconstructable record
+with the same failure semantics. That record stores the committed
+`{ goal_id, model_visible_history_key, facts_version }` suppression triple and
+commit identity needed to reject duplicate automatic Continuation after resume
+or restart.
+
+This record is not pending Continuation intent and is not recorded request
+evidence. State exposes it to the idle/final-input lifecycle, but state must
+not decide automatic Continuation eligibility, render prompts, construct model
+input, or choose cadence for a request attempt.
 
 ## Verification Requirements
 
@@ -212,5 +229,7 @@ Focused state tests should prove:
 - exact-key commit consumes only the matching pending intent
 - replacing or deleting a Goal clears stale pending intent
 - facts version changes when steering-relevant facts change
+- Continuation watermark records round-trip without becoming pending intent or
+  evidence
 - GoalStore APIs do not construct model input, render prompts, or decide
   cadence selection

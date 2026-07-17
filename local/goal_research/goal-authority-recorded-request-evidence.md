@@ -108,7 +108,8 @@ Required split:
 
 - durable Goal state owns current Goal facts, durable facts version, pending
   Initial/ObjectiveUpdated/BudgetLimit intent, exact-key consumption, and the
-  durable or reconstructable automatic Continuation suppression watermark
+  state-owned latest automatic Continuation watermark or equivalent
+  durable/reconstructable suppression record
 - final request-input shaping owns selection, cleanup, rendering, insertion or
   verification, and commit metadata for the exact attempt
 - recorded request evidence owns replayable evidence that a specific finalized
@@ -330,6 +331,8 @@ Rules:
 - replay may use evidence to reconstruct committed Goal delivery metadata,
   current-turn carry metadata, and latest committed Continuation suppression
   triples
+- replay must not reconstruct or preserve pre-shaper concrete Goal
+  `ResponseInputItem` carry as authority
 - replay must never parse the paired Goal item's rendered text to recover
   current Goal facts, objective, budget state, cadence kind, or pending intent
 - replay must require fingerprint consistency when pairing evidence with a
@@ -398,6 +401,8 @@ Rules:
   removed or summarized Goal-looking items
 - compaction must not turn durable active Goal state alone into evidence or
   steering
+- compaction must not turn pre-shaper concrete Goal carry into committed
+  evidence, committed carry, steering, or durable state
 - pure Goal internal-context items and legacy artifacts excluded from the
   eligible progress projection do not change the history key by themselves
 - evidence older than a replacement-history checkpoint may be outside the
