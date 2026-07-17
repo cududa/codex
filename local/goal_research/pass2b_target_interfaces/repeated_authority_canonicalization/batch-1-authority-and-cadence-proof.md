@@ -3,7 +3,7 @@
 This is part of the Pass 2B.5 repeated-authority canonicalization workspace.
 It is not future implementation authority.
 
-Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and Pass 2C usage.
+Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and future rewrite planning guidance.
 
 ## Final Request-Input Developer-Role Proof
 
@@ -82,7 +82,7 @@ Forbidden compression:
 - Do not let recorded evidence, provenance, classifier output, or tests become
   the authority mechanism.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Write the full proof mechanics in the final-input successor section and the
   behavioral truth in the behavior successor section before replacing repeated
@@ -164,7 +164,7 @@ Forbidden compression:
 - Do not erase ObjectiveUpdated/BudgetLimit same-turn unavailable/rejected
   behavior.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Write durable pending-intent semantics before simplifying cadence or idle
   sections. Keep final-input commit consumption explicit in `T-FINAL`.
@@ -224,7 +224,7 @@ Forbidden compression:
 - Do not replace exact-key consumption with "clear pending intent" or
   "mark delivered."
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Put exact-key definition and examples in the durable successor doc; keep
   final commit timing local in `T-FINAL`.
@@ -293,7 +293,7 @@ Forbidden compression:
 - Do not summarize as "durable state is the authority" without specifying
   current facts versus model authority.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Keep this rule visible in the first screen of behavior, cadence, durable,
   and final successor docs, with a local extension reminder where extension
@@ -351,7 +351,7 @@ Forbidden compression:
 - Do not collapse ordinary turn non-cadence into "Goal only speaks from idle";
   pending non-Continuation intent can still be delivered in an ordinary turn.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Preserve both halves: no fresh Continuation from a user turn, and pending
   non-Continuation intent may still be delivered.

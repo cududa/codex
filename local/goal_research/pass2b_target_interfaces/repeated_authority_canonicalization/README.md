@@ -3,28 +3,31 @@
 This is a Pass 2B.5 prep artifact. It is not future implementation authority
 and does not close any Pass 2A row.
 
-Use this workspace before Pass 2C source-bounded rewrite slices. Its job is to keep
-intentional repeated authority visible while deciding which successor target
-should carry canonical text, which targets need local reminders, and which
-targets should use pointer-only references.
+Use this workspace as repeated-authority compression guidance for future
+successor-doc architecture design or concept-preserving rewrite planning. Its
+job is to keep intentional repeated authority visible while deciding which
+successor target should carry canonical text, which targets need local
+reminders, and which targets should use pointer-only references.
 
-For direct implementation work before cutover, source authority docs still
-control. For Pass 2C doc-worker tasks, current source docs are the source
-corpus and this workspace is the compression plan for translating repeated
-clauses into canonical text, local reminders, pointer-only references, or
-operational/test reminders.
+For direct implementation work before future successor docs replace the current
+source docs, source authority docs still control. For future successor-doc
+architecture design or concept-preserving rewrite planning, current source docs
+are the source corpus and this workspace is the compression plan for
+translating repeated clauses into canonical text, local reminders, pointer-only
+references, or operational/test reminders.
 
 If this workspace and a source contract differ during direct implementation
-work, follow the source contract and fix this workspace. If a Pass 2C slice
-finds that older source-doc wording and a relevant
+work, follow the source contract and fix this workspace. If future rewrite
+planning finds that older source-doc wording and a relevant
 `local/goal_136_plan/work-areas` decision differ, use the work-area route when
 it preserves the underlying concept and latest researched v136 design, then
-record the reconciliation in the slice closure.
+record the reconciliation as rewrite-planning input.
 
 ## Purpose
 
-Pass 2C must reduce duplicated prose without erasing reinforcement that is
-there because multiple seams can violate the same rule.
+Future concept-preserving rewrite planning must reduce duplicated prose without
+erasing reinforcement that is there because multiple seams can violate the same
+rule.
 
 For each repeated authority family below:
 
@@ -36,8 +39,8 @@ For each repeated authority family below:
 - `Operational/test reminder` means the target may keep a short checklist or
   proof obligation, but not behavior ownership.
 
-Do not use this artifact to rewrite source-doc text from memory. Pass 2C still
-rewrites source-bounded slices and audits each slice for fidelity.
+Do not use this artifact to rewrite source-doc text from memory. Future rewrite
+planning still needs source coverage checks and fidelity review.
 
 ## Canonicalization Rules
 
@@ -52,8 +55,9 @@ rewrites source-bounded slices and audits each slice for fidelity.
 - Keep negative rules close to seams that commonly violate them, especially
   helper/provenance non-authority, request-local repair, raw notification
   behavior, and evidence-is-not-authority boundaries.
-- Treat `AGENTS.md` non-negotiables as operational reminders after cutover,
-  not as the only surviving place where behavior is specified.
+- Treat `AGENTS.md` non-negotiables as operational reminders after future
+  successor docs replace the current source docs, not as the only surviving
+  place where behavior is specified.
 
 ## Concept Template
 
@@ -69,7 +73,7 @@ Source sections carrying repeated authority:
 Clauses that must not be lost:
 Allowed compression:
 Forbidden compression:
-Pass 2C rewrite instruction:
+Future rewrite planning note:
 ```
 
 ## Batch Files
@@ -81,12 +85,12 @@ Pass 2C rewrite instruction:
 
 ## Current Status
 
-Batches 1-4 are complete enough to feed Pass 2C planning. They do not close
-source rows or replace source-bounded fidelity audits.
+Batches 1-4 are complete enough to feed future rewrite planning. They do not
+close source rows or replace source coverage checks.
 
 ## Batch Order Recommendation
 
-Use this order before or during Pass 2C planning:
+Use this order for future rewrite planning:
 
 1. Authority and cadence proof
 2. Lifecycle and attempt semantics
@@ -102,18 +106,18 @@ Within each batch, confirm:
 - source sections with repeated clauses are still accounted for in
   `PASS2_SECTION_TRACEABILITY.md`
 
-## Pass 2C Use
+## Future Rewrite Planning Use
 
-Pass 2C should treat this workspace as a compression guide:
+Future rewrite planning should treat this workspace as a compression guide:
 
-- When rewriting a source slice, consult the relevant entry before deleting
-  repeated prose.
+- When planning concept-preserving successor prose, consult the relevant entry
+  before deleting repeated prose.
 - If a repeated sentence is removed from a non-owner target, replace it with a
   pointer only after the local reminder is either preserved or intentionally
   deemed unnecessary.
-- If a source slice contains a clause not represented here, update this workspace
-  or the target interface before closing the slice.
-- Do not close a source slice merely because the concept appears in this
-  workspace; perform the source-bounded fidelity audit against the original
-  source text.
+- If a source section contains a clause not represented here, update this
+  workspace or the target interface before marking the section covered.
+- Do not mark a source section covered merely because the concept appears in
+  this workspace; perform the source coverage check against the original source
+  text.
 

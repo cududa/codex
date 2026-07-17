@@ -35,8 +35,9 @@ Packet focus:
 ## Packet 2 Interface Entries
 
 The Lifecycle And Seams packet found no wrong/stale Pass 2A mappings that need
-prep-artifact repair before these entries. Rows listed below still need
-source-bounded Pass 2C rewrite before they become successor authority.
+prep-artifact repair before these entries. Rows listed below remain
+target-interface prep until future successor-doc architecture design
+translates them into successor authority.
 
 ### T-IDLE: Idle Goal Lifecycle
 
@@ -211,7 +212,7 @@ Fidelity Tripwires / Review Debt:
 - Preserve that final payload or structured recorded request evidence tests
   remain pointers to `T-FINAL`/`T-EVIDENCE`, not idle-owned proof mechanics.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this successor section from
   `goal-authority-idle-continuation-contract.md` and keep its stage-order
@@ -226,7 +227,7 @@ Pass 2C Rewrite Notes:
 True Open Questions:
 
 - None found in Packet 2. Remaining idle `Review debt` is fidelity debt for
-  Pass 2C, not unresolved behavior.
+  future concept-preserving rewrite planning, not unresolved behavior.
 
 ### T-HISTORY: Model-Visible History Key And Continuation Suppression
 
@@ -383,7 +384,7 @@ Fidelity Tripwires / Review Debt:
   but summaries replacing eligible progress can.
 - Preserve rollback/fork behavior from surviving history only.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this successor section from
   `goal-authority-model-visible-history-key.md`.
@@ -561,7 +562,7 @@ Fidelity Tripwires / Review Debt:
 - Preserve compaction no-synthesis: evidence is not created from cleanup,
   durable state, or surviving rendered Goal items.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this successor section from
   `goal-authority-recorded-request-evidence.md`; it is already the dedicated
@@ -756,7 +757,7 @@ Fidelity Tripwires / Review Debt:
 - Preserve generic internal-context helper ownership without reintroducing
   active Goal-specific `GoalContext` architecture.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this successor section from
   `goal-authority-repair-classifier-integration.md`, then merge fake-shim
@@ -766,10 +767,11 @@ Pass 2C Rewrite Notes:
   final shaping, cadence, durable state, evidence, and history-key mechanics.
 - Keep raw notification behavior explicit; do not hide it under typed
   projection behavior.
-- Preserve enough test-facing detail for Pass 2C to avoid over-compressing
-  purity, mixed-content, and current-turn carry rules.
+- Preserve enough test-facing detail for future concept-preserving rewrite
+  planning to avoid over-compressing purity, mixed-content, and current-turn
+  carry rules.
 
 True Open Questions:
 
 - None found in Packet 2. Remaining cleanup `Review debt` is fidelity debt for
-  Pass 2C, not unresolved behavior.
+  future concept-preserving rewrite planning, not unresolved behavior.

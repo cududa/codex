@@ -13,8 +13,8 @@ Targets:
 
 Goal:
 
-Decide whether Pass 2B is complete enough to start Pass 2C source-bounded
-rewrite slices.
+Decide whether Pass 2B is complete enough to support future successor-doc
+architecture design.
 
 Packet focus:
 
@@ -33,14 +33,14 @@ Packet focus:
 ## Consistency Review
 
 This packet reviewed the completed Pass 2B target interface entries together.
-No source-doc content was rewritten, renamed, rehomed, or deleted. No Pass 2C
-source-bounded rewrite slices were started.
+No source-doc content was rewritten, renamed, rehomed, or deleted. No
+successor authority prose was written from this packet.
 
 The review found no source-backed duplicate ownership, conflicting target
 boundary, missing high-risk concept route, or support-target behavior takeover
-that blocks Pass 2C planning.
+that blocks future rewrite planning.
 
-One prep-artifact cleanup was required: the cross-target ownership matrix in
+One prep-artifact update was required: the cross-target ownership matrix in
 [README.md](README.md) still contained unresolved placeholder cells. Those
 placeholders have been replaced with the owner/shared/pointer-only routing
 represented by the completed packet entries.
@@ -63,7 +63,7 @@ interface entry.
 | `T-EXT` | Packet 3 | Complete and bottom-up reviewed | Owns extension lifecycle, configuration, reachability, and producer-facing metadata; does not own active final-input construction or private finalizer/cadence internals. |
 | `T-SHIM` | Packet 3 | Complete and bottom-up reviewed | Owns fake-shim demolition terrain; does not own replacement behavior, cadence, final-input shaping, cleanup classifier semantics, or test matrix. |
 | `T-TEST-PREP` | Packet 3 | Complete and bottom-up reviewed | Owns prep sequencing, baseline restoration, replacement matrix, and snapshots; does not own behavior contracts. |
-| `T-READINESS` | Packet 3 | Complete and bottom-up reviewed | Owns readiness and handoff criteria; does not own behavior or execution slice order. |
+| `T-READINESS` | Packet 3 | Complete and bottom-up reviewed | Owns readiness and handoff criteria; does not own behavior or execution order. |
 | `NAV-README` | Packet 4 | Complete and bottom-up reviewed | Owns reader routing and navigation index; does not own behavior contracts or authority order. |
 | `GLOSSARY` | Packet 4 | Complete and bottom-up reviewed | Owns vocabulary only; does not own implementation clauses, edge cases, or test obligations. |
 | `OP-AGENTS` | Packet 4 | Complete and bottom-up reviewed | Owns operational instructions and authority order; does not replace target contracts. |
@@ -139,14 +139,14 @@ engines:
 - `NAV-README`, `GLOSSARY`, and `OP-AGENTS` remain navigation, vocabulary, and
   operational surfaces.
 
-## Remaining Pass 2C Preconditions
+## Remaining Future Rewrite Planning Inputs
 
-Pass 2B is ready to feed Pass 2C source-bounded rewrite planning.
+Pass 2B is ready to feed future successor-doc architecture design.
 
 That readiness means:
 
 - target interfaces and cross-target ownership routing are coherent enough to
-  plan rewrite slices
+  support future rewrite planning
 - all current Pass 2B packets are complete, and Packets 1-4 are bottom-up
   reviewed
 - the cross-target matrix no longer contains unresolved placeholder cells
@@ -156,10 +156,10 @@ It does not mean:
 - successor authority prose has been written
 - source docs have been renamed, rehomed, merged, split, or deleted
 - any Pass 2A row has been closed
-- source-bounded fidelity audits can be skipped
+- source coverage checks can be skipped
 
-Pass 2C should still proceed in bounded source slices with traceability and
-per-slice fidelity review.
+Future rewrite planning should still preserve traceability, source coverage
+checks, and fidelity review.
 
 ## Unresolved Source-Backed Questions
 

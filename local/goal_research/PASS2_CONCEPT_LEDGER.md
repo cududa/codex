@@ -12,7 +12,7 @@ After Pass 2B.5, repeated authority should be compressed through
 text in the owner target, local reminders where a seam can violate the rule,
 pointer-only references where another target owns the rule, and
 operational/test reminders where appropriate. That compression still requires
-source-bounded Pass 2C fidelity audits.
+source coverage checks during future concept-preserving rewrite planning.
 
 Target homes use the provisional interface keys defined in
 `PASS2_SECTION_TRACEABILITY.md`. This ledger should not give a key a second
@@ -33,25 +33,25 @@ ownership here.
 | `Design-pass required` | Code terrain has been researched enough to show existing code does not answer the concept; a successor design pass must choose the implementation shape before execution planning. |
 
 Debt markers are not permission to keep settled behavior ambiguous. Before
-Pass 2B or Pass 2C treats a row as unresolved, classify it:
+future rewrite planning treats a row as unresolved, classify it:
 
 - Rows settled by the source corpus should be rewritten deterministically, even
   if they remain high-risk fidelity guardrails.
 - For direct implementation work, implementation details clarified outside
   `local/goal_research` should be represented in the applicable authority docs
   before an implementation plan relies on them.
-- For Pass 2C doc-worker tasks, relevant
-  `local/goal_136_plan/work-areas` decisions are required reconciliation
-  inputs. If they are more precise than, or appear to conflict with, older
-  source-doc wording, use the work-area route when it preserves the underlying
-  concept and latest researched v136 design, then record that reconciliation
-  in the successor-doc slice closure.
+- For future successor-doc architecture design or concept-preserving rewrite
+  planning, relevant `local/goal_136_plan/work-areas` decisions are required
+  reconciliation inputs. If they are more precise than, or appear to conflict
+  with, older source-doc wording, use the work-area route when it preserves the
+  underlying concept and latest researched v136 design, then represent that
+  reconciliation in the future successor docs.
 - Target-home ownership questions should name owner/shared/pointer-only
   routing without changing behavior.
 - Direct implementation plan/authority conflicts require fixing the source
-  contract or the plan explicitly. Pass 2C source/work-area conflicts should be
-  reconciled under the rule above unless the work-area route would drop,
-  invert, or weaken a core concept.
+  contract or the plan explicitly. Source/work-area conflicts in future rewrite
+  planning should be reconciled under the rule above unless the work-area route
+  would drop, invert, or weaken a core concept.
 - True design gaps require design debt, not authoritative prose pretending the
   answer exists.
 
@@ -129,10 +129,10 @@ Reviewed 2026-07-14 against current v135 terrain, `rust-v0.136.0`,
 ## High-Risk Repeated Authority Families
 
 The following repeated clauses appear across multiple source docs and must not
-be silently collapsed during Pass 2C. After Pass 2B.5, "preserve" means keep
-the full source-backed contract in the canonical owner, keep local reminders
-where a seam can directly violate the rule, and use pointer-only or
-operational/test reminders elsewhere.
+be silently collapsed during future concept-preserving rewrite planning. After
+Pass 2B.5, "preserve" means keep the full source-backed contract in the
+canonical owner, keep local reminders where a seam can directly violate the
+rule, and use pointer-only or operational/test reminders elsewhere.
 
 | Repeated family | Pass 2B.5 routing |
 | --- | --- |
@@ -158,10 +158,11 @@ operational/test reminders elsewhere.
 ## Repeated Authority Canonicalization Alignment
 
 Use `pass2b_target_interfaces/repeated-authority-canonicalization.md` and the
-four batch files as the Pass 2C compression guide. Do not infer from this
-ledger that every repeated sentence should survive in every successor target.
+four batch files as repeated-authority compression guidance. Do not infer from
+this ledger that every repeated sentence should survive in every successor
+target.
 
-During Pass 2C:
+During future concept-preserving rewrite planning:
 
 - write canonical text in the owning target before replacing repeated source
   prose elsewhere
@@ -169,13 +170,13 @@ During Pass 2C:
 - use pointer-only references where another target owns the rule and the local
   seam cannot directly violate it
 - keep operational/test reminders short and explicitly non-authoritative
-- keep source-bounded fidelity audits for every slice even when a concept is
-  represented in this ledger or in the Pass 2B.5 workspace
+- keep source coverage checks even when a concept is represented in this ledger
+  or in the Pass 2B.5 workspace
 
 ## Pass 2A Notes
 
 - This ledger intentionally records concepts at a level above individual
-  sentences. Pass 2C still needs source-bounded fidelity audits.
-- `High-risk` means the concept should receive explicit per-slice audit notes
-  before the source slice is marked closed.
+  sentences. Future rewrite planning still needs source coverage checks.
+- `High-risk` means the concept should receive explicit coverage notes before
+  the relevant content is rewritten.
 - No concept is closed by this file.

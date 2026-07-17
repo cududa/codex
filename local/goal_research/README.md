@@ -5,12 +5,13 @@ It does not supersede `AGENTS.md` or any authority contract. If this reader map
 is incomplete or imprecise, follow the source document it points to.
 
 For direct implementation or version planning, the current source authority
-docs remain the contracts until successor docs are cut over. For Pass 2C
-documentation restructuring, the current docs are the required source corpus
-and concept record; the rewrite may reorganize, synthesize, and compress prose
-as long as concepts, edge cases, and implementation-relevant detail are
-faithfully retained. Pass 2C slices must also validate affected concepts
-against the relevant `local/goal_136_plan/work-areas` docs.
+docs remain the contracts until future successor docs replace them. For future
+successor-doc architecture design or concept-preserving rewrite planning, the
+current docs are the required source corpus and concept record; the rewrite may
+reorganize, synthesize, and compress prose as long as concepts, edge cases, and
+implementation-relevant detail are faithfully retained. Future rewrite planning
+must also validate affected concepts against the relevant
+`local/goal_136_plan/work-areas` docs.
 
 Start with:
 
@@ -38,7 +39,8 @@ Read these documents as the stable conceptual spine:
 
 The spine intentionally repeats some non-negotiables. Treat that repetition as
 authority reinforcement until Pass 2B.5 canonical/local/pointer routing is
-applied during Pass 2C; do not merge or weaken those clauses from memory.
+applied in future concept-preserving rewrite planning; do not merge or weaken
+those clauses from memory.
 
 ## Core Through-Line
 
@@ -131,19 +133,19 @@ terrain, not mission; do not infer desired architecture from current local code.
 
 ## Pass 2 Guardrails
 
-Do not move or rewrite source-doc content except through a traced Pass 2C
-source-bounded slice after the navigation, coverage, target-interface, and
-repeated-authority prep artifacts have been reviewed.
+Do not move or rewrite source-doc content until the navigation, coverage,
+target-interface, and repeated-authority prep artifacts have been reviewed and
+the future successor-doc architecture design is ready.
 
 Use `PASS2_SECTION_TRACEABILITY.md` and `PASS2_CONCEPT_LEDGER.md` as the
-review inventory before any content is renamed, rehomed, merged, split, or
-rewritten.
+source coverage inventory and concept inventory before any content is renamed,
+rehomed, merged, split, or rewritten.
 
 Use `PASS2B_TARGET_INTERFACES.md` and `pass2b_target_interfaces/` as the Pass
 2B target-interface workspace. Its repeated-authority canonicalization
 workspace is Pass 2B.5 prep for deciding which repeated clauses become
 canonical text, local reminders, pointer-only references, or operational/test
-reminders before Pass 2C source-bounded rewrites.
+reminders in future concept-preserving rewrite planning.
 
 Before any content is rehomed, create or maintain a section traceability table
 that maps every existing section to its new location. The review must check for:
@@ -156,8 +158,9 @@ that maps every existing section to its new location. The review must check for:
   test-prep behavior
 - changes that make a support helper look like the authority mechanism
 
-Pass 2C may rewrite and reorganize old wording when the source slice is
-accounted for, repeated authority follows canonical/local/pointer/operational
-routing, and any conflict or uncertainty with `local/goal_136_plan/work-areas`
-is reconciled in favor of the work-area route when it preserves the underlying
-concept and reflects the latest researched v136 design.
+Future concept-preserving rewrite planning may reorganize old wording when the
+source coverage inventory is accounted for, repeated authority follows
+canonical/local/pointer/operational routing, and any conflict or uncertainty
+with `local/goal_136_plan/work-areas` is reconciled in favor of the work-area
+route when it preserves the underlying concept and reflects the latest
+researched v136 design.

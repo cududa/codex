@@ -3,7 +3,7 @@
 This is part of the Pass 2B.5 repeated-authority canonicalization workspace.
 It is not future implementation authority.
 
-Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and Pass 2C usage.
+Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and future rewrite planning guidance.
 
 ## Extension Reachability And Steering-Role Config Compatibility
 
@@ -79,7 +79,7 @@ Forbidden compression:
 
 - Do not collapse to "remove ext/goal" or "extension owns Goal steering."
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Rewrite extension from `goal-authority-ext-goal-ownership.md` after final
   and durable target contracts are stable enough to point to.
@@ -153,10 +153,10 @@ Forbidden compression:
 
 - Do not turn the demolition map into a compatibility layer.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
-- Keep `T-SHIM` concrete enough for later execution slices to find old roots,
-  but do not restate replacement contracts in full.
+- Keep `T-SHIM` concrete enough for future implementation planning to find old
+  roots, but do not restate replacement contracts in full.
 
 ## Replacement Test Profile And Upstream Baseline
 
@@ -223,7 +223,7 @@ Forbidden compression:
 - Do not delete upstream Goal product tests because current local code fails
   after fake-shim removal.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Rewrite the test-prep target after behavior/seam targets are named, so each
   replacement cluster can point to the target that owns what it proves.
@@ -245,9 +245,10 @@ Canonical text:
 
 Local reminders:
 
-- Each may keep short warnings that direct implementation follows the current
-  source or successor authority, while Pass 2C doc-worker tasks reconcile
-  source docs with relevant work-area decisions.
+- Each may keep short operational pointers: direct implementation follows the
+  current source or future successor authority, and future successor-doc
+  architecture design reconciles source docs with relevant work-area
+  decisions.
 - `OP-AGENTS` may keep compact non-negotiables only after targets own the full
   clauses.
 
@@ -280,10 +281,10 @@ Clauses that must not be lost:
 - Navigation aids do not supersede authority for direct implementation work.
 - Version-specific plans must conform to `local/goal_research` for direct
   implementation unless an explicit later authority update says otherwise.
-- Pass 2C doc-worker tasks use current docs as source corpus and validate
-  affected concepts against `local/goal_136_plan/work-areas`; work-area
-  decisions win on conflict or uncertainty when they preserve the underlying
-  concept and latest researched v136 design.
+- Future successor-doc architecture design uses current docs as source corpus
+  and validates affected concepts against `local/goal_136_plan/work-areas`;
+  work-area decisions win on conflict or uncertainty when they preserve the
+  underlying concept and latest researched v136 design.
 - Existing Rust code is terrain, not mission.
 - Agents must read applicable source docs directly and top to bottom; grep or
   navigation summaries cannot replace source-contract reading.
@@ -297,8 +298,8 @@ Clauses that must not be lost:
 - Recorded request evidence remains a support seam for final request-input
   commit and replay/audit evidence; it is not a new authority mechanism.
 - Current readiness means ready for an implementation execution plan that
-  translates design inputs into ordered, file-specific slices without
-  reopening core architecture absent direct conflict.
+  translates design inputs into ordered, file-specific implementation steps
+  without reopening core architecture absent direct conflict.
 
 Allowed compression:
 
@@ -311,7 +312,8 @@ Forbidden compression:
   longer carries the full rule.
 - Do not let glossary definitions carry edge-case behavior.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
-- Rewrite navigation/operations after successor target docs exist and source
-  slices are traced. Until then, keep current navigation aids as aids only.
+- Rewrite navigation/operations after future successor target docs are named
+  and source coverage is checked. Until then, keep current navigation aids as
+  aids only.

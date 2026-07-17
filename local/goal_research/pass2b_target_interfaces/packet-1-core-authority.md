@@ -35,8 +35,9 @@ Packet focus:
 ## Packet 1 Interface Entries
 
 The Core Authority packet found no wrong/stale Pass 2A mappings that need
-prep-artifact repair before these entries. Rows listed below still need
-source-bounded Pass 2C rewrite before they become successor authority.
+prep-artifact repair before these entries. Rows listed below remain
+target-interface prep until future successor-doc architecture design
+translates them into successor authority.
 
 The entries below preserve the reviewed Packet 1 wording. Heading levels were adjusted for this packet file.
 
@@ -173,7 +174,7 @@ Fidelity Tripwires / Review Debt:
   evidence tied to the same logical final request input, without turning
   evidence into authority.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this successor section from `goal-authority-grounding-truth.md`, then
   merge repeated behavioral clauses from cadence, final, evidence, and
@@ -186,7 +187,7 @@ Pass 2C Rewrite Notes:
 True Open Questions:
 
 - None found in Packet 1. Remaining `Review debt` here is fidelity debt for
-  Pass 2C, not unresolved behavior.
+  future concept-preserving rewrite planning, not unresolved behavior.
 
 ### T-CADENCE: Primary Cadence Contract
 
@@ -330,7 +331,7 @@ Fidelity Tripwires / Review Debt:
 - Preserve final payload or structured recorded request evidence as proof
   obligations without making `T-CADENCE` own evidence persistence.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Rewrite from `goal-authority-primary-cadence-contract.md` as the canonical
   source, then pull only behavior-level reinforcement from Grounding Truth.
@@ -475,7 +476,7 @@ Fidelity Tripwires / Review Debt:
 - Preserve the distinction between durable facts version and product metadata
   timestamps.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this interface from `goal-authority-durable-cadence-state.md`; fold in
   cadence references only where they explain why state must expose the durable
@@ -663,7 +664,7 @@ Fidelity Tripwires / Review Debt:
   attaches to the full logical request input.
 - Preserve `goals.rs` as adapter scope, not finalizer ownership.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Rewrite this entry from `goal-authority-final-request-input-and-commit.md`
   first. It is the canonical final-input seam.

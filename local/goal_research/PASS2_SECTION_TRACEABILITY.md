@@ -5,7 +5,7 @@ implementation authority, and it does not close any source row.
 
 Use this file before rewriting, renaming, rehoming, or deleting any Goal
 source-doc content. The purpose is to keep each source section visible while
-the successor docs are designed and rewritten in source-bounded slices.
+the successor docs are designed and rewritten.
 
 ## Target Home Key
 
@@ -67,37 +67,37 @@ Before treating a row as unresolved, classify the debt:
 - For direct implementation work, implementation details clarified outside
   `local/goal_research` should be represented in the applicable authority docs
   before an implementation plan relies on them.
-- For Pass 2C doc-worker tasks, relevant
-  `local/goal_136_plan/work-areas` decisions are required reconciliation
-  inputs. If they are more precise than, or appear to conflict with, older
-  source-doc wording, use the work-area route when it preserves the underlying
-  concept and latest researched v136 design, then record that reconciliation
-  in the successor-doc slice closure.
+- For future successor-doc architecture design or concept-preserving rewrite
+  planning, relevant `local/goal_136_plan/work-areas` decisions are required
+  reconciliation inputs. If they are more precise than, or appear to conflict
+  with, older source-doc wording, use the work-area route when it preserves the
+  underlying concept and latest researched v136 design, then represent that
+  reconciliation in the future successor docs.
 - Target-home ownership questions may remain as owner/shared/pointer-only
   routing work without reopening behavior.
 - `Canonicalize` rows should follow
   `pass2b_target_interfaces/repeated-authority-canonicalization.md`; they are
   not instructions to duplicate prose forever.
 - Direct implementation plan/authority conflicts must stop and fix either the
-  applicable source doc or the plan explicitly. Pass 2C source/work-area
-  conflicts should be reconciled under the rule above unless the work-area
-  route would drop, invert, or weaken a core concept.
+  applicable source doc or the plan explicitly. Source/work-area conflicts in
+  future rewrite planning should be reconciled under the rule above unless the
+  work-area route would drop, invert, or weaken a core concept.
 - True design gaps are design debt, not successor-doc prose.
 
 ## Operational And Navigation Docs
 
 | Source section | Role | Key clauses and edge cases | Code/test anchors | Proposed home | Action/status |
 | --- | --- | --- | --- | --- | --- |
-| `AGENTS.md` / title | Operational posture for this directory | Direct implementation uses source contracts as design contracts; Pass 2C treats source docs as source corpus and validates against `local/goal_136_plan/work-areas`. | n/a | `OP-AGENTS` | Leave; update after cutover |
+| `AGENTS.md` / title | Operational posture for this directory | Direct implementation uses source contracts as design contracts; future rewrite planning treats source docs as source corpus and validates against `local/goal_136_plan/work-areas`. | n/a | `OP-AGENTS` | Leave; update after successor docs exist |
 | `AGENTS.md` / Authority Order | Current read order and conflict rule | Grounding truth, primary cadence, idle continuation, fake-shim map, and test deletion map have ordered force; conflicts must be stopped and named. | n/a | `OP-AGENTS`, `NAV-README` | Leave; may simplify duplicated navigation after target docs exist |
 | `AGENTS.md` / Navigation And Document Roles | Distinguishes navigation aids from authority | README/CONTEXT help agents find source docs; top-to-bottom reading remains required. | n/a | `OP-AGENTS`, `NAV-README`, `GLOSSARY` | Leave |
-| `AGENTS.md` / Design Deliverables | Readiness gate before implementation planning | Ready means design input, not file/function/slice implementation plan. | n/a | `OP-AGENTS`, `T-READINESS` | Leave; pointer may change after Pass 2 |
+| `AGENTS.md` / Design Deliverables | Readiness gate before implementation planning | Ready means design input, not a concrete file/function implementation plan. | n/a | `OP-AGENTS`, `T-READINESS` | Leave; pointer may change after Pass 2 |
 | `AGENTS.md` / Non-Negotiables | Operational short list of authority invariants | Developer-role final input, no GoalContext active path, persisted Initial/ObjectiveUpdated/BudgetLimit, runtime Continuation watermark, ordinary user turns not cadence, repair not cadence, resume hydration, raw remains raw, upstream product baseline. | n/a | `OP-AGENTS`, `T-BEHAVIOR`, `T-CADENCE`, `T-DURABLE`, `T-FINAL`, `T-IDLE`, `T-HISTORY`, `T-CLEANUP`, `T-EXT`, `T-SHIM`, `T-TEST-PREP` | Use Pass 2B.5 canonical/local/pointer routing after target docs close; `OP-AGENTS` keeps operational pointer only |
 | `AGENTS.md` / Test Prep Posture | Prep instruction for rewrite | Delete false-compatibility overlay, restore upstream baseline, add replacement tests later. | Test files named in `goal-test-deletion-map.md` | `OP-AGENTS`, `T-TEST-PREP` | Leave; keep as operational pointer |
 | `AGENTS.md` / Working Posture | Direction-lock posture | Existing Rust is terrain, not mission; names terrain that must not become design. | `codex-rs/core/src/goals.rs`, `codex-rs/core/src/state/turn.rs`, app-server raw suppression | `OP-AGENTS`, `NAV-README` | Leave |
 | `AGENTS.md` / Verification | Docs-only and Rust verification posture | Use `git diff --check -- local/goal_research` for docs-only; Rust follows root instructions. | n/a | `OP-AGENTS` | Leave |
-| `README.md` / title and intro | Reader map | Navigation only; direct implementation follows current contracts; Pass 2C uses current docs as source corpus with work-area validation. | n/a | `NAV-README` | Leave; update after cutover |
-| `README.md` / Authority Spine | Reader-level spine | Repetition among spine docs is authority reinforcement until Pass 2B.5 canonical/local/pointer routing is applied during Pass 2C. | n/a | `NAV-README` | Leave; later point to successor contracts |
+| `README.md` / title and intro | Reader map | Navigation only; direct implementation follows current contracts; future rewrite planning uses current docs as source corpus with work-area validation. | n/a | `NAV-README` | Leave; update after successor docs exist |
+| `README.md` / Authority Spine | Reader-level spine | Repetition among spine docs is authority reinforcement until Pass 2B.5 canonical/local/pointer routing is applied in future rewrite planning. | n/a | `NAV-README` | Leave; later point to successor contracts |
 | `README.md` / Core Through-Line | High-level synthesis | Durable cadence state plus final request-input shaping carry design; support seams must not become authority. | n/a | `NAV-README` | Leave; validate against `PASS2_CONCEPT_LEDGER.md` |
 | `README.md` / Supporting Seams | Question-to-doc routing | Maps implementation questions to seam docs. | n/a | `NAV-README` | Leave; replace with target interface map after Pass 2B |
 | `README.md` / Current Terrain Anchors | Code anchor map | Terrain is not mission; anchors include active fake shim, final input path, durable state, history/reconstruction, cleanup/projection, extension injection. | Many anchors across core/state/app-server/ext | `NAV-README` | Leave; update when target docs close |
@@ -308,7 +308,7 @@ Before treating a row as unresolved, classify the debt:
 | `goal-authority-open-design-deliverables.md` / 4. `ext/goal` Ownership | Deliverable criteria | Inspect upstream/local, decide route/remove/unreachable; no reachable fake shim, concrete injection, or user-role active steering. | `ext/goal` | `T-EXT`, `T-READINESS` | Open |
 | `goal-authority-open-design-deliverables.md` / 5. Repair And Classifier Integration | Deliverable criteria | Map callsites for event, parsing, rollback, compaction, reconstruction, app-server typed/materialized, raw; classifiers strict and non-authority. | Cleanup callsites | `T-CLEANUP`, `T-READINESS` | Open |
 | `goal-authority-open-design-deliverables.md` / Readiness Rule | Plan handoff | Implementation execution plan only after deliverables Ready or superseded; next plan translates into ordered file-specific slices without reopening architecture absent direct conflict. | n/a | `T-READINESS`, `OP-AGENTS` | Open |
-| `goal-authority-recorded-request-evidence-design-pass-handoff.md` / executed handoff | Non-authority handoff artifact | Handoff says it has been executed and is not authority. The resolved seam is `goal-authority-recorded-request-evidence.md`; do not use this handoff as a source slice except to understand why the recorded-evidence doc exists. | n/a | `T-READINESS` | Leave; exclude from source-slice closure |
+| `goal-authority-recorded-request-evidence-design-pass-handoff.md` / executed handoff | Non-authority handoff artifact | Handoff says it has been executed and is not authority. The resolved seam is `goal-authority-recorded-request-evidence.md`; use this handoff only to understand why the recorded-evidence doc exists. | n/a | `T-READINESS` | Leave |
 
 ## Pass 2A Notes
 

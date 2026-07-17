@@ -11,21 +11,21 @@ The top-level index is [../PASS2B_TARGET_INTERFACES.md](../PASS2B_TARGET_INTERFA
 The repeated-authority canonicalization plan is
 [repeated-authority-canonicalization.md](repeated-authority-canonicalization.md).
 Use that stable index and the batch files under
-`repeated_authority_canonicalization/` before Pass 2C source-bounded rewrite
-slices to decide which repeated clauses become canonical text, local
-reminders, pointer-only references, or operational/test reminders.
+`repeated_authority_canonicalization/` during future rewrite planning to decide
+which repeated clauses become canonical text, local reminders, pointer-only
+references, or operational/test reminders.
 
 ## Purpose
 
 Pass 2B defines the interfaces for the successor Goal authority documents. An
-interface is everything a later reader or rewrite slice must know about a
+interface is everything a later reader or rewrite planner must know about a
 target document: what it owns, what it must not own, which repeated authority
 must remain local, which dependencies are pointer-only, and which Pass 2A rows
 feed it.
 
 Pass 2B does not write successor authority prose. It creates the stable map
-that lets Pass 2C rewrite source-bounded slices without synthesizing from
-memory.
+that lets future rewrite planning preserve source coverage without
+synthesizing from memory.
 
 ## Inputs
 
@@ -37,30 +37,33 @@ Use these files for Pass 2B:
 - `PASS2_SECTION_TRACEABILITY.md`
 - `PASS2_CONCEPT_LEDGER.md`
 
-For direct implementation work before cutover, source authority docs remain
-controlling. For Pass 2C doc-worker tasks, those docs are the source corpus,
-and relevant `local/goal_136_plan/work-areas` decisions are required
-reconciliation inputs when they clarify the latest researched v136 route.
+For direct implementation work before future successor docs replace the current
+source docs, source authority docs remain controlling. For future
+successor-doc architecture design or concept-preserving rewrite planning, those
+docs are the source corpus, and relevant `local/goal_136_plan/work-areas`
+decisions are required reconciliation inputs when they clarify the latest
+researched v136 route.
 
 If a Pass 2B packet finds that a source contract and a prep artifact disagree,
-follow the source contract and fix the prep artifact before continuing. If a
-Pass 2C slice finds that older source-doc wording and a work-area decision
-disagree, use the work-area route when it preserves the underlying concept and
-record the reconciliation in the slice closure.
+follow the source contract and fix the prep artifact before continuing. If
+future rewrite planning finds that older source-doc wording and a work-area
+decision disagree, use the work-area route when it preserves the underlying
+concept and record the reconciliation as rewrite-planning input.
 
 ## Constraints
 
 - Do not rewrite source-doc content in Pass 2B.
 - Do not rename, rehome, or delete source files in Pass 2B.
-- Do not start Pass 2C source-bounded rewrite slices from this artifact alone.
+- Do not use this artifact alone as a successor-doc architecture or rewrite
+  plan.
 - Do not promote current Rust terrain above `local/goal_research` source docs.
 - For direct implementation work, settled implementation-plan details should be
   represented in the applicable authority doc before implementation relies on
   them.
-- For Pass 2C rewrite work, validate affected concepts against
-  `local/goal_136_plan/work-areas` and integrate the work-area decision into
-  successor docs when it preserves the concept and reflects the latest
-  researched v136 design.
+- For future successor-doc architecture design or concept-preserving rewrite
+  planning, validate affected concepts against
+  `local/goal_136_plan/work-areas` and integrate the work-area decision when it
+  preserves the concept and reflects the latest researched v136 design.
 - Treat existing Rust code as terrain, not mission.
 
 ## Target-Home Reading Rule
@@ -78,8 +81,8 @@ Each Pass 2B packet must classify mappings as:
 - `pointer-only`: the target references the rule, but another target owns the
   semantics.
 - `wrong/stale`: the mapping implies ownership that contradicts the source
-  corpus, current settled implementation authority, or the Pass 2C
-  source/work-area reconciliation rule.
+  corpus, current settled implementation authority, or the source/work-area
+  reconciliation rule for future rewrite planning.
 
 ## Status Reading Rule
 
@@ -91,16 +94,16 @@ Each Pass 2B packet must classify mappings as:
 - `Canonicalize` is valid only after repeated authority is represented in the
   concept ledger and the local non-negotiables are assigned.
 - `Leave` fits operational or navigation material that should survive until
-  cutover.
+  future successor docs replace the current source docs.
 
 Before treating a row as unresolved, classify it as one of:
 
 - settled by the source corpus and ready for deterministic interface placement
 - source-backed ownership routing work
-- fidelity debt for Pass 2C audit
+- fidelity debt for future source coverage checking
 - direct implementation plan/authority conflict requiring a source authority
   or plan update
-- Pass 2C source/work-area reconciliation to record during slice closure
+- source/work-area reconciliation to record during future rewrite planning
 - true design debt
 
 ## Target Interface Template
@@ -137,7 +140,7 @@ Concept Ledger Inputs:
 Fidelity Tripwires / Review Debt:
 - ...
 
-Pass 2C Rewrite Notes:
+Future Rewrite Planning Notes:
 - ...
 
 True Open Questions:
@@ -160,9 +163,10 @@ True Open Questions:
   this interface but do not define its center.
 - `Concept Ledger Inputs` are concept rows feeding this interface.
 - `Fidelity Tripwires / Review Debt` names details most likely to be lost in
-  Pass 2C.
-- `Pass 2C Rewrite Notes` tells the later source-bounded rewrite where to be
-  especially mechanical or where to avoid duplicated prose.
+  a future concept-preserving rewrite.
+- `Future Rewrite Planning Notes` tells future successor-doc architecture
+  design or concept-preserving rewrite planning where to be especially
+  mechanical or where to avoid duplicated prose.
 - `True Open Questions` should be empty unless the packet proves source
   authority does not answer the issue.
 
@@ -173,7 +177,7 @@ violate them. Pass 2B.5 then split repeated-authority canonicalization into
 the workspace at
 [repeated-authority-canonicalization.md](repeated-authority-canonicalization.md).
 
-Use the Pass 2B.5 workspace before Pass 2C rewrites to decide:
+Use the Pass 2B.5 workspace during future rewrite planning to decide:
 
 - which target carries canonical text
 - which targets keep local reminders because their seams can violate the rule
@@ -182,8 +186,8 @@ Use the Pass 2B.5 workspace before Pass 2C rewrites to decide:
   reminders
 
 Do not use the Pass 2B interfaces or Pass 2B.5 batches to rewrite source
-authority from memory. Pass 2C still needs source-bounded slice rewrites and
-fidelity audits.
+authority from memory. Future rewrite planning still needs source coverage
+checks and fidelity review.
 
 ## Packet Plan
 
@@ -314,8 +318,8 @@ Targets:
 
 Goal:
 
-Decide whether Pass 2B is complete enough to start Pass 2C source-bounded
-rewrite slices.
+Decide whether Pass 2B is complete enough to support future successor-doc
+architecture design.
 
 Packet focus:
 
@@ -370,14 +374,15 @@ together.
 [repeated-authority-canonicalization.md](repeated-authority-canonicalization.md)
 is the stable index for the Pass 2B.5 repeated-authority canonicalization
 workspace. The batch files under `repeated_authority_canonicalization/` record
-how repeated authority should be compressed during Pass 2C. They do not
-rewrite authority. They classify repeated clauses into canonical text, local
-reminders, pointer-only references, and operational/test reminders so Pass 2C
-does not accidentally remove intentional reinforcement.
+how repeated authority should be compressed during future rewrite planning.
+They do not rewrite authority. They classify repeated clauses into canonical
+text, local reminders, pointer-only references, and operational/test reminders
+so a future concept-preserving rewrite does not accidentally remove intentional
+reinforcement.
 
-## Pass 2C Readiness Checklist
+## Future Rewrite Planning Readiness Checklist
 
-Pass 2C should not start until:
+Future rewrite planning should not proceed until:
 
 - every target key has a completed interface entry
 - every interface names what it owns and does not own
@@ -389,12 +394,13 @@ Pass 2C should not start until:
 - every `Canonicalize` item has preserved concept coverage first
 - repeated authority has a canonicalization plan before repeated source prose
   is compressed
-- every `Leave` item has a cutover rationale
+- every `Leave` item has a successor-document replacement rationale
 - support targets are confirmed not to own behavior contracts
-- for direct implementation before cutover, current authority docs remain
-  controlling over this artifact
-- for Pass 2C, relevant `local/goal_136_plan/work-areas` decisions have been
-  reconciled with source-doc wording and recorded in slice closure
+- for direct implementation before future successor docs replace the current
+  source docs, current authority docs remain controlling over this artifact
+- for future rewrite planning, relevant `local/goal_136_plan/work-areas`
+  decisions have been reconciled with source-doc wording and recorded as
+  work-area reconciliation input
 
 ## Verification
 

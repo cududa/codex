@@ -36,8 +36,9 @@ Packet focus:
 ## Packet 3 Interface Entries
 
 The Support And Execution packet found no wrong/stale Pass 2A mappings that
-need prep-artifact repair before these entries. Rows listed below still need
-source-bounded Pass 2C rewrite before they become successor authority.
+need prep-artifact repair before these entries. Rows listed below remain
+target-interface prep until future successor-doc architecture design
+translates them into successor authority.
 
 ### T-EXT: Extension Goal Ownership And Reachability
 
@@ -211,21 +212,22 @@ Fidelity Tripwires / Review Debt:
 - Do not let source-tagged user-role upstream terrain become acceptable
   active Goal authority.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this successor section from `goal-authority-ext-goal-ownership.md`.
 - Keep extension as a support/lifecycle interface. Use local non-negotiables
   and pointers rather than restating the cadence, durable, final, idle,
   history, cleanup, or evidence contracts in full.
-- When importing file-specific work areas, keep them as routing for later
-  execution slices, not as authority over final-input semantics.
-- If Pass 2C discovers implementation-plan names for cadence request metadata,
-  include them only after source authority or the execution plan fixes them.
+- When importing file-specific work areas, keep them as routing for future
+  implementation planning, not as authority over final-input semantics.
+- If future rewrite planning discovers implementation-plan names for cadence
+  request metadata, include them only after source authority or the execution
+  plan fixes them.
 
 True Open Questions:
 
-- None found in Packet 3. Exact adapter API names and slice order remain
-  implementation-plan work, not unresolved target-interface authority.
+- None found in Packet 3. Exact adapter API names and implementation order
+  remain implementation-plan work, not unresolved target-interface authority.
 
 ### T-SHIM: Fake-Shim Demolition Terrain
 
@@ -253,8 +255,8 @@ Owns:
 - The rule that any remaining `<goal_context>` behavior is legacy artifact
   handling only and cannot keep active Goal-specific context architecture
   alive.
-- Demolition-focused fidelity debt: current terrain must be named so later
-  execution slices remove or convert it deliberately.
+- Demolition-focused fidelity debt: current terrain must be named so future
+  implementation planning removes or converts it deliberately.
 
 Does Not Own:
 
@@ -307,7 +309,7 @@ Pointer-Only Dependencies:
 - `T-TEST-PREP` owns deletion of false-compatibility tests and replacement
   proof matrix.
 - `T-READINESS` owns whether demolition work areas are ready to translate into
-  implementation execution slices.
+  implementation planning.
 
 Canonical Source Inputs:
 
@@ -364,20 +366,21 @@ Fidelity Tripwires / Review Debt:
   casually filtered; cleanup must distinguish current selected items from
   legacy or stale items.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this successor section from `goal-authority-fake-shim-removal-map.md`.
 - Keep it as a map of terrain to delete or convert. Avoid rewriting it into
   the finalizer, classifier, cadence, or extension docs.
 - Use explicit pointers from each work area to the target that owns the
   replacement behavior.
-- Keep file lists and implementation-terrain anchors because Pass 2C and
-  later execution slices need them to avoid missing old shim callsites.
+- Keep file lists and implementation-terrain anchors because future rewrite
+  planning and implementation planning need them to avoid missing old shim
+  callsites.
 
 True Open Questions:
 
-- None found in Packet 3. Which exact slices delete which callsites is
-  execution-plan work after Pass 2B/2C.
+- None found in Packet 3. Which exact implementation steps delete which
+  callsites is execution-plan work after Pass 2B.
 
 ### T-TEST-PREP: Test Prep, Baseline, Replacement Matrix, And Snapshots
 
@@ -417,8 +420,9 @@ Does Not Own:
 - The behavioral contract each replacement test proves. Those contracts belong
   to `T-BEHAVIOR`, `T-CADENCE`, `T-DURABLE`, `T-FINAL`, `T-IDLE`,
   `T-HISTORY`, `T-EVIDENCE`, `T-CLEANUP`, and `T-EXT`.
-- Implementation architecture, module/function names, migrations, or slice
-  order. Those are later execution-plan work constrained by authority docs.
+- Implementation architecture, module/function names, migrations, or
+  implementation order. Those are later execution-plan work constrained by
+  authority docs.
 - Product redesign or permission to delete upstream Goal product tests.
 - Final payload, structured recorded request evidence, classifier, durable
   state, history-key, extension, or readiness semantics.
@@ -443,8 +447,8 @@ Shared / Local Non-Negotiables:
 - Replacement tests must prove behavior through final model request payloads
   or structured recorded request evidence where applicable, not helper output,
   projection hiding, raw notifications, or rollout trace.
-- Extension conversion/removal slices must update or remove old extension
-  tests in the same slice and must not let extension baseline preserve
+- Extension conversion/removal implementation steps must update or remove old
+  extension tests in the same step and must not let extension baseline preserve
   `GoalContext` or `<goal_context>`.
 - Steering-role config test prep must not preserve user-role active Goal
   steering compatibility.
@@ -535,15 +539,16 @@ Fidelity Tripwires / Review Debt:
 - Preserve replacement evidence wording as final payload or structured
   recorded request evidence, never generic rollout trace.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this successor section from `goal-test-deletion-map.md`.
 - Keep the prep sequence and named test files concrete; that concreteness is
   the value of the target.
 - When referencing replacement tests, point each cluster back to the target
   that owns the behavior being proved.
-- Do not use Pass 2C to trim replacement coverage merely because another doc
-  already states the behavior. The matrix remains the execution-prep index.
+- Do not use future rewrite planning to trim replacement coverage merely
+  because another doc already states the behavior. The matrix remains the
+  execution-prep index.
 
 True Open Questions:
 
@@ -562,7 +567,7 @@ Purpose:
 Owns:
 
 - Readiness status terms: Ready, Open, and Blocker as implementation-design
-  input status, not file/function/slice completion.
+  input status, not file/function/implementation-step completion.
 - Consolidated-doc posture: do not recreate separate cadence-module,
   finalizer/commit, goals-adapter, GoalStore-interface, or state/behavior docs
   unless code inspection proves the consolidated docs too large to execute.
@@ -573,10 +578,10 @@ Owns:
 - The rule that an implementation execution plan may be written only after the
   required deliverables are Ready or explicitly superseded by later authority.
 - Handoff criteria for the next execution plan: translate ready design inputs
-  into ordered file-specific slices without reopening core architecture absent
-  direct conflict.
-- Exclusion of non-authority handoff artifacts from source-slice closure when
-  their resolved seam now lives in a source authority doc.
+  into ordered file-specific implementation steps without reopening core
+  architecture absent direct conflict.
+- Exclusion of non-authority handoff artifacts from future source coverage
+  accounting when their resolved seam now lives in a source authority doc.
 
 Does Not Own:
 
@@ -584,14 +589,14 @@ Does Not Own:
   history key, recorded evidence, cleanup/classifier behavior, extension
   lifecycle, shim demolition, or test matrix semantics.
 - Concrete Rust type names, module names, migrations, call ordering inside
-  files, or implementation slice order.
+  files, or implementation order.
 - Authority over source docs through checklist wording.
 - Navigation, glossary, or operational instructions beyond readiness handoff.
 
 Shared / Local Non-Negotiables:
 
 - Ready means ready as design input. It does not mean already translated into
-  concrete files, functions, migrations, tests, or slice order.
+  concrete files, functions, migrations, tests, or implementation order.
 - Durable cadence state and per-attempt final request-input shaping/commit are
   the two concepts that carry the replacement design; every other readiness
   item must support those directly or remain implementation detail.
@@ -648,8 +653,8 @@ Supporting Source Inputs:
   support-seam readiness criteria.
 - `goal-test-deletion-map.md`: source of test-prep readiness inputs.
 - `goal-authority-recorded-request-evidence-design-pass-handoff.md`: executed
-  non-authority handoff artifact to exclude from source-slice closure except
-  as provenance for why the evidence doc exists.
+  non-authority handoff artifact to exclude from future source coverage
+  accounting except as provenance for why the evidence doc exists.
 
 Concept Ledger Inputs:
 
@@ -672,12 +677,12 @@ Fidelity Tripwires / Review Debt:
 - Preserve final request input as the authority seam in the corrected posture.
 - Preserve recorded evidence as a support seam, not an authority mechanism.
 - Preserve that the next implementation plan translates to ordered
-  file-specific slices and does not reopen core architecture absent direct
-  conflict.
+  file-specific implementation steps and does not reopen core architecture
+  absent direct conflict.
 - Preserve the executed-handoff exclusion: use resolved source authority docs,
-  not the old handoff, for source-slice closure.
+  not the old handoff, for future source coverage accounting.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Start this successor section from
   `goal-authority-open-design-deliverables.md`.
@@ -692,4 +697,5 @@ Pass 2C Rewrite Notes:
 True Open Questions:
 
 - None found in Packet 3. Remaining file/function/migration/test assignment
-  is execution-plan work after Pass 2C, not readiness-interface uncertainty.
+  is execution-plan work after future successor-doc architecture design, not
+  readiness-interface uncertainty.

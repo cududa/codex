@@ -3,7 +3,7 @@
 This is part of the Pass 2B.5 repeated-authority canonicalization workspace.
 It is not future implementation authority.
 
-Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and Pass 2C usage.
+Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and future rewrite planning guidance.
 
 ## Automatic Continuation And Watermarking
 
@@ -37,7 +37,7 @@ Pointer-only:
 Operational/test reminders:
 
 - `OP-AGENTS` may keep "automatic Continuation uses runtime-only
-  watermarking" as a short pointer until cutover.
+  watermarking" as a short pointer.
 
 Source sections carrying repeated authority:
 
@@ -80,7 +80,7 @@ Forbidden compression:
 - Do not make one target own both idle selection and history projection in a
   way that hides their separate failure modes.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Keep the split explicit wherever Continuation appears. Use the phrase
   "idle selection; history watermark; final commit advance" as the pointer
@@ -152,7 +152,7 @@ Forbidden compression:
 - Do not say "resume checks active Goal and continues" without the hydration
   and no-fabricated-Initial limits.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Keep resume examples in the idle successor doc and use test-prep pointers
   for replacement coverage.
@@ -235,7 +235,7 @@ Forbidden compression:
 - Do not use "same-turn injection" as the planned replacement target.
 - Do not say accepted metadata means delivered intent.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Preserve separate paragraphs for retry/follow-up and same-turn metadata
   wherever source prose currently intertwines them.
@@ -268,7 +268,7 @@ Pointer-only:
 Operational/test reminders:
 
 - `OP-AGENTS` may keep the pre-finalizer carry warning as a short terrain
-  warning until cutover.
+  warning.
 
 Source sections carrying repeated authority:
 
@@ -299,8 +299,8 @@ Forbidden compression:
 
 - Do not call pre-finalizer turn-local request metadata "carry."
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Keep the committed versus uncommitted metadata split explicit in final,
-  cleanup, and idle slices.
+  cleanup, and idle target guidance.
 

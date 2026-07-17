@@ -3,7 +3,7 @@
 This is part of the Pass 2B.5 repeated-authority canonicalization workspace.
 It is not future implementation authority.
 
-Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and Pass 2C usage.
+Return to the [workspace README](README.md) for the canonicalization rules, template, batch order, and future rewrite planning guidance.
 
 ## Request Repair Is Request-Local, Not Cadence
 
@@ -71,7 +71,7 @@ Forbidden compression:
 
 - Do not make repair the way Goal appears on every request.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Keep a compact decision table or checklist in cleanup and point cadence and
   final docs to it for mechanics.
@@ -149,7 +149,7 @@ Forbidden compression:
 - Do not use `source = "goal"`, hiddenness, classifier output, or projection
   hiding as proof.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Preserve classifier/projection detail in the cleanup successor doc even if
   behavior/final docs point to it.
@@ -236,7 +236,7 @@ Forbidden compression:
 - Do not say "recorded rollout proof" or rely on rollout trace.
 - Do not let evidence replace final-input inspection.
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
 - Keep evidence as its own successor target. Do not fold it into final or
   history just because those targets depend on its metadata.
@@ -300,9 +300,9 @@ Forbidden compression:
 
 - Do not hide raw behavior under "projection hides Goal items."
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
-- Keep raw notification behavior explicit in cleanup and test-prep slices.
+- Keep raw notification behavior explicit in cleanup and test-prep guidance.
 
 ## Compaction, Reconstruction, Rollback, And Fork
 
@@ -376,9 +376,9 @@ Forbidden compression:
 
 - Do not summarize reconstruction as "recover Goal from history."
 
-Pass 2C rewrite instruction:
+Architecture Design Instruction:
 
-- Treat this as a cross-slice fidelity hotspot. Any source slice touching
+- Treat this as a cross-target fidelity hotspot. Future rewrite work touching
   compaction or reconstruction should audit cleanup, history, evidence, and
   final carry together.
 

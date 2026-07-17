@@ -8,7 +8,7 @@ The active Pass 2B target-interface workspace lives in `pass2b_target_interfaces
 Read:
 
 1. [pass2b_target_interfaces/README.md](pass2b_target_interfaces/README.md)
-   - Shared Pass 2B rules, template, packet plan, cross-target matrix, and Pass 2C readiness checklist.
+   - Shared Pass 2B rules, template, packet plan, cross-target matrix, and readiness checklist.
 2. [pass2b_target_interfaces/packet-1-core-authority.md](pass2b_target_interfaces/packet-1-core-authority.md)
    - Completed and bottom-up reviewed Core Authority entries for `T-BEHAVIOR`, `T-CADENCE`, `T-DURABLE`, and `T-FINAL`.
 3. [pass2b_target_interfaces/packet-2-lifecycle-and-seams.md](pass2b_target_interfaces/packet-2-lifecycle-and-seams.md)
@@ -22,12 +22,13 @@ Read:
 7. [pass2b_target_interfaces/repeated-authority-canonicalization.md](pass2b_target_interfaces/repeated-authority-canonicalization.md)
    - Stable index for the Pass 2B.5 repeated-authority canonicalization workspace.
 
-For direct implementation work before cutover, the source authority docs in
-this directory still control. For Pass 2C doc-worker tasks, those docs are the
-source corpus to translate into successor authority modules, and the files
-above are the interface/compression prep artifacts that guide that translation.
-They do not by themselves rewrite source-doc content, rename or rehome source
-docs, or start Pass 2C source-bounded rewrite slices.
+For direct implementation work before future successor docs replace them, the
+source authority docs in this directory still control. For future
+successor-doc architecture design or concept-preserving rewrite planning,
+those docs are the source corpus to translate into successor authority modules,
+and the files above are the interface/compression prep artifacts that guide
+that translation. They do not by themselves rewrite source-doc content, rename
+or rehome source docs, or start rewrite execution.
 
 ## Current Status
 
@@ -39,7 +40,8 @@ docs, or start Pass 2C source-bounded rewrite slices.
 - Packet 5 2B Consistency is complete.
 - Pass 2B.5 Repeated Authority Canonicalization is split into a stable index
   plus batch files.
-- Pass 2B.5 batches 1-4 are complete enough to feed Pass 2C planning.
+- Pass 2B.5 batches 1-4 are complete enough to feed future successor-doc
+  architecture design.
 
 ## Verification
 

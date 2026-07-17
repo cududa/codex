@@ -32,8 +32,9 @@ Packet focus:
 ## Packet 4 Interface Entries
 
 The Navigation And Operations packet found no wrong/stale Pass 2A mappings
-that need prep-artifact repair before these entries. Rows listed below still
-need source-bounded Pass 2C rewrite before they become successor authority.
+that need prep-artifact repair before these entries. Rows listed below remain
+target-interface prep until future successor-doc architecture design
+translates them into successor authority.
 
 ### NAV-README: Reader Map And Target Navigation Index
 
@@ -54,12 +55,12 @@ Owns:
 - The high-level through-line that durable cadence state and per-attempt final
   request-input shaping/commit carry the replacement design, while support
   seams remain support seams.
-- Question-to-document routing for source docs before cutover and target
-  interface routing after successor docs exist.
+- Question-to-document routing for current source docs and target interface
+  routing after successor docs exist.
 - Current terrain anchors as navigation to code terrain, with explicit
   framing that terrain is not mission.
-- Current document-role tables before cutover and target-interface maps after
-  successor docs exist.
+- Current document-role tables for the source docs and target-interface maps
+  after successor docs exist.
 - Pass 2 guardrails that direct agents to traceability, concept coverage, and
   fidelity review before rehome, merge, split, or rewrite work.
 - Reader-aid metadata from source `Navigation Header` sections, only as
@@ -76,13 +77,14 @@ Does Not Own:
   `OP-AGENTS`.
 - Term definitions except for linking readers to `GLOSSARY`.
 - Any code terrain as desired architecture.
-- Cutover, rename, rehome, or source-slice closure.
+- Source-doc rename, rehome, successor-doc writing, or source coverage
+  accounting.
 
 Shared / Local Non-Negotiables:
 
-- README remains navigation only until cutover. If a navigation summary differs
-  from a source contract, the source contract wins and the navigation should be
-  fixed.
+- README remains navigation only while current source docs control. If a
+  navigation summary differs from a source contract, the source contract wins
+  and the navigation should be fixed.
 - Navigation summaries must not weaken non-negotiables, erase edge cases, or
   make support helpers look like authority mechanisms.
 - Current terrain anchors must stay framed as terrain, not implementation
@@ -144,30 +146,31 @@ Concept Ledger Inputs:
 Fidelity Tripwires / Review Debt:
 
 - Do not let README become the easiest-to-read replacement for source
-  authority before cutover.
+  authority while current source docs control.
 - Do not turn the Core Through-Line into a behavior contract that omits the
   detailed target interfaces.
 - Preserve the terrain-not-mission framing for all code anchors.
-- Preserve the distinction between source document roles before cutover and
-  target document interfaces after cutover.
+- Preserve the distinction between current source document roles and future
+  target document interfaces.
 - Preserve Pass 2 guardrails around traceability, lost edge cases, stale code
   terrain, repair, retry, resume, compaction, raw notifications, and test prep.
-- Do not let navigation headers close source rows or replace source-bounded
-  Pass 2C rewrites.
+- Do not let navigation headers close source rows or replace future source
+  coverage checks.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Rewrite README after successor target docs exist, not before.
 - Replace the current source-doc role table with a target-doc interface map
-  only after target docs are written and source slices are traced.
+  only after target docs are written and source coverage has been accounted for.
 - Keep README short enough to be a reader map; use explicit links and
   one-sentence routing notes instead of duplicating target contracts.
-- Keep Pass 2 guardrails visible until cutover is complete.
+- Keep Pass 2 guardrails visible until successor docs replace the current
+  source docs.
 
 True Open Questions:
 
-- None found in Packet 4. Exact README cutover wording depends on the final
-  successor doc set produced by Pass 2C.
+- None found in Packet 4. Exact README successor-index wording depends on the
+  final successor doc set.
 
 ### GLOSSARY: Goal Domain Vocabulary
 
@@ -205,7 +208,7 @@ Does Not Own:
   classifier output contracts, purity edge cases, raw-notification behavior,
   replacement test obligations, readiness gates, or operational instructions.
 - Code ownership, implementation plans, module/function names, migrations, or
-  slice order.
+  implementation order.
 - Source authority over target docs through concise definitions.
 
 Shared / Local Non-Negotiables:
@@ -256,7 +259,7 @@ Supporting Source Inputs:
 - `README.md`: title and intro, only for navigation relationship to
   `CONTEXT.md`.
 - Source sections named by glossary terms when a definition must be checked
-  during Pass 2C.
+  during future rewrite planning.
 - `goal-authority-recorded-request-evidence.md`: title, Navigation Header,
   Core Rule, and Carrier Choice, only for the vocabulary boundary that
   recorded request evidence is structured committed metadata and not
@@ -292,7 +295,7 @@ Fidelity Tripwires / Review Debt:
 - Preserve that target-home labels are provisional interface keys in prep
   artifacts, not final filenames or authority by themselves.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Rewrite glossary definitions after the successor target docs stabilize, so
   each definition can point to the owning target without duplicating it.
@@ -304,7 +307,7 @@ Pass 2C Rewrite Notes:
 True Open Questions:
 
 - None found in Packet 4. Final term ordering and target-key vocabulary depend
-  on the successor document names chosen during cutover.
+  on the successor document names chosen during future architecture design.
 
 ### OP-AGENTS: Operational Instructions And Authority Order
 
@@ -312,7 +315,7 @@ Purpose:
 
 - Define the operational instruction surface for agents working in
   `local/goal_research`.
-- Keep the direct-implementation authority order, Pass 2C doc-worker
+- Keep the direct-implementation authority order, future rewrite-planning
   reconciliation posture, conflict handling, required reading posture,
   Direction Lock, working posture, design-deliverable gate, test-prep pointer,
   and verification expectations enforceable without making `AGENTS.md` a
@@ -320,20 +323,21 @@ Purpose:
 
 Owns:
 
-- The distinction between direct implementation posture and Pass 2C
-  doc-worker posture.
+- The distinction between direct implementation posture and future
+  rewrite-planning posture.
 - The statement that current Goal authority docs are design contracts, not
   brainstorming notes, for direct implementation and version planning until
-  successor docs are cut over.
+  successor docs replace them.
 - The rule that version-specific implementation plans outside this directory
   must conform to `local/goal_research` authority for direct implementation,
   unless an explicit later authority update says otherwise.
-- The Pass 2C rule that current source docs are the source corpus and relevant
-  `local/goal_136_plan/work-areas` decisions are required reconciliation
-  inputs that win on conflict or uncertainty when they preserve the underlying
-  concept and latest researched v136 design.
-- Required authority order and conflict behavior before cutover, including the
-  instruction to stop and name conflicts.
+- The future rewrite-planning rule that current source docs are the source
+  corpus and relevant `local/goal_136_plan/work-areas` decisions are required
+  reconciliation inputs that win on conflict or uncertainty when they preserve
+  the underlying concept and latest researched v136 design.
+- Required authority order and conflict behavior before successor docs replace
+  the current source docs, including the instruction to stop and name
+  conflicts.
 - Navigation roles for `README.md` and `CONTEXT.md` as aids that do not
   supersede source contracts.
 - Top-to-bottom reading posture for applicable Goal authority docs before
@@ -345,8 +349,9 @@ Owns:
 - Working posture: existing Rust code is terrain, not mission, and Direction
   Lock is required before execution.
 - Docs-only and Rust verification expectations.
-- After cutover, the operational pointer to the successor authority set and
-  the rule that navigation/vocabulary docs are not peer authority.
+- After successor docs replace the current source docs, the operational pointer
+  to the successor authority set and the rule that navigation/vocabulary docs
+  are not peer authority.
 
 Does Not Own:
 
@@ -355,26 +360,27 @@ Does Not Own:
   cleanup/repair, extension lifecycle, fake-shim demolition, test matrix, or
   readiness criteria.
 - Glossary term definitions, reader maps, source-section traceability, concept
-  ledgers, Pass 2B interfaces, or Pass 2C rewrite content.
+  ledgers, Pass 2B interfaces, or future rewrite planning content.
 - Implementation plans, Rust code shape, exact module/function names, or
-  execution slice order.
+  execution order.
 - Product redesign or changes to upstream Goal baseline behavior.
 
 Shared / Local Non-Negotiables:
 
 - `AGENTS.md` carries operational force. Its short lists may point to
   authority, but they must not become the only place behavior is specified.
-- For direct implementation, source authority docs control until cutover.
-  After cutover, AGENTS should point to the successor authority set rather than
-  preserving obsolete source order.
-- For Pass 2C doc-worker tasks, source docs are corpus and work-area decisions
-  are reconciliation inputs; faithful concept retention is the boundary, not
-  preservation of duplicate old prose.
+- For direct implementation, source authority docs control until successor docs
+  replace them. After successor docs exist, AGENTS should point to the
+  successor authority set rather than preserving obsolete source order.
+- For future rewrite-planning tasks, source docs are corpus and work-area
+  decisions are reconciliation inputs; faithful concept retention is the
+  boundary, not preservation of duplicate old prose.
 - Conflicts among controlling docs must be stopped and named; agents must not
   silently choose an implementation shape that weakens the grounding truth.
 - Existing Rust code remains terrain. Local implementation plans remain terrain
   for direct implementation unless source authority incorporates them, but
-  `local/goal_136_plan/work-areas` is a required Pass 2C reconciliation source.
+  `local/goal_136_plan/work-areas` is a required future rewrite-planning
+  reconciliation source.
 - Operational reminders for non-negotiables should stay short and pointer-like
   after target contracts own the full behavior.
 - Docs-only work should keep cheap whitespace verification visible; Rust work
@@ -401,7 +407,7 @@ Canonical Source Inputs:
 Supporting Source Inputs:
 
 - `README.md`: title and intro, Authority Spine, Pass 2 Guardrails, only for
-  navigation-aid boundaries and cutover routing.
+  navigation-aid boundaries and successor-doc routing.
 - `CONTEXT.md`: title and intro, only for vocabulary-aid boundaries.
 - `goal-authority-open-design-deliverables.md`: Readiness Rule, only for the
   implementation-plan gate.
@@ -428,21 +434,23 @@ Fidelity Tripwires / Review Debt:
 - Do not let AGENTS become a compact substitute for the target contracts.
 - Preserve the conflict rule and direct-implementation authority-order force
   until successor authority docs replace the current source order.
-- Preserve the Pass 2C doc-worker exception: current source docs are source
+- Preserve the future rewrite-planning rule: current source docs are source
   corpus, and `local/goal_136_plan/work-areas` can clarify or supersede older
-  wording during rewrite when the concept is retained.
+  wording during rewrite planning when the concept is retained.
 - Preserve the distinction between navigation aids and authority docs.
 - Preserve the instruction that version-specific plans must conform to
-  `local/goal_research` for direct implementation work, while Pass 2C performs
-  source/work-area reconciliation before successor docs are cut over.
+  `local/goal_research` for direct implementation work, while future rewrite
+  planning performs source/work-area reconciliation before successor docs
+  replace the current source docs.
 - Preserve Direction Lock and terrain-not-mission posture for implementation
   work.
 - Preserve upstream Goal product baseline reminders as operational pointers,
   not as test-matrix ownership.
-- After cutover, remove or shrink duplicated behavior prose only after the
-  target contracts own the full clauses.
+- After successor docs replace the current source docs, remove or shrink
+  duplicated behavior prose only after the target contracts own the full
+  clauses.
 
-Pass 2C Rewrite Notes:
+Architecture Design Notes:
 
 - Rewrite AGENTS after the successor authority set is known.
 - Keep AGENTS operational: authority order, conflict handling, reading
@@ -452,9 +460,10 @@ Pass 2C Rewrite Notes:
   links only after target contracts carry the full behavior.
 - Keep implementation-vs-doc-worker precedence explicit because later
   implementation plans will continue to live outside `local/goal_research`,
-  while Pass 2C must integrate settled work-area decisions into successor docs.
+  while future rewrite planning must integrate settled work-area decisions into
+  successor docs.
 
 True Open Questions:
 
 - None found in Packet 4. Exact successor authority order depends on the
-  target document set produced by Pass 2C and cutover.
+  target document set produced by future successor-doc architecture design.
