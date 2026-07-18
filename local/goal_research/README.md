@@ -1,52 +1,56 @@
 # Goal Research Reader Map
 
-This file is a navigation aid for the Goal authority docs in this directory.
-It does not supersede `AGENTS.md` or any authority contract. If this reader map
-is incomplete or imprecise, follow the source document it points to.
+This file is a navigation aid for the Goal successor docs and remaining
+source-corpus/provenance artifacts in this directory. It does not supersede
+`AGENTS.md` or any authority contract. If this reader map is incomplete or
+imprecise, follow the owning successor document it points to.
 
 This file remains the navigation container for successor topology work. Do not
 split its reader map into a long-lived `goal-navigation-index.md` successor
 authority doc.
 
-For direct implementation or version planning, the current source authority
-docs remain the contracts until future successor docs replace them. For future
-successor-doc architecture design or concept-preserving rewrite planning, the
-current docs are the required source corpus and concept record; the rewrite may
-reorganize, synthesize, and compress prose as long as concepts, edge cases, and
-implementation-relevant detail are faithfully retained. The v136 burn-down is
-tracked by `TEMP_136_ABSORPTION_POINTER.md` while an absorption list is active.
-When that pointer is complete, use `SUCCESSOR_DOC_DRAFTING_PROTOCOL.md`, the
-corrected local docs, and the topology/protocol artifacts as standalone
-successor-drafting inputs, not temporary route files.
+The successor docs have been drafted and are the intended Goal authority
+surface to harden in place. The next docs work is reader-compression,
+navigation cutover, and deletion of superseded source, prep, and temporary
+artifacts after the successor docs stand on their own. Older source docs, Pass
+2 prep, topology/protocol/cursor artifacts, and temporary route records are
+source corpus, provenance, and coverage aids during this transition. Do not
+treat their existence as a reason to preserve duplicate reader surface.
 
 Start with:
 
 1. `AGENTS.md`
-   - Local instructions, authority order, 136 absorption posture,
-     non-negotiables, and verification posture.
+   - Local instructions, successor reader order, route-decision absorption
+     posture, non-negotiables, and verification posture.
 2. `CONTEXT.md`
    - Glossary for the Goal authority domain language.
-3. `goal-authority-grounding-truth.md`
+3. `goal-authority-behavior.md`
    - Behavioral source of truth. Use it to reject implementation shapes that
      weaken model-visible Goal authority.
 
-## Authority Spine
+## Successor Authority Spine
 
-Read these documents as the stable conceptual spine:
+Read these successor docs as the working authority spine:
 
-1. `goal-authority-grounding-truth.md`
+1. `goal-authority-behavior.md`
    - Decides what is allowed and what is forbidden.
-2. `goal-authority-primary-cadence-contract.md`
+2. `goal-cadence-contract.md`
    - Decides when Goal steering is due, what state is required, and when
      pending intent is consumed.
-3. `goal-authority-idle-continuation-contract.md`
+3. `goal-durable-state-and-pending-intent.md`
+   - Decides the durable facts, pending intent, supersedence, exact-key
+     consumption, and durable suppression record shape.
+4. `goal-final-request-input.md`
+   - Decides where active Goal authority becomes final model input and when
+     commit occurs.
+5. `goal-idle-history-lifecycle.md`
    - Decides how the idle lifecycle orders pending work, pending durable
-     cadence intent, and automatic Continuation.
+     cadence intent, automatic Continuation, and history-key suppression.
 
-The spine intentionally repeats some non-negotiables. Treat that repetition as
-authority reinforcement until Pass 2B.5 canonical/local/pointer routing is
-applied in future concept-preserving rewrite planning; do not merge or weaken
-those clauses from memory.
+The remaining successor docs own supporting evidence, cleanup, extension,
+test-prep, and readiness behavior. Repetition across successor docs should be
+kept only when it is a local reminder, proof obligation, pointer, or
+operational/test reminder that helps an implementation or review agent.
 
 ## Core Through-Line
 
@@ -79,15 +83,16 @@ Use these documents when working at a specific implementation seam:
 
 | Question | Read |
 | --- | --- |
-| What durable state and exact-key consumption must exist before cadence can be implemented? | `goal-authority-durable-cadence-state.md` |
-| Where does active Goal authority become real model input, and how do retry, commit, and carry work? | `goal-authority-final-request-input-and-commit.md` |
-| When rollout/thread history is used as replay evidence, what structured record captures the committed final request input? | `goal-authority-recorded-request-evidence.md` |
-| Which eligible progress projection suppresses duplicate automatic Continuation? | `goal-authority-model-visible-history-key.md` |
-| How does `ext/goal` participate without owning model-input authority, and what reachable/configured paths must be converted? | `goal-authority-ext-goal-ownership.md` |
-| How do classifiers support cleanup, typed projection, compaction, reconstruction, raw notifications, and repair without deciding cadence? | `goal-authority-repair-classifier-integration.md` |
-| What active Goal-only shim terrain must be removed? | `goal-authority-fake-shim-removal-map.md` |
-| Which tests are local false-compatibility pressure versus baseline obligations? | `goal-test-deletion-map.md` |
-| Are the implementation-design deliverables ready as design inputs for a version execution plan? | `goal-authority-open-design-deliverables.md` |
+| What durable state and exact-key consumption must exist before cadence can be implemented? | `goal-durable-state-and-pending-intent.md` |
+| Where does active Goal authority become real model input, and how do retry, commit, and carry work? | `goal-final-request-input.md` |
+| When rollout/thread history is used as replay evidence, what structured record captures the committed final request input? | `goal-recorded-request-evidence.md` |
+| Which eligible progress projection suppresses duplicate automatic Continuation? | `goal-idle-history-lifecycle.md` |
+| How does `ext/goal` participate without owning model-input authority, and what reachable/configured paths must be converted? | `goal-extension-lifecycle-and-reachability.md` |
+| How do classifiers support cleanup and repair without deciding cadence? | `goal-request-repair-and-artifact-classification.md` |
+| How do typed projection, compaction, reconstruction, raw notifications, rollback, fork, and legacy artifacts behave? | `goal-projection-reconstruction-and-raw-history.md` |
+| What active Goal-only shim terrain must be removed? | `goal-test-prep-and-replacement-proof.md` |
+| Which tests are local false-compatibility pressure versus baseline obligations? | `goal-test-prep-and-replacement-proof.md` |
+| Are the implementation-design inputs ready for execution planning? | `goal-readiness-and-execution-handoff.md` |
 
 ## Current Terrain Anchors
 
@@ -124,37 +129,29 @@ terrain, not mission; do not infer desired architecture from current local code.
 
 | Document | Role | Owns | Does not own |
 | --- | --- | --- | --- |
-| `goal-authority-grounding-truth.md` | Behavioral authority | Allowed shape, forbidden patterns, acceptance standard | File-specific execution plan |
-| `goal-authority-primary-cadence-contract.md` | Implementable cadence contract | Durable facts, pending intent, steering kinds, repair limits, verification checklist | Idle caller sequence details, state SQL specifics |
-| `goal-authority-idle-continuation-contract.md` | Idle lifecycle contract | Pending-work precedence, pending durable intent delivery, automatic Continuation, resume hydration | Active steering shape, repair architecture |
-| `goal-authority-durable-cadence-state.md` | Durable state seam | Facts version, pending intent storage, atomic mutations, supersedence cleanup, exact-key consumption | Request shaping, repair decisions, prompt rendering, model roles, Continuation policy |
-| `goal-authority-final-request-input-and-commit.md` | Final model-input seam | Per-attempt shaping, cleanup, selected item insertion, commit metadata, item fingerprint, retry/follow-up behavior, current-turn carry replacement | Durable mutation ownership, idle scheduling |
-| `goal-authority-recorded-request-evidence.md` | Recorded evidence seam | Structured committed request evidence carrier, persistence timing, replay semantics, fingerprint inputs, rollback/fork/compaction treatment | Goal authority, cadence selection, durable mutation ownership |
-| `goal-authority-model-visible-history-key.md` | Continuation suppression support | Eligible progress projection, key shape, capture point, suppression record, resume/restart suppression, compaction effects | Goal authority, pending intent delivery, pending intent consumption, cadence selection |
-| `goal-authority-ext-goal-ownership.md` | Extension ownership seam | Extension lifecycle, mutation, accounting, typed cadence participation, reachability/config treatment | Model role selection, active model-input construction, commit, pending-intent consumption, Continuation watermark updates |
-| `goal-authority-repair-classifier-integration.md` | Classifier and repair integration | Pure-item classification, projection behavior, history/user-turn handling, compaction, reconstruction, raw notification behavior, request-local repair support | Cadence selection, authority proof, durable Goal recovery, active Goal state inference |
-| `goal-authority-fake-shim-removal-map.md` | Demolition terrain map | Existing active Goal-only context path, dependent consumers to replace, legacy artifact handling | Cadence timing decisions |
-| `goal-test-deletion-map.md` | Test prep map | Local overlay deletion, upstream baseline restoration, replacement profile, snapshot posture | Product redesign or permission to delete upstream Goal behavior tests |
-| `goal-authority-open-design-deliverables.md` | Readiness checklist | Which design artifacts are Ready as implementation-design inputs | File-specific implementation slices, function names, migrations, test files |
+| `goal-authority-behavior.md` | Behavioral authority | Active authority rule, forbidden authority substitutes, acceptance standard | File-specific implementation order |
+| `goal-cadence-contract.md` | Cadence authority | Steering kinds, due rules, supersedence, pending-intent delivery/consumption boundaries | Durable storage shape, idle caller sequence details, final payload mechanics |
+| `goal-durable-state-and-pending-intent.md` | Durable state seam | Facts version, pending intent storage, atomic mutations, supersedence cleanup, exact-key consumption, durable suppression record storage | Request shaping, repair decisions, prompt rendering, model roles, cadence selection |
+| `goal-final-request-input.md` | Final model-input seam | Per-attempt shaping, selected item insertion/verification, cleanup inside shaping, Created-event commit, retry/follow-up carry | Durable mutation ownership, idle scheduling, evidence persistence |
+| `goal-idle-history-lifecycle.md` | Idle and history seam | Legal idle callers, stage order, pending-work precedence, pending durable intent delivery, automatic Continuation, history-key suppression, resume hydration | Active steering shape, durable storage, evidence persistence |
+| `goal-recorded-request-evidence.md` | Recorded evidence seam | Structured committed request evidence carrier, persistence timing, replay semantics, fingerprint inputs, rollback/fork/compaction treatment | Goal authority, cadence selection, durable mutation ownership |
+| `goal-request-repair-and-artifact-classification.md` | Classifier and repair seam | Pure-item classification, legacy artifact classification, request-local repair, repair reports, whole-message purity | Cadence selection, durable Goal recovery, projection/raw/history behavior |
+| `goal-projection-reconstruction-and-raw-history.md` | Projection/history support seam | Typed/materialized hiding, raw notification posture, compaction, reconstruction, rollback/fork effects, legacy artifact cleanup limits | Active authority, cadence selection, durable facts, pending intent |
+| `goal-extension-lifecycle-and-reachability.md` | Extension ownership seam | Extension lifecycle, mutation entry points, accounting, typed cadence requests, reachability/config treatment | Model role selection, active model-input construction, final-input commit |
+| `goal-test-prep-and-replacement-proof.md` | Test prep and proof map | Local overlay deletion, upstream baseline restoration, replacement proof matrix, snapshot posture, stale-symbol audits | Product redesign, behavior authority, implementation architecture |
+| `goal-readiness-and-execution-handoff.md` | Readiness and handoff gate | Ready/Open/Blocker meanings, implementation execution-plan handoff requirements, post-successor source-corpus posture | Successor authority prose, implementation slices, module names |
 
-## Pass 2 Guardrails
+## Coverage And Prep Artifacts
 
-Do not move or rewrite source-doc content until the navigation, coverage,
-target-interface, and repeated-authority prep artifacts have been reviewed and
-the future successor-doc architecture design is ready.
+Use `PASS2_SECTION_TRACEABILITY.md` and `PASS2_CONCEPT_LEDGER.md` as source
+coverage and concept inventory while the successor docs are hardened.
 
-Use `PASS2_SECTION_TRACEABILITY.md` and `PASS2_CONCEPT_LEDGER.md` as the
-source coverage inventory and concept inventory before any content is renamed,
-rehomed, merged, split, or rewritten.
+Use `SUCCESSOR_DOC_COMPRESSION_GUIDE.md` as the temporary bridge for
+repeated-authority compression rules. It carries the canonical owner, local
+reminder, pointer-only, and operational/test reminder routing needed for the
+compression sessions without requiring the old Pass 2B workspace.
 
-Use `PASS2B_TARGET_INTERFACES.md` and `pass2b_target_interfaces/` as the Pass
-2B target-interface workspace. Its repeated-authority canonicalization
-workspace is Pass 2B.5 prep for deciding which repeated clauses become
-canonical text, local reminders, pointer-only references, or operational/test
-reminders in future concept-preserving rewrite planning.
-
-Before any content is rehomed, create or maintain a section traceability table
-that maps every existing section to its new location. The review must check for:
+Successor-doc hardening should check for:
 
 - weakened non-negotiables
 - summaries that imply current broken terrain is desired architecture
@@ -164,25 +161,15 @@ that maps every existing section to its new location. The review must check for:
   test-prep behavior
 - changes that make a support helper look like the authority mechanism
 
-Future concept-preserving rewrite planning may reorganize old wording when the
-source coverage inventory is accounted for, repeated authority follows
-canonical/local/pointer/operational routing, and the corrected
-authority/support docs plus topology blueprint are used as standalone
-successor-drafting inputs. If a later source/route conflict is identified,
-resolve that conflict before drafting instead of using navigation prose as an
-override.
+If a source/route conflict is identified, resolve that conflict in the owning
+successor or source doc instead of using navigation prose as an override.
 
-## 136 Absorption Before Successor Drafting
+## Route-Decision Absorption
 
-The v136 burn-down is tracked by `TEMP_136_ABSORPTION_POINTER.md`. When the
-pointer has an active batch, use it to identify the route decisions still being
-absorbed into the owning current `goal_research` authority/support docs.
+The v136 route-decision burn-down is complete. There is no active burn-down
+pointer or batch list.
 
-When the pointer is complete, use `SUCCESSOR_DOC_DRAFTING_PROTOCOL.md`, the
-corrected local docs, and the topology/protocol artifacts to start successor
-authority drafting. Temporary v136 provenance records, including
-`TEMP_136_ROUTE_DECISION_INVENTORY.md` and
-`TEMP_136_AUTHORITY_ALIGNMENT_PACKETS.md` if present in a working copy, are
-optional provenance only when a source/route conflict or missing represented
-route decision is suspected. They are not common inputs for every successor
-doc, and future successor readers must not depend on them.
+Temporary v136 provenance records, if present in a working copy, are optional
+conflict-check material only. They are not common inputs for successor-doc
+hardening or future implementation planning, and future readers must not depend
+on them.

@@ -7,19 +7,18 @@ Use this file to track cross-cutting Goal concepts before rewriting source
 docs into successor docs. Repetition in the source docs is recorded here as
 coverage, not as a requirement to preserve duplicate prose mechanically.
 
-After Pass 2B.5, repeated authority should be compressed through
-`pass2b_target_interfaces/repeated-authority-canonicalization.md`: canonical
-text in the owner target, local reminders where a seam can violate the rule,
-pointer-only references where another target owns the rule, and
-operational/test reminders where appropriate. That compression still requires
-source coverage checks during future concept-preserving rewrite planning.
+Repeated authority should be compressed through
+`SUCCESSOR_DOC_COMPRESSION_GUIDE.md`: canonical text in the owner target, local
+reminders where a seam can violate the rule, pointer-only references where
+another target owns the rule, and operational/test reminders where appropriate.
+That compression still requires source coverage checks when a disputed concept,
+suspected loss, or conflict is named.
 
 Target homes use the provisional interface keys defined in
 `PASS2_SECTION_TRACEABILITY.md`. This ledger should not give a key a second
 meaning; if a concept only needs a pointer from another interface, keep that
-owner/shared/pointer-only routing consistent with Pass 2B target interface
-design and the Pass 2B.5 canonicalization batches rather than broadening
-ownership here.
+owner/shared/pointer-only routing consistent with the compression guide rather
+than broadening ownership here.
 
 ## Status Key
 
@@ -33,19 +32,19 @@ ownership here.
 | `Design-pass required` | Code terrain has been researched enough to show existing code does not answer the concept; a successor design pass must choose the implementation shape before execution planning. |
 
 Debt markers are not permission to keep settled behavior ambiguous. Before
-future rewrite planning treats a row as unresolved, classify it:
+successor-doc compression treats a row as unresolved, classify it:
 
 - Rows settled by the source corpus should be rewritten deterministically, even
   if they remain high-risk fidelity guardrails.
 - For direct implementation work, implementation details clarified outside
   `local/goal_research` should be represented in the applicable authority docs
   before an implementation plan relies on them.
-- For future successor-doc architecture design or concept-preserving rewrite
-  planning, relevant `local/goal_136_plan/work-areas` decisions are required
-  reconciliation inputs. If they are more precise than, or appear to conflict
-  with, older source-doc wording, use the work-area route when it preserves the
-  underlying concept and latest researched v136 design, then represent that
-  reconciliation in the future successor docs.
+- For successor-doc compression, relevant `local/goal_136_plan/work-areas`
+  decisions are reconciliation inputs only when a disputed concept, suspected
+  loss, or conflict is named. If they are more precise than, or appear to
+  conflict with, older source-doc wording, use the work-area route when it
+  preserves the underlying concept and latest researched v136 design, then
+  represent that reconciliation in the owning successor doc.
 - Target-home ownership questions should name owner/shared/pointer-only
   routing without changing behavior.
 - Direct implementation plan/authority conflicts require fixing the source
@@ -129,12 +128,12 @@ Reviewed 2026-07-14 against current v135 terrain, `rust-v0.136.0`,
 ## High-Risk Repeated Authority Families
 
 The following repeated clauses appear across multiple source docs and must not
-be silently collapsed during future concept-preserving rewrite planning. After
-Pass 2B.5, "preserve" means keep the full source-backed contract in the
-canonical owner, keep local reminders where a seam can directly violate the
-rule, and use pointer-only or operational/test reminders elsewhere.
+be silently collapsed during successor-doc compression. "Preserve" means keep
+the full source-backed contract in the canonical owner, keep local reminders
+where a seam can directly violate the rule, and use pointer-only or
+operational/test reminders elsewhere.
 
-| Repeated family | Pass 2B.5 routing |
+| Repeated family | Compression routing |
 | --- | --- |
 | Final request-input developer-role proof | Batch 1: `T-FINAL` carries proof mechanics, `T-BEHAVIOR` carries behavioral truth, local reminders stay in cadence/cleanup/extension/test prep. |
 | Pending Initial, ObjectiveUpdated, and BudgetLimit until final-input commit | Batch 1: `T-DURABLE` carries pending-intent shape, `T-FINAL` carries commit timing, cadence/idle/extension/test prep keep local reminders. |
@@ -157,10 +156,9 @@ rule, and use pointer-only or operational/test reminders elsewhere.
 
 ## Repeated Authority Canonicalization Alignment
 
-Use `pass2b_target_interfaces/repeated-authority-canonicalization.md` and the
-four batch files as repeated-authority compression guidance. Do not infer from
-this ledger that every repeated sentence should survive in every successor
-target.
+Use `SUCCESSOR_DOC_COMPRESSION_GUIDE.md` as repeated-authority compression
+guidance. Do not infer from this ledger that every repeated sentence should
+survive in every successor doc.
 
 During future concept-preserving rewrite planning:
 
@@ -170,8 +168,8 @@ During future concept-preserving rewrite planning:
 - use pointer-only references where another target owns the rule and the local
   seam cannot directly violate it
 - keep operational/test reminders short and explicitly non-authoritative
-- keep source coverage checks even when a concept is represented in this ledger
-  or in the Pass 2B.5 workspace
+- keep source coverage checks when a named disputed concept, suspected loss, or
+  conflict requires them
 
 ## Pass 2A Notes
 

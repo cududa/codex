@@ -180,10 +180,9 @@ A handoff must not cite temporary route records as future authority for
 successor readers. If a route detail is needed for implementation, it must be
 represented in the owning successor doc or treated as implementation terrain.
 
-Executed handoff artifacts that created a successor seam are provenance only
-after the seam exists. For recorded request evidence, future readers use
-`goal-recorded-request-evidence.md` and this successor set; any earlier
-design-pass handoff explains why the seam exists but does not own the seam.
+Recorded request evidence is owned by `goal-recorded-request-evidence.md` and
+this successor set. Earlier seam-design provenance is not required reader
+input after the successor seam exists.
 
 ## Source-Corpus Posture After Successor Docs Exist
 

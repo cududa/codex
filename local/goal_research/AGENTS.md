@@ -1,57 +1,56 @@
 # Goal Research Instructions
 
-This directory contains the current Goal research source docs, prep artifacts,
-and operational instructions for this fork.
+This directory contains the drafted Goal successor docs, older Goal research
+source corpus, prep artifacts, and operational instructions for this fork.
 
 This file remains the operations container for successor topology work. Do not
 split its operational posture into a long-lived
 `goal-operations-and-authority-order.md` successor authority doc.
 
-There are two working postures:
+Current working posture:
 
-- Direct implementation or version planning: treat the current Goal authority
-  docs as design contracts, not brainstorming notes, until successor docs are
-  ready to replace them.
-- Future successor-doc architecture design or concept-preserving rewrite
-  planning: treat the current source docs as the required source corpus and
-  concept record, not immutable sentence-level prose. A doc-worker authority
-  violation is loss, weakening, or distortion of concepts, decisions,
-  exceptions, or implementation-relevant detail, not the act of reorganizing
-  old wording when those concepts are retained.
+- Successor docs have been drafted and are the intended Goal authority surface
+  to harden in place.
+- The next `goal_research` docs work is reader-compression, navigation cutover,
+  and deletion of superseded source, prep, and temporary artifacts after the
+  successor docs stand on their own.
+- Older source docs, Pass 2 prep, topology/protocol/cursor artifacts, and
+  temporary route records are source corpus, provenance, and coverage aids
+  during this transition. Do not treat their existence as a reason to preserve
+  duplicate reader surface.
+- Until navigation cutover and deletion are complete, direct implementation or
+  version planning should start from the successor docs and consult older
+  source/prep artifacts only for provenance, coverage, or named conflict
+  checks.
 
 `README.md` and `CONTEXT.md` are navigation aids. They help agents find the
-right source doc and shared terms, but they do not supersede the implementation
-authority order below. If a navigation aid is incomplete for implementation
-work, follow the source authority document and update the navigation aid.
+right owning document and shared terms, but they do not supersede the
+implementation authority order below. If a navigation aid is incomplete for
+implementation work, follow the owning successor/source document and update
+the navigation aid.
 
 Version-specific implementation-route plans may live outside this directory.
 For direct implementation work, those plans are execution artifacts, not peer
-authority, unless a later explicit authority update says otherwise. For future
-successor-doc architecture design or concept-preserving rewrite planning,
-relevant researched implementation-route material is a required reconciliation
-input when a concept depends on implementation-shaped design details. When that
-material is more precise or appears to conflict with older source-doc wording,
-prefer the route decision if it preserves the underlying Goal concept and
-represents the latest researched implementation design. Integrate that decision
-into future successor docs instead of leaving future agents to cite the route
-plan.
+authority, unless a later explicit authority update says otherwise. For
+successor-doc hardening, relevant researched implementation-route material is a
+required reconciliation input when a concept depends on implementation-shaped
+design details. When that material is more precise or appears to conflict with
+older source-doc wording, prefer the route decision if it preserves the
+underlying Goal concept and represents the latest researched implementation
+design. Integrate that decision into the owning successor or source doc instead
+of leaving future agents to cite the route plan.
 
-## 136 Absorption Posture
+## Route-Decision Absorption Posture
 
-The v136 burn-down is tracked by `TEMP_136_ABSORPTION_POINTER.md` while an
-absorption list is active. When that pointer is complete, use
-`SUCCESSOR_DOC_DRAFTING_PROTOCOL.md`, the corrected current `goal_research`
-docs, and the topology/protocol artifacts as standalone successor-drafting
-inputs.
+The v136 route decisions have been absorbed into the owning `goal_research`
+docs and successor-design inputs. There is no active burn-down pointer.
 
-Temporary v136 provenance records, including
-`TEMP_136_ROUTE_DECISION_INVENTORY.md` and
-`TEMP_136_AUTHORITY_ALIGNMENT_PACKETS.md` if present in a working copy, are
-not required drafting inputs for every successor doc. Consult them only as
-optional provenance when a source/route conflict or missing represented route
-decision is suspected. Do not create a separate audit-log layer or make future
-successor readers depend on temporary files. Rely on the owning current
-`goal_research` docs directly so the local docs stand on their own.
+Temporary v136 provenance records, if present in a working copy, are not common
+inputs for successor-doc hardening or implementation planning. Consult them
+only when a source/route conflict or missing represented route decision is
+suspected. Do not create a separate audit-log layer or make future readers
+depend on temporary files. Rely on the owning `goal_research` docs directly so
+the local docs stand on their own.
 
 If a temporary v136 decision appears to differ from existing `goal_research`
 prose, use it only when it preserves the underlying Goal concept and
@@ -62,12 +61,33 @@ source/route conflict instead of guessing.
 Before editing docs or implementing Goal authority work, read the applicable
 files directly top to bottom. Do not rely on grep-only scans for these docs.
 
-## Authority Order
+## Successor Reader Order
 
-For direct implementation or version planning before future successor docs
-replace the current source docs, use this order when a task touches Goal
-authority, cadence, steering shape, resume behavior, compaction repair, legacy
-Goal artifacts, or Goal tests:
+For successor-doc hardening, navigation cutover, and future implementation
+planning after cutover, start with the relevant successor docs:
+
+1. `goal-authority-behavior.md`
+2. `goal-cadence-contract.md`
+3. `goal-durable-state-and-pending-intent.md`
+4. `goal-final-request-input.md`
+5. `goal-idle-history-lifecycle.md`
+6. `goal-recorded-request-evidence.md`
+7. `goal-request-repair-and-artifact-classification.md`
+8. `goal-projection-reconstruction-and-raw-history.md`
+9. `goal-extension-lifecycle-and-reachability.md`
+10. `goal-test-prep-and-replacement-proof.md`
+11. `goal-readiness-and-execution-handoff.md`
+
+Read affected successor docs top to bottom. If successor docs appear to
+conflict, stop and name the conflict. Do not silently choose an implementation
+shape that weakens the active authority model.
+
+## Legacy Source-Corpus Order
+
+Until older source docs are deleted, use this order only for provenance,
+coverage, or named conflict checks when a task touches Goal authority, cadence,
+steering shape, resume behavior, compaction repair, legacy Goal artifacts, or
+Goal tests:
 
 1. `goal-authority-grounding-truth.md`
    - Behavioral truth and anti-patterns.
@@ -87,13 +107,9 @@ Goal artifacts, or Goal tests:
      `rust-v0.136.0` baseline, and which replacement tests to add after the
      active steering rewrite.
 
-If these files appear to conflict, stop and name the conflict. Do not silently
-choose an implementation shape that weakens the grounding truth.
-
-For future successor-doc architecture design or concept-preserving rewrite
-planning, use the same list as the source read order, then validate affected
-concepts against the relevant implementation-route material before treating the
-coverage check as complete.
+If these files appear to conflict with successor docs or each other, stop and
+name the conflict. Do not use legacy source-corpus wording to preserve duplicate
+or superseded reader surface during lean-state cleanup.
 
 ## Navigation And Document Roles
 
@@ -101,38 +117,32 @@ Use `README.md` for the reader map, document roles, supporting seams, terrain
 anchors, and Pass 2 guardrails. Use `CONTEXT.md` for vocabulary.
 
 For implementation work, those files are not peer authority and do not replace
-top-to-bottom reading of the source contracts. If a navigation aid and a source
-contract differ, follow the source contract and update the navigation aid.
+top-to-bottom reading of the owning docs. If a navigation aid and an owning doc
+differ, follow the owning doc and update the navigation aid.
 
-For future successor-doc architecture design or concept-preserving rewrite
-planning, they are still navigation aids, but the task is allowed to improve
-the authority structure itself. Do not use navigation wording as a reason to
-preserve duplicate old prose when the concepts are retained canonically,
-locally, by pointer, or as operational/test reminders.
+For successor-doc hardening, they are still navigation aids, but the task is
+allowed to improve the authority structure itself. Do not use navigation
+wording as a reason to preserve duplicate old prose when the concepts are
+retained canonically, locally, by pointer, or as operational/test reminders.
 
 A complete implementation plan usually needs the authority order above plus
 the supporting seam docs named by `README.md`. Do not rely on this file as a
-summary of those source contracts.
+summary of those owning contracts.
 
 ## Design Deliverables
 
 Before writing or executing a Goal implementation plan, read
-`goal-authority-open-design-deliverables.md`.
+`goal-readiness-and-execution-handoff.md`.
 
-That checklist is the operational gate for whether the design inputs are
-Ready. Ready means ready as implementation-design input; it does not mean the
-work has already been translated into concrete files, functions, migrations,
-tests, or slice order.
+That checklist is the operational gate for whether the design inputs are Ready.
+Ready means ready as implementation-design input; it does not mean the work has
+already been translated into concrete files, functions, migrations, tests, or
+implementation order.
 
-When the checklist marks all required deliverables Ready, the next step is an
-implementation execution plan. Do not reopen the core architecture unless a
-code walk finds a direct conflict with these authority docs or a later
-authority update explicitly supersedes them.
-
-This gate constrains implementation planning. It does not forbid future
-successor-doc architecture design from reorganizing the docs into successor
-authority modules when the rewrite keeps the concepts traceable and validates
-settled implementation-route details against current route material.
+Use `goal-authority-open-design-deliverables.md` only as older source-corpus
+provenance until it is retired. Do not reopen the core architecture unless a
+code walk finds a direct conflict with the successor docs or a later authority
+update explicitly supersedes them.
 
 ## Non-Negotiables
 
@@ -169,7 +179,9 @@ Keep these decisions intact:
 When preparing the Goal rewrite, do not let the current local test overlay keep
 the broken active steering path alive.
 
-Follow `goal-test-deletion-map.md`:
+Follow `goal-test-prep-and-replacement-proof.md`. Use
+`goal-test-deletion-map.md` only as older source-corpus provenance until it is
+retired:
 
 - delete local-only tests that defend `<goal_context>`, `GoalContext`,
   `GoalContextRole`, user-role Goal steering, rendered-marker authority, or
@@ -188,10 +200,9 @@ A separate product change is required to replace that behavior.
 Existing Rust code is terrain, not mission. It can show where implementation
 will land, but it must not override the local authority docs.
 
-For future successor-doc architecture design or concept-preserving rewrite
-planning, implementation-route material is not ordinary Rust terrain. It is a
-researched implementation-design record to reconcile with the source docs
-before successor prose is written. Current Rust code remains terrain unless the
+For successor-doc hardening, implementation-route material is not ordinary Rust
+terrain. It is a researched implementation-design record to reconcile with the
+source docs and successor docs. Current Rust code remains terrain unless the
 source docs or route record explicitly adopt it.
 
 Known terrain that must not become the design:

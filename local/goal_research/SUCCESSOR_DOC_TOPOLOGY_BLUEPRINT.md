@@ -2,11 +2,11 @@
 
 This topology blueprint proposes the successor Goal document set,
 conflict-control order, grouping rationale, per-doc ownership boundaries, and
-routing posture before any successor authority prose is drafted.
+routing posture used by the drafted successor docs and the compression passes.
 
 The topology is not a source-heading rewrite plan, not a one-to-one expansion
 of Pass 2B target keys, not an implementation execution plan, and not the
-drafting protocol.
+compression guide.
 
 ## Settled Topology Decisions
 
@@ -413,8 +413,8 @@ authority unless a later explicit update says so.
 | `goal-authority-fake-shim-removal-map.md` | Source corpus for separate transitional demolition terrain and old-root audits, not permanent successor authority or compatibility architecture. |
 | `goal-test-deletion-map.md` | Source corpus for test-prep, baseline, replacement proof, and snapshot posture. It does not own behavior. |
 | `goal-authority-open-design-deliverables.md` | Source corpus for readiness/handoff posture and consolidated-doc discipline. It does not own behavior after seam docs exist. |
-| `goal-authority-recorded-request-evidence-design-pass-handoff.md` | Provenance-only source explaining why the recorded-evidence seam exists; the recorded-evidence authority comes from the actual evidence doc and successor evidence doc. |
-| `PASS2_CONCEPT_LEDGER.md`, `PASS2_SECTION_TRACEABILITY.md`, `PASS2B_TARGET_INTERFACES.md`, and `pass2b_target_interfaces/` | Coverage, interface, and compression aids. They remain rewrite check tools, not successor authority. |
+| `PASS2_CONCEPT_LEDGER.md` and `PASS2_SECTION_TRACEABILITY.md` | Coverage and concept-inventory aids. They remain check tools, not successor authority. |
+| `SUCCESSOR_DOC_COMPRESSION_GUIDE.md` | Temporary compression bridge carrying repeated-authority routing and per-cluster compression instructions. Delete it after compression, navigation cutover, and stale-reference cleanup. |
 | v136 work-area route records | Temporary reconciliation input already absorbed into the corrected local docs and topology blueprint. They are not successor authority, not a future dependency for successor readers, and not a drafting order. |
 
 ## Closure Status
@@ -431,18 +431,17 @@ authority unless a later explicit update says so.
 - Idle/history/watermark, extension, cleanup/projection, test prep, and
   readiness entries no longer require successor readers to open route records
   for the route decisions absorbed into the corrected local docs.
-- This blueprint does not override or supersede stale authority prose. If a
-  direct mismatch is later found, correct the owning authority/support doc
-  before successor drafting.
-- Successor authority drafting has not started.
+- This blueprint does not override or supersede successor authority prose. If a
+  direct mismatch is later found, correct the owning successor doc before
+  implementation planning.
+- Successor authority drafting is complete; current docs work is compression,
+  navigation cutover, and deletion of superseded artifacts.
 
 ## Explicit Non-Decisions For Later Work
 
 - Source coverage, concept coverage, and traceability checks are not converted
-  into a writing order here; the drafting protocol must define the check
-  method.
-- Drafting protocol, rewrite sequence, and successor authority prose are not
-  started here.
+  into a writing order here; `SUCCESSOR_DOC_COMPRESSION_GUIDE.md` defines the
+  compression process.
 - Current source docs are not renamed, rehomed, deleted, or weakened by this
   topology blueprint.
 - Separate fake-shim demolition terrain is not moved by this topology
