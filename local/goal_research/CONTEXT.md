@@ -131,8 +131,8 @@ history that may hide pure current or legacy Goal items. Projection hiding is
 not Goal authority.
 
 **Raw response item notification** - The raw event stream for response items.
-It remains raw and must not get Goal-specific suppression unless the general raw
-response contract changes.
+The projection/raw successor owns how Goal-looking response items appear on
+that stream.
 
 **Current-turn carry** - Turn-local evidence that a Goal cadence item was
 already included in final model request input for the active turn. It is not
@@ -189,5 +189,6 @@ replaced to prove final model input, durable cadence, idle lifecycle, repair,
 legacy artifact, and local behavior contracts.
 
 **Runtime archaeology** - Recovering active Goal facts, objective text, budget
-state, or cadence intent by parsing rendered historical Goal text. Runtime
-archaeology is forbidden.
+state, or cadence intent by parsing rendered historical Goal text. The
+authority, durable-state, and projection/history successors own the prohibition
+on this recovery path.

@@ -12,8 +12,8 @@ not cadence.
   limits; cadence-required authority; same-turn metadata boundaries; and the
   rule that repair is not cadence.
 - Does not own: durable storage schema, facts-version allocation, exact-key
-  store mechanics, final request-input shaping, commit metadata, Created-event
-  side effects, idle hook stage mechanics, model-visible history-key
+  store mechanics, final request-input shaping, commit metadata, final-input
+  commit side effects, idle hook stage mechanics, model-visible history-key
   construction, classifier behavior, evidence persistence, extension
   lifecycle, or the replacement test matrix.
 - Primary pointers: `goal-authority-behavior.md` for authority proof,
@@ -188,9 +188,9 @@ no pending intent.
 The durable-state doc owns pending-intent storage, durable facts version,
 atomic mutation, mechanical supersedence cleanup, and exact-key consumption.
 The final request-input doc owns per-attempt selection, insertion,
-fingerprints, Created-event commit, retry/follow-up shaping, current-turn
-carry, and the point where exact-key consumption or Continuation watermark
-advancement may happen.
+fingerprints, final-input commit, retry/follow-up shaping, current-turn carry,
+and the point where exact-key consumption or Continuation watermark advancement
+may happen.
 
 ## Ordinary User Turns
 

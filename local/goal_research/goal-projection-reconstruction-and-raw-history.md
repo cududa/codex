@@ -18,7 +18,7 @@ evidence.
   legacy `<goal_context>` handling as cleanup only.
 - Does not own: behavior-level authority, cadence selection, durable Goal
   facts, pending intent storage, exact-key consumption, selected final item
-  construction, Created-event commit side effects, model-visible history-key
+  construction, final-input commit side effects, model-visible history-key
   semantics, structured evidence carrier semantics, request-local repair
   definitions, extension lifecycle, fake-shim demolition sequencing, or the
   replacement test matrix.

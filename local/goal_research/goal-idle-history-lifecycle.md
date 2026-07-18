@@ -19,7 +19,7 @@ model-visible history.
   same-turn metadata routing after external Goal mutation.
 - Does not own: behavior-level authority, cadence event definitions, durable
   facts mutation, pending-intent storage, exact-key consumption, final
-  request-input insertion, Created-event commit side effects, recorded
+  request-input insertion, final-input commit side effects, recorded
   evidence carrier persistence, classifier mechanics, projection/raw behavior,
   extension lifecycle, or the replacement test matrix.
 - Primary pointers: `goal-cadence-contract.md` for cadence events,
@@ -280,7 +280,7 @@ is an internal lifecycle outcome. It clears the uncommitted metadata without
 model submission, pending-intent consumption, suppression advancement,
 evidence write, or user-facing request failure.
 
-A successful Created-event commit records committed carry and the appropriate
+A successful final-input commit records committed carry and the appropriate
 pending-intent or Continuation suppression effects through the final/durable
 owners, then clears or makes the source request metadata obsolete. Same-turn
 follow-up must not reuse stale pre-commit metadata as if the original
@@ -453,7 +453,8 @@ consumes it.
 
 ## External Mutation And Same-Turn Metadata
 
-External Goal mutation must order side effects as:
+External Goal mutation follows the side-effect ordering and same-turn outcome
+contract owned by `goal-cadence-contract.md`.
 
 ```text
 account in-flight Goal usage if needed
@@ -466,28 +467,11 @@ leave pending intent intact if same-turn recheck is unavailable or rejected
 run pending non-Goal work before any Goal-owned synthetic turn
 ```
 
-Same-turn cadence recheck is metadata and wake behavior only. It must not
-construct active model input, choose the model role, carry rendered Goal text,
-consume pending intent, advance Continuation suppression, write evidence, or
-prove delivery.
-
-The logical outcomes are:
-
-- `AcceptedForActiveTurn`: the active turn accepted metadata-only recheck or
-  wake state.
-- `NoActiveTurn`: no active turn can accept metadata.
-- `ActiveTurnCannotAccept`: an active turn exists but cannot accept new
-  cadence metadata.
-
-`AcceptedForActiveTurn` still does not deliver cadence by itself. Pending
-intent is consumed only if that active turn's final request input later
-contains the matching developer-role Goal item and reaches the final-input
-commit point.
-
-`NoActiveTurn` and `ActiveTurnCannotAccept` are not delivery loss.
-ObjectiveUpdated and BudgetLimit must remain pending for a later ordinary turn
-or idle cadence-delivery turn when same-turn metadata is unavailable or
-rejected.
+The idle-local consequence is that metadata outcomes do not skip the lifecycle
+order. Accepted metadata is not delivery, rejected or unavailable metadata is
+not delivery loss, and pending work still runs before any Goal-owned synthetic
+turn. Pending intent remains pending until the final-input commit owner
+consumes the matching developer-role item.
 
 Extension and app-server producers may participate by creating durable facts,
 pending-intent summaries, and typed wake or recheck metadata through their
@@ -560,7 +544,7 @@ the durable-state contract.
   opportunities.
 - `goal-durable-state-and-pending-intent.md` and
   `goal-final-request-input.md` own durable facts, pending intent, exact-key
-  consumption, final shaping, Created-event commit, suppression advancement,
+  consumption, final shaping, final-input commit, suppression advancement,
   and committed carry. This doc owns idle ordering, synthetic metadata before
   submission, history-key semantics, and comparison/reconstruction rules.
 - `goal-recorded-request-evidence.md` owns evidence carrier and replay policy;

@@ -32,12 +32,8 @@ Recorded request evidence records that a specific finalized model request
 attempt committed the selected Goal item.
 
 Evidence is valid only when it is created by the same commit path that handled
-the exact finalized attempt after the request reaches the commit point. The
-expected commit point is:
-
-```text
-ResponseEvent::Created
-```
+the exact finalized attempt after the request reaches the commit point owned by
+`goal-final-request-input.md`.
 
 The evidence must represent the same logical final request input owned by
 `goal-final-request-input.md`: the `Vec<ResponseItem>` that becomes
@@ -70,7 +66,7 @@ The ownership split is:
 - durable state owns live facts, pending non-Continuation intent, exact-key
   consumption, and the default automatic Continuation suppression record
 - final request input owns per-attempt selection, commit metadata,
-  fingerprints, item index, and Created-event commit timing
+  fingerprints, item index, and final-input commit timing
 - idle/history owns Continuation selection, model-visible history key
   semantics, suppression comparison, and resume ordering
 - evidence owns structured metadata showing that one finalized attempt reached
@@ -135,7 +131,7 @@ CommittedGoalRequestEvidence {
   request_input_fingerprint,
   item_index,
   inserted_or_verified,
-  commit_point: ResponseCreated,
+  commit_point,
   committed_at_ms,
 }
 ```
@@ -161,9 +157,9 @@ final-input owner. `inserted_or_verified` records whether finalization
 inserted the selected item or accepted an already-present exact item after
 cleanup.
 
-`commit_point` records the commit point that authorized durable side effects
-and evidence creation. Until the authority docs are updated with a stricter
-proved point, that value is `ResponseCreated`.
+`commit_point` records the final-input commit point that authorized durable
+side effects and evidence creation. The final request-input doc owns which
+model-execution event currently supplies that point.
 
 `committed_at_ms` is evidence metadata for replay, audit, ordering, and
 debugging. It is not cadence selection and is not a durable facts version.
@@ -215,9 +211,9 @@ canonicalization must be stable across live commit and replay tests.
 
 ## Commit Timing
 
-Evidence is appended only after the request reaches the commit point and the
-commit path verifies that the finalized input still matches the commit
-metadata:
+Evidence is appended only after the request reaches the final-input commit
+point and the commit path verifies that the finalized input still matches the
+commit metadata:
 
 - `request_input_fingerprint` still matches the finalized logical input
 - `item_index` still identifies the selected item
@@ -231,7 +227,7 @@ No evidence is written when:
 - finalization succeeds but the request is not submitted
 - prompt construction fails
 - stream setup fails before model execution
-- submission fails before `ResponseEvent::Created`
+- submission fails before the final-input commit point
 - an idle hook fires
 - a Goal-owned synthetic turn is reserved
 - same-turn cadence recheck metadata is requested, accepted, rejected, or
@@ -239,9 +235,9 @@ No evidence is written when:
 - a request repair report exists without a committed finalized request
 - a raw response notification or typed projection exposes Goal-looking content
 
-Stream failure after `ResponseEvent::Created` does not invalidate committed
-evidence, durable commit side effects, or committed current-turn carry. The
-request entered model execution.
+Stream failure after the final-input commit point does not invalidate
+committed evidence, durable commit side effects, or committed current-turn
+carry. The request entered model execution.
 
 ## Commit Ordering And Failure Policy
 
@@ -249,7 +245,7 @@ When evidence matters for replay or reconstruction correctness, the logical
 ordering is:
 
 ```text
-ResponseEvent::Created
+final-input commit point
   -> verify finalized input still matches GoalRequestCommit fingerprints
   -> apply durable correctness mutation
        Initial/ObjectiveUpdated/BudgetLimit: consume exact pending intent
@@ -426,12 +422,12 @@ typed evidence as metadata when they preserve the metadata/prose boundary.
 
 Evidence coverage must prove:
 
-- evidence is appended only after `ResponseEvent::Created`
+- evidence is appended only after the final-input commit point
 - no evidence is appended for render-only, helper-only, accepted metadata,
-  reservation, built-not-submitted, stream setup failure, or pre-Created
+  reservation, built-not-submitted, stream setup failure, or pre-commit
   submission failure paths
-- stream failure after `ResponseEvent::Created` preserves committed evidence
-  and durable commit effects
+- stream failure after the final-input commit point preserves committed
+  evidence and durable commit effects
 - evidence fingerprints match the exact selected developer-role Goal item and
   the whole finalized logical request input
 - item index and inserted-or-verified status match the finalized input

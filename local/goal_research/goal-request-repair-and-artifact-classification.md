@@ -14,7 +14,7 @@ repair may support final request input without becoming authority or cadence.
   repair semantics; repair reports; and classifier/helper non-ownership.
 - Does not own: behavior-level authority, cadence selection, durable Goal
   facts, pending intent storage, exact-key consumption, selected final item
-  construction, Created-event commit side effects, model-visible history-key
+  construction, final-input commit side effects, model-visible history-key
   semantics, recorded evidence persistence, typed/materialized projection
   behavior, raw notification behavior, compaction algorithms, rollout
   reconstruction, rollback, fork, extension lifecycle, fake-shim demolition
@@ -41,8 +41,8 @@ Goal steering.
 Active Goal authority is proven only by the final model request input
 containing exactly one selected current Goal item as an outer developer-role
 model item. The final request-input doc owns the insertion, verification,
-selected item identity, commit metadata, Created-event commit, and final
-payload proof.
+selected item identity, commit metadata, final-input commit, and final payload
+proof.
 
 Repair is a request-local backstop. It may preserve or restore authority that
 cadence already requires for the current request. It must not decide that Goal

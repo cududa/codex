@@ -503,10 +503,9 @@ Replacement coverage may re-add:
 
 ## Final Acceptance Proof Layers
 
-WA06 is cleanup and acceptance only. If final acceptance exposes missing
-cadence policy, state shape, classifier semantics, extension routing,
-evidence behavior, or final-input ownership, the work returns to the owning
-earlier successor surface instead of inventing new architecture in acceptance.
+WA06 cleanup routing is owned by `goal-readiness-and-execution-handoff.md`.
+This doc owns only the proof layers and stale-symbol audit posture that final
+acceptance uses.
 
 Final acceptance proof must use the correct layer for each invariant:
 
@@ -523,12 +522,9 @@ Final acceptance proof must use the correct layer for each invariant:
   or paired shared-shaper route
 
 Final stale-symbol audits are review gates, not architecture. Run them after
-implementation, inspect every match, and classify matches as deleted terrain,
-allowed legacy cleanup fixtures, migration comments, local planning docs, or
-explicit rejection comments. Audit regexes must not become blind deletion
-scripts or new source-of-truth behavior rules. A match that reveals missing
-cadence, classifier, extension, or evidence behavior sends the work back to
-the owning earlier successor.
+implementation and classify every match under the cleanup routing owned by
+`goal-readiness-and-execution-handoff.md`. Audit regexes must not become blind
+deletion scripts or new source-of-truth behavior rules.
 
 ## Snapshot Handling
 

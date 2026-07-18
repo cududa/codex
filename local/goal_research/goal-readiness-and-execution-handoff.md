@@ -108,7 +108,7 @@ When extra design detail is needed, patch the owning successor doc first:
   state-owned Continuation suppression go to
   `goal-durable-state-and-pending-intent.md`
 - per-attempt shaping, cleanup inside final input, selected item identity,
-  commit metadata, fingerprints, Created-event commit, retry/follow-up, and
+  commit metadata, fingerprints, final-input commit, retry/follow-up, and
   committed carry go to `goal-final-request-input.md`
 - idle ordering, pending-work precedence, synthetic request metadata,
   model-visible history key, and Continuation suppression comparison go to
@@ -140,8 +140,7 @@ At minimum, the plan must identify:
   exact-key consumption, supersedence cleanup, and Continuation suppression
 - the concrete final request-input shaping location that receives the logical
   model input before `Prompt.input` and client request input are derived
-- the commit path that runs after `ResponseEvent::Created` or a later
-  authority-approved model-execution point
+- the final-input commit path owned by `goal-final-request-input.md`
 - the retry, follow-up, current-turn carry, and request-metadata lifecycle
   integration points
 - the idle lifecycle call sites, lock/reservation behavior, pending-work
@@ -168,7 +167,8 @@ Every implementation handoff or slice plan must name:
 - the successor docs that own the behavior or seam being changed
 - the local proof obligations and the test-prep matrix rows the slice intends
   to satisfy
-- any source docs that remain provenance only for why a successor rule exists
+- any repository-history provenance needed to explain why a successor rule
+  exists
 - the concrete files and functions to inspect or change
 - which upstream baseline tests are retained, which local overlay tests are
   deleted, and which replacement tests are added or updated
@@ -176,19 +176,20 @@ Every implementation handoff or slice plan must name:
 - the expected docs-only or Rust validation for the slice
 - any unresolved Open or Blocker item and its owning successor doc
 
-A handoff must not cite temporary route records as future authority for
-successor readers. If a route detail is needed for implementation, it must be
-represented in the owning successor doc or treated as implementation terrain.
+A handoff must not cite route records as future authority for successor
+readers. If a route detail is needed for implementation, it must be represented
+in the owning successor doc or treated as implementation terrain.
 
 Recorded request evidence is owned by `goal-recorded-request-evidence.md` and
 this successor set. Earlier seam-design provenance is not required reader
 input after the successor seam exists.
 
-## Source-Corpus Posture After Successor Docs Exist
+## Reader Surface After Successor Docs Exist
 
-After the successor docs are accepted, the old source authority and support
-docs become source corpus and provenance for coverage review. They are not
-peer authority unless a later explicit update says otherwise.
+After the successor docs are accepted, the checked-in reader surface is the
+successor set plus the operational containers below. Earlier planning material
+is not required reader input; use repository history only when an explicit
+audit needs provenance outside the live docs.
 
 Operational containers remain in place:
 
@@ -200,13 +201,8 @@ Operational containers remain in place:
 - `CONTEXT.md` remains the glossary container. It defines terms only and does
   not carry edge-case behavior.
 
-The old source docs remain useful for archaeology and source-coverage audits,
-but future implementation planning should use the successor docs as the
-controlling design inputs.
-
-Pass 2 and Pass 2B artifacts remain coverage, interface, traceability, and
-compression aids. They are not successor authority and are not implementation
-plans.
+Future implementation planning should use the successor docs as the controlling
+design inputs.
 
 ## Demolition Terrain Boundary
 
@@ -230,8 +226,9 @@ compatibility layer.
 ## Final Cleanup And Acceptance
 
 WA06 is cleanup and acceptance only. It may verify replacement surfaces,
-delete or classify old active-root terrain, run stale-symbol audits, and close
-final acceptance evidence after the owning seams exist.
+delete or classify old active-root terrain, run stale-symbol audits under the
+test-prep proof posture, and close final acceptance evidence after the owning
+seams exist.
 
 WA06 must not:
 
@@ -265,10 +262,9 @@ successor doc:
 - proof-matrix, snapshot, or baseline gaps go to
   `goal-test-prep-and-replacement-proof.md`
 
-Final stale-symbol audits are review gates. Every match must be inspected and
-classified as deleted terrain, allowed legacy cleanup fixture, migration
-comment, local planning note, or explicit rejection comment. Audit output is
-not a source of behavior truth.
+Final stale-symbol audits are review gates. `goal-test-prep-and-replacement-proof.md`
+owns the audit posture; this doc owns routing any discovered behavior gap back
+to the appropriate successor. Audit output is not a source of behavior truth.
 
 ## Primary Pointers
 
@@ -303,8 +299,7 @@ Readiness and handoff coverage must prove:
 - WA06 remains cleanup and acceptance only
 - final audit gates inspect and classify matches instead of defining behavior
 - operations, navigation, and glossary containers stay in their roles
-- old source docs and coverage artifacts are source corpus, provenance, or
-  coverage aids after successor docs are accepted, not peer successor
-  authority
+- the live successor docs and operational containers are the checked-in reader
+  inputs after acceptance
 - any missing or conflicting behavior found during handoff is routed back to
   the owning successor doc

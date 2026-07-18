@@ -132,7 +132,7 @@ app-server or extension mutation/accounting
   -> request metadata-only same-turn recheck, idle wake, or cadence delivery
   -> final request-input shaping selects due intent or idle Continuation
   -> final input contains exactly one developer-role Goal item when due
-  -> Created-event commit consumes exact pending intent or advances
+  -> final-input commit consumes exact pending intent or advances
      Continuation suppression
 ```
 
@@ -149,22 +149,12 @@ wake intent. It must not carry rendered Goal text, an active model role,
 prebuilt model input, private finalizer implementation types, pending
 Continuation intent, committed carry, recorded evidence, or authority proof.
 
-The logical outcomes are:
-
-- `AcceptedForActiveTurn`: the active turn accepted metadata-only recheck or
-  wake state.
-- `NoActiveTurn`: no active turn can accept metadata.
-- `ActiveTurnCannotAccept`: an active turn exists but cannot accept new
-  cadence metadata.
-
-`AcceptedForActiveTurn` does not consume pending intent. Pending intent is
-consumed only when that active turn's final request input contains the
-matching outer developer-role Goal item and reaches Created-event commit.
-
-`NoActiveTurn` and `ActiveTurnCannotAccept` are not delivery loss.
-ObjectiveUpdated and BudgetLimit intent remain pending for a later ordinary
-turn or idle cadence-delivery turn. Final request-input shaping re-reads
-durable state and may select a superseding kind according to cadence ranking.
+The same-turn outcome names and delivery semantics are owned by
+`goal-cadence-contract.md`. The extension-local rule is narrower: producers
+may request metadata-only delivery or wake behavior, but every outcome remains
+metadata until the shared final request-input path commits the selected
+developer-role Goal item. Rejected or unavailable metadata leaves durable
+pending intent available for later delivery.
 
 ## App-Server And Core Mutation Ordering
 
@@ -273,7 +263,7 @@ successors.
   state, and wake ordering. This doc owns producer participation that creates
   durable cadence work and metadata-only wake requests.
 - `goal-final-request-input.md` owns active shaping, selected item
-  construction, final cleanup/repair effects, Created-event commit, exact
+  construction, final cleanup/repair effects, final-input commit, exact
   consumption timing, suppression advancement, committed carry, and final
   payload proof. Extension and app-server producers route active authority
   there.
