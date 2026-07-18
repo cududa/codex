@@ -18,8 +18,9 @@ replacement invariant.
   implementation architecture, product redesign, module names, migration
   names, test filenames for new replacement tests, or readiness/handoff
   status.
-- Read with: all behavior and seam successors. This doc collects proof
-  obligations; those successors own the behavior being proved.
+- Primary pointers: behavior and seam successors own the rules being proved;
+  this doc owns proof posture, baseline reset, replacement coverage, snapshots,
+  stale-symbol audits, and acceptance proof layers.
 - Fidelity note: the prep target is not fewer Goal tests. It is removal of
   false compatibility pressure while preserving upstream product baseline and
   adding replacement tests from the corrected authority contracts.
@@ -547,63 +548,12 @@ During replacement implementation:
 Root snapshot-test requirements still apply for any Rust/UI change. This doc
 only records the Goal-specific prep and replacement posture.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-authority-behavior.md` owns the behavior-level authority shape and the
-negative rule that tests are proof, not authority.
-
-`goal-cadence-contract.md` owns steering kinds, cadence-required authority,
-ordinary user-turn limits, supersedence, same-turn metadata limits, and repair
-not being cadence. This doc indexes cadence tests.
-
-`goal-durable-state-and-pending-intent.md` owns durable facts, facts version,
-pending non-Continuation intent, exact-key consumption, mechanical cleanup,
-and state-owned Continuation suppression records. This doc indexes state
-tests.
-
-`goal-final-request-input.md` owns final request-input shaping, selected item
-identity, cleanup inside final input, commit metadata, Created-event commit,
-retry/follow-up, committed carry, fingerprints, and final payload proof. This
-doc indexes final payload and commit tests.
-
-`goal-idle-history-lifecycle.md` owns idle ordering, pending-work precedence,
-Goal-owned synthetic metadata, stale reservations, resume hydration,
-model-visible history key, eligible progress, and Continuation suppression.
-This doc indexes lifecycle and history-key tests.
-
-`goal-recorded-request-evidence.md` owns structured evidence persistence,
-fingerprints, replay pairing, rollback/fork/compaction treatment, raw/typed
-projection treatment, and evidence failure policy. This doc indexes evidence
-tests.
-
-`goal-request-repair-and-artifact-classification.md` owns classifier outputs,
-purity, mixed ordinary preservation, wrong-role cleanup, request-local repair,
-and helper non-ownership. This doc indexes classifier and repair tests.
-
-`goal-projection-reconstruction-and-raw-history.md` owns typed/materialized
-projection, raw notifications, compaction, rollout reconstruction, rollback,
-fork, history-boundary behavior, and legacy artifact cleanup. This doc indexes
-projection/raw/history tests.
-
-`goal-extension-lifecycle-and-reachability.md` owns extension/app-server
-lifecycle, mutation/accounting participation, metadata-only wake/recheck,
-configuration treatment, reachability, and extension proof route. This doc
-keeps the baseline caveat and indexes extension proof requirements.
-
-`goal-readiness-and-execution-handoff.md` owns readiness and handoff posture.
-This doc does not define readiness status.
-
-## Source Inputs And Coverage
-
-This test-prep surface was synthesized from the accepted successor topology,
-architecture requirements, test deletion map, grounding-truth acceptance
-standard, primary cadence verification checklist, final request-input tests,
-idle continuation tests, model-visible history-key tests, recorded request
-evidence tests, repair/classifier tests, extension ownership tests, fake-shim
-work-area test bullets, open-design readiness boundary, completed successor
-local proof obligations, and Pass 2 / Pass 2B coverage and compression
-artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.
+- Behavior, cadence, durable-state, final-input, idle/history, evidence,
+  cleanup, projection/raw, and extension successors own the behavior being
+  tested. This doc indexes proof coverage for those owners.
+- `goal-readiness-and-execution-handoff.md` owns readiness and handoff posture;
+  this doc owns proof preparation and acceptance layers only.
+- Tests are proof, not authority. If a test conflicts with an owning successor,
+  the test changes.

@@ -16,13 +16,10 @@ not cadence.
   side effects, idle hook stage mechanics, model-visible history-key
   construction, classifier behavior, evidence persistence, extension
   lifecycle, or the replacement test matrix.
-- Read with: `goal-authority-behavior.md`,
-  `goal-durable-state-and-pending-intent.md`,
-  `goal-final-request-input.md`, `goal-idle-history-lifecycle.md`,
-  `goal-request-repair-and-artifact-classification.md`,
-  `goal-recorded-request-evidence.md`,
-  `goal-extension-lifecycle-and-reachability.md`, and
-  `goal-test-prep-and-replacement-proof.md`.
+- Primary pointers: `goal-authority-behavior.md` for authority proof,
+  `goal-durable-state-and-pending-intent.md` for pending intent,
+  `goal-final-request-input.md` for delivery/commit, and
+  `goal-idle-history-lifecycle.md` for idle-selected Continuation.
 - Fidelity note: do not turn active durable Goal state, an ordinary user turn,
   repair, same-turn metadata, helper output, or final-input construction into a
   cadence event.
@@ -139,13 +136,13 @@ Continuation is not due merely because:
 - pending Initial, ObjectiveUpdated, or BudgetLimit intent exists
 - an idle hook fired but earlier idle stages still have work
 
-Automatic Continuation may run only after no active turn, no pending non-Goal
-work, and no eligible pending Initial, ObjectiveUpdated, or BudgetLimit intent
-remain for that idle opportunity. Idle/history owns the stage order, legal
-callers, locks, reservations, stale synthetic aborts, model-visible history
-key, and duplicate-suppression comparison. Cadence owns only the fact that
-idle-selected Continuation is a cadence event and that it ranks below pending
-non-Continuation intent.
+Automatic Continuation may run only after the idle lifecycle determines that
+there is no active turn, no pending non-Goal work, and no eligible pending
+Initial, ObjectiveUpdated, or BudgetLimit intent for that idle opportunity.
+Idle/history owns stage order, legal callers, reservations, stale synthetic
+behavior, model-visible history key, and duplicate-suppression comparison.
+Cadence owns only the fact that idle-selected Continuation is a cadence event
+and ranks below pending non-Continuation intent.
 
 Continuation still requires feature and collaboration-mode eligibility, current
 active durable Goal state, and unchanged lifecycle facts after reservation.
@@ -157,8 +154,8 @@ suppression is based on a committed watermark or equivalent durable or
 reconstructable suppression record for the active Goal, model-visible history
 key, and durable facts version. That watermark advances only after the
 Continuation item reaches final model request input and the final-input commit
-rule runs. It must not advance because an idle hook fired, a candidate was
-selected, a turn was reserved, text was rendered, or helper output existed.
+rule runs, not when an idle hook fires, a candidate is selected, a turn is
+reserved, text is rendered, or helper output exists.
 
 ## Pending Intent And Delivery
 
@@ -299,37 +296,12 @@ from durable state, pending intent or watermark state, optional new request
 metadata, and committed carry; it must not reuse stale pre-commit metadata as
 if the original cadence request were still pending.
 
-## Proof And Cross-Doc Boundaries
+## Local Proof Obligations
 
 Cadence obligations are proven by final model payload tests, or by structured
 recorded request evidence when that evidence represents the same logical final
 request input and its persistence/error policy is in scope. Cadence does not
 own evidence persistence or replay semantics.
-
-Cross-doc routing:
-
-- `goal-authority-behavior.md` owns what active Goal authority is and why
-  proof substitutes are forbidden.
-- `goal-durable-state-and-pending-intent.md` owns durable facts, facts version,
-  pending non-Continuation intent, exact-key consumption, mechanical
-  supersedence cleanup, and state non-ownership.
-- `goal-final-request-input.md` owns final input selection, insertion,
-  cleanup in shaping, commit metadata, fingerprints, Created-event commit,
-  retry/follow-up shaping, and committed current-turn carry.
-- `goal-idle-history-lifecycle.md` owns idle stage order, pending-work
-  precedence, Goal-owned synthetic request metadata, automatic Continuation
-  selection, resume hydration ordering, model-visible history key, and
-  Continuation suppression.
-- `goal-request-repair-and-artifact-classification.md` owns classifier
-  semantics and request-local repair mechanics.
-- `goal-recorded-request-evidence.md` owns structured evidence carrier,
-  persistence, replay, rollback/fork/compaction treatment, and evidence
-  failure policy.
-- `goal-extension-lifecycle-and-reachability.md` owns extension/app-server
-  lifecycle, mutation/accounting participation, reachability, configuration
-  treatment, and producer-facing metadata routes.
-- `goal-test-prep-and-replacement-proof.md` owns the replacement proof matrix;
-  this doc keeps only cadence-local proof obligations.
 
 Cadence-local proof obligations include:
 
@@ -348,16 +320,22 @@ Cadence-local proof obligations include:
   pending work and pending durable intent decline.
 - Repair preserves cadence-required authority without becoming cadence.
 
-## Source Inputs And Coverage
+## Primary Pointers
 
-This cadence surface was synthesized from the accepted successor topology,
-architecture requirements, the grounding truth, primary cadence contract,
-durable cadence state contract, idle continuation contract, final request-input
-contract, model-visible history-key contract, recorded evidence boundary,
-repair/classifier integration, extension ownership seam, fake-shim removal
-map, test deletion map, and Pass 2 / Pass 2B coverage and compression
-artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.
+- `goal-authority-behavior.md` owns what active Goal authority is and why
+  proof substitutes are forbidden.
+- `goal-durable-state-and-pending-intent.md` and
+  `goal-final-request-input.md` own durable facts, pending non-Continuation
+  intent, exact-key consumption, final input selection, commit metadata,
+  retry/follow-up shaping, and committed current-turn carry.
+- `goal-idle-history-lifecycle.md` owns idle stage order, pending-work
+  precedence, Goal-owned synthetic request metadata, automatic Continuation
+  selection, resume hydration, model-visible history key, and Continuation
+  suppression.
+- `goal-request-repair-and-artifact-classification.md` owns classifier and
+  request-local repair mechanics; repair can preserve cadence-required
+  authority but must not become cadence.
+- `goal-recorded-request-evidence.md`,
+  `goal-extension-lifecycle-and-reachability.md`, and
+  `goal-test-prep-and-replacement-proof.md` own evidence, extension, and proof
+  support without creating cadence events.

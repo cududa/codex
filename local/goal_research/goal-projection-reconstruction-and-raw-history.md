@@ -22,15 +22,10 @@ evidence.
   semantics, structured evidence carrier semantics, request-local repair
   definitions, extension lifecycle, fake-shim demolition sequencing, or the
   replacement test matrix.
-- Read with: `goal-authority-behavior.md`,
-  `goal-cadence-contract.md`,
-  `goal-durable-state-and-pending-intent.md`,
-  `goal-final-request-input.md`,
-  `goal-idle-history-lifecycle.md`,
-  `goal-recorded-request-evidence.md`,
-  `goal-request-repair-and-artifact-classification.md`,
-  `goal-extension-lifecycle-and-reachability.md`, and
-  `goal-test-prep-and-replacement-proof.md`.
+- Primary pointers: `goal-request-repair-and-artifact-classification.md` for
+  classifier meanings, `goal-final-request-input.md` for cleanup inside the
+  active request attempt, `goal-idle-history-lifecycle.md` for history-key
+  effects, and `goal-recorded-request-evidence.md` for metadata pairing.
 - Fidelity note: projection hiding, raw emission, compaction cleanup,
   reconstruction, rollback, fork, and legacy artifact detection must never
   recover active Goal facts, objectives, pending intent, recorded evidence,
@@ -289,52 +284,21 @@ text, and parse pure internal-context wrappers. They must not construct
 active model input, choose active role, select cadence, consume pending
 intent, advance suppression, write evidence, or prove authority.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-authority-behavior.md` owns why projection hiding, raw output,
-compaction cleanup, reconstruction, rollback, fork, classifier matches,
-evidence, and rendered text are not active Goal authority.
-
-`goal-cadence-contract.md` owns when Goal steering is due,
-cadence-required authority, ordinary user-turn limits, supersedence, and the
-rule that repair is not cadence.
-
-`goal-durable-state-and-pending-intent.md` owns current Goal facts, durable
-facts version, pending non-Continuation intent, exact-key consumption, and
-state-owned Continuation suppression records. This doc must not infer or
-mutate those from cleanup artifacts.
-
-`goal-final-request-input.md` owns selected item construction, cleanup effects
-inside the finalized request input, final payload proof, commit metadata,
-fingerprints, Created-event commit, retry/follow-up shaping, and committed
-current-turn carry. This doc owns cleanup and projection effects outside that
-final-input attempt.
-
-`goal-idle-history-lifecycle.md` owns model-visible history-key semantics,
-eligible progress projection, automatic Continuation selection, suppression
-comparison, resume hydration, and how compaction or reconstruction affects
-Continuation eligibility. This doc owns the cleanup behavior whose results
-history projection excludes or accounts for.
-
-`goal-recorded-request-evidence.md` owns evidence carrier shape,
-persistence timing, replay pairing, fingerprint rules, rollback, fork,
-compaction treatment, raw/typed projection treatment, and evidence failure
-policy. This doc may route evidence as metadata only through those rules.
-
-`goal-request-repair-and-artifact-classification.md` owns classifier outputs,
-whole-message purity, wrong-role cleanup classification, request-local repair
-semantics, repair reports, and helper non-ownership. This doc consumes those
-meanings for projection, raw, compaction, reconstruction, rollback, fork, and
-history-boundary effects.
-
-`goal-extension-lifecycle-and-reachability.md` owns extension and app-server
-lifecycle, mutation/accounting participation, reachability, configuration
-treatment, and producer metadata routes. This doc only owns projection and
-raw/history behavior exposed by those surfaces.
-
-`goal-test-prep-and-replacement-proof.md` owns the global replacement proof
-matrix. This doc keeps only projection, raw, compaction, reconstruction,
-rollback, fork, and legacy cleanup local proof obligations.
+- `goal-authority-behavior.md`, `goal-cadence-contract.md`, and
+  `goal-durable-state-and-pending-intent.md` own authority, cadence, and
+  durable facts. This doc must not infer them from cleanup artifacts.
+- `goal-final-request-input.md` owns cleanup inside the finalized request
+  input. This doc owns cleanup and projection effects outside that attempt.
+- `goal-idle-history-lifecycle.md` owns history-key semantics and Continuation
+  eligibility effects; this doc owns the support behavior that history
+  projection excludes or accounts for.
+- `goal-recorded-request-evidence.md` owns evidence pairing and failure
+  policy; this doc routes evidence as metadata only.
+- `goal-request-repair-and-artifact-classification.md` owns classifier and
+  repair meanings; extension and test-prep docs own producer exposure and the
+  global proof matrix.
 
 ## Local Proof Obligations
 
@@ -388,17 +352,3 @@ Projection/raw/reconstruction coverage must prove:
 The test-prep successor doc owns how these obligations join the broader final
 payload, durable state, idle/history, evidence, extension, UI, and snapshot
 proof matrix.
-
-## Source Inputs And Coverage
-
-This projection/reconstruction/raw-history surface was synthesized from the
-accepted successor topology, architecture requirements, repair/classifier
-integration contract, fake-shim removal map, recorded-evidence boundary,
-final request-input contract, model-visible history-key contract, grounding
-truth, primary cadence contract, idle lifecycle boundaries, durable-state
-boundaries, test deletion map raw/test posture, and Pass 2 / Pass 2B coverage
-and compression artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.

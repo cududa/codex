@@ -17,8 +17,8 @@ authority.
   shaping, idle/history lifecycle, recorded evidence, classifier/projection
   semantics, extension lifecycle, fake-shim demolition architecture, test
   matrix content, operations, navigation, or glossary semantics.
-- Read after: all behavior, seam, extension, and test-prep successors when
-  deciding whether to write an implementation execution plan.
+- Primary pointers: behavior, seam, extension, and test-prep successors own
+  their rules; this doc gates readiness and implementation handoff posture.
 - Fidelity note: Ready means ready as implementation-design input. It does not
   mean implementation complete, file-specific work planned, migrations named,
   tests written, or Rust validated.
@@ -270,58 +270,16 @@ classified as deleted terrain, allowed legacy cleanup fixture, migration
 comment, local planning note, or explicit rejection comment. Audit output is
 not a source of behavior truth.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-authority-behavior.md` owns active Goal authority and forbidden
-authority shapes. This doc only requires implementation plans to name and
-respect that owner.
-
-`goal-cadence-contract.md` owns steering kinds, cadence-required authority,
-ordinary user-turn limits, same-turn metadata boundaries, supersedence, and
-repair not being cadence. This doc only gates readiness to implement those
-rules.
-
-`goal-durable-state-and-pending-intent.md` owns durable facts, pending
-non-Continuation intent, exact-key consumption, state non-ownership, and
-state-owned Continuation suppression records. This doc only requires those
-inputs to be ready before execution planning.
-
-`goal-final-request-input.md` owns the final request-input seam, selected item
-identity, cleanup inside shaping, commit metadata, Created-event commit,
-fingerprints, retry/follow-up, and committed carry. This doc only requires
-execution plans to translate that seam into concrete files.
-
-`goal-idle-history-lifecycle.md` owns idle ordering, pending-work precedence,
-Goal-owned synthetic metadata, model-visible history keys, Continuation
-suppression, resume, rollback, fork, and same-turn metadata lifecycle. This
-doc only gates handoff readiness for those lifecycle details.
-
-`goal-recorded-request-evidence.md` owns structured evidence metadata,
-persistence timing, replay pairing, rollback/fork/compaction treatment, and
-evidence failure policy. This doc keeps only the readiness reminder that
-evidence is a support seam, not authority.
-
-`goal-request-repair-and-artifact-classification.md` owns classifier and
-request-local repair semantics. This doc only requires implementation plans
-to route repair/classifier work to that owner.
-
-`goal-projection-reconstruction-and-raw-history.md` owns projection, raw,
-compaction, reconstruction, rollback, fork, history-boundary behavior, and
-legacy artifact cleanup. This doc only gates handoff for those support
-consumers.
-
-`goal-extension-lifecycle-and-reachability.md` owns extension/app-server
-lifecycle, mutation/accounting participation, configuration treatment,
-metadata-only wake/recheck, and reachability. This doc only requires
-execution plans to preserve that owner.
-
-`goal-test-prep-and-replacement-proof.md` owns local overlay deletion,
-upstream baseline restoration, replacement proof matrix, snapshots, and final
-proof layers. This doc only requires implementation handoffs to reference
-that proof posture.
-
-`AGENTS.md`, `README.md`, and `CONTEXT.md` remain operations, navigation, and
-glossary containers. This doc does not take over those container roles.
+- Behavior, cadence, durable-state, final-input, idle/history, evidence,
+  cleanup, projection/raw, extension, and test-prep successors own their
+  seams. This doc only gates readiness and handoff for implementing them.
+- `goal-test-prep-and-replacement-proof.md` owns proof posture; this doc
+  requires handoffs to reference it without turning tests into behavior
+  authority.
+- `AGENTS.md`, `README.md`, and `CONTEXT.md` remain operations, navigation,
+  and glossary containers. This doc does not take over those roles.
 
 ## Local Proof Obligations
 
@@ -345,21 +303,8 @@ Readiness and handoff coverage must prove:
 - WA06 remains cleanup and acceptance only
 - final audit gates inspect and classify matches instead of defining behavior
 - operations, navigation, and glossary containers stay in their roles
-- old source docs and Pass 2 / Pass 2B artifacts are source corpus,
-  provenance, or coverage aids after successor docs are accepted, not peer
-  successor authority
+- old source docs and coverage artifacts are source corpus, provenance, or
+  coverage aids after successor docs are accepted, not peer successor
+  authority
 - any missing or conflicting behavior found during handoff is routed back to
   the owning successor doc
-
-## Source Inputs And Coverage
-
-This readiness and handoff surface was synthesized from the accepted
-successor topology, architecture requirements, open design deliverables,
-local operations and navigation containers, glossary container boundaries,
-test-deletion handoff posture, final cleanup and acceptance posture,
-completed successor cross-doc boundaries, and Pass 2 / Pass 2B coverage and
-compression artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.

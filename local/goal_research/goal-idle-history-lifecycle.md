@@ -22,15 +22,11 @@ model-visible history.
   request-input insertion, Created-event commit side effects, recorded
   evidence carrier persistence, classifier mechanics, projection/raw behavior,
   extension lifecycle, or the replacement test matrix.
-- Read with: `goal-authority-behavior.md`,
-  `goal-cadence-contract.md`,
-  `goal-durable-state-and-pending-intent.md`,
-  `goal-final-request-input.md`,
-  `goal-recorded-request-evidence.md`,
-  `goal-request-repair-and-artifact-classification.md`,
-  `goal-projection-reconstruction-and-raw-history.md`,
-  `goal-extension-lifecycle-and-reachability.md`, and
-  `goal-test-prep-and-replacement-proof.md`.
+- Primary pointers: `goal-cadence-contract.md` for cadence events,
+  `goal-durable-state-and-pending-intent.md` for pending intent and durable
+  suppression storage, `goal-final-request-input.md` for commit side effects,
+  and `goal-recorded-request-evidence.md` only for explicit non-best-effort
+  reconstruction support.
 - Fidelity note: keep idle selection, history-key projection, durable
   suppression storage, and final-input commit advancement distinct. The
   pointer pattern is: idle selection; history watermark; final commit advance.
@@ -182,19 +178,19 @@ Status eligibility is kind-specific:
   steering is due.
 
 When the pending intent is eligible, the hook may reserve a synthetic regular
-turn whose final request-input shaping will deliver exactly one selected
+turn whose final request-input shaping will deliver the selected
 developer-role Goal item for that pending intent.
 
 That turn is a cadence-delivery turn. It is not automatic Continuation.
 
-The selected item must render from durable Goal facts, not from the pending
-intent body, a tool request body, an app-server request body, rendered artifact
-text, UI projection, raw notification, rollout item, or helper output.
+The selected item must render from durable Goal facts through the final-input
+owner, not from pending intent bodies, producer requests, rendered artifacts,
+UI projection, raw notification, rollout items, or helper output.
 
-Pending intent is not consumed when it is selected, rendered, constructed,
-reserved, or attached to same-turn request metadata. It is consumed only after
-the matching outer developer-role Goal item reaches final request input and
-the final-input commit rule calls durable exact-key consumption.
+Pending intent is not consumed when selected, rendered, constructed,
+reserved, or attached to same-turn request metadata. Consumption waits for the
+matching outer developer-role Goal item to reach final request input and for
+the final-input commit rule to call durable exact-key consumption.
 
 If request construction fails before matching final input exists, the pending
 intent remains pending. If final input is built but not submitted, pending
@@ -390,11 +386,9 @@ real committed Continuation from a rendered artifact or helper result.
 
 Default live correctness uses the durable/state-owned Continuation suppression
 record owned by the durable-state doc. This doc owns what is compared and how
-resume/reconstruction must interpret the suppression basis. The final
-request-input doc owns the commit point and side effect that may advance the
-record. The recorded-evidence doc owns any structured evidence carrier and
-the non-best-effort conditions under which evidence can support
-reconstruction.
+resume/reconstruction interprets the suppression basis. Final input owns the
+commit point that may advance the record; recorded evidence owns any
+non-best-effort reconstruction support.
 
 Suppression must not advance when:
 
@@ -521,16 +515,13 @@ Retry and same-turn follow-up shaping are owned by the final request-input
 doc. This doc owns the lifecycle for Goal-owned synthetic metadata and stale
 abort before submission.
 
-Retry before commit leaves pending intent and Continuation suppression
-unchanged. Built-not-submitted attempts leave pending intent and suppression
-unchanged by default unless a structured evidence path with equivalent
-persistence and error policy explicitly records the committed request.
+Retry before commit and built-not-submitted attempts leave pending intent and
+Continuation suppression unchanged by default. Any exception must satisfy the
+recorded-evidence doc's explicit persistence and error-policy boundary.
 
-Same-turn follow-up after Created must assemble fresh context from durable
-Goal facts, pending intent or suppression state, optional new request
-metadata, and committed carry. It must not reuse stale pre-commit Goal-owned
-synthetic request metadata as if the original cadence request were still
-pending.
+Same-turn follow-up after Created must use fresh finalization context and must
+not reuse stale pre-commit Goal-owned synthetic request metadata as if the
+original cadence request were still pending.
 
 ## Compaction, Reconstruction, Rollback, And Fork Effects
 
@@ -560,51 +551,24 @@ used as surviving suppression proof. If a durable/state-owned suppression
 record survives, it remains the default live correctness basis according to
 the durable-state contract.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-authority-behavior.md` owns the authority truth that active Goal
-authority requires final developer-role model input and that rendered text,
-state alone, helper output, evidence, raw output, and runtime archaeology are
-not authority.
-
-`goal-cadence-contract.md` owns the steering kinds, cadence-required
-authority, ordinary user-turn limits, and ranking of BudgetLimit,
-ObjectiveUpdated, Initial, and Continuation. This doc applies those rules to
-idle opportunities.
-
-`goal-durable-state-and-pending-intent.md` owns durable Goal facts, durable
-facts version, pending non-Continuation intent, exact-key consumption, and
-durable/state-owned Continuation suppression storage. This doc owns idle
-ordering, key semantics, and comparison/reconstruction rules.
-
-`goal-final-request-input.md` owns final request-input shaping, selected item
-identity, developer-role insertion or verification, retry/follow-up shaping,
-Created-event commit, exact consumption call timing, Continuation suppression
-advancement, fingerprints, and committed carry. This doc owns only the
-pre-commit lifecycle of Goal-owned synthetic request metadata and the
-history-key inputs finalization must use.
-
-`goal-recorded-request-evidence.md` owns the structured evidence carrier,
-persistence timing, replay semantics, paired-write policy, rollback/fork and
-compaction treatment, and the non-best-effort boundary for evidence-backed
-suppression reconstruction. This doc uses evidence only through that boundary.
-
-`goal-request-repair-and-artifact-classification.md` owns classifier outputs,
-purity rules, and request-local repair semantics. This doc keeps only the
-idle-created request limits for repair.
-
-`goal-projection-reconstruction-and-raw-history.md` owns typed/materialized
-projection, raw notification behavior, compaction cleanup, rollout
-reconstruction, rollback, fork, and legacy artifact handling. This doc owns
-only the eligible-progress and suppression effects of those history changes.
-
-`goal-extension-lifecycle-and-reachability.md` owns extension/app-server
-lifecycle, mutation/accounting participation, reachability, and producer
-metadata routes. This doc owns the lifecycle ordering after those producers
-persist cadence work.
-
-`goal-test-prep-and-replacement-proof.md` owns the replacement proof matrix.
-This doc keeps only idle/history-local proof obligations.
+- `goal-authority-behavior.md` owns the authority truth; this doc does not
+  prove active model authority.
+- `goal-cadence-contract.md` owns steering kinds, ranking, ordinary user-turn
+  limits, and cadence-required authority. This doc applies those rules to idle
+  opportunities.
+- `goal-durable-state-and-pending-intent.md` and
+  `goal-final-request-input.md` own durable facts, pending intent, exact-key
+  consumption, final shaping, Created-event commit, suppression advancement,
+  and committed carry. This doc owns idle ordering, synthetic metadata before
+  submission, history-key semantics, and comparison/reconstruction rules.
+- `goal-recorded-request-evidence.md` owns evidence carrier and replay policy;
+  this doc uses evidence only through the explicit non-best-effort
+  reconstruction boundary.
+- Cleanup/projection, extension, and test-prep docs own their support
+  surfaces; this doc keeps only idle/history-local repair limits, eligible
+  progress effects, producer-mutation ordering, and proof obligations.
 
 ## Local Proof Obligations
 
@@ -660,16 +624,3 @@ Idle/history coverage must prove:
 The test-prep successor doc owns how these obligations join the broader final
 payload, durable state, evidence, repair/projection/raw, extension, and UI
 proof matrix.
-
-## Source Inputs And Coverage
-
-This idle/history surface was synthesized from the accepted successor
-topology, architecture requirements, idle continuation contract,
-model-visible history-key contract, primary cadence contract, durable cadence
-state contract, final request-input contract, recorded evidence boundary,
-repair/classifier integration, extension ownership boundary, test deletion
-map, and Pass 2 / Pass 2B coverage and compression artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.

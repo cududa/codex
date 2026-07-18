@@ -19,15 +19,10 @@ repair may support final request input without becoming authority or cadence.
   behavior, raw notification behavior, compaction algorithms, rollout
   reconstruction, rollback, fork, extension lifecycle, fake-shim demolition
   sequencing, or the replacement test matrix.
-- Read with: `goal-authority-behavior.md`,
-  `goal-cadence-contract.md`,
-  `goal-durable-state-and-pending-intent.md`,
-  `goal-final-request-input.md`,
-  `goal-idle-history-lifecycle.md`,
-  `goal-recorded-request-evidence.md`,
-  `goal-projection-reconstruction-and-raw-history.md`,
-  `goal-extension-lifecycle-and-reachability.md`, and
-  `goal-test-prep-and-replacement-proof.md`.
+- Primary pointers: `goal-final-request-input.md` for active final-input
+  cleanup, `goal-projection-reconstruction-and-raw-history.md` for projection
+  and history consumers, and `goal-recorded-request-evidence.md` only for
+  strict lost-commit repair evidence.
 - Fidelity note: classifiers and helper output are cleanup support. They do
   not decide cadence, prove authority, recover durable state, consume pending
   intent, advance suppression, write evidence, or commit delivery.
@@ -305,49 +300,21 @@ Remaining legacy `<goal_context>` handling is limited to pure artifact
 classification for cleanup consumers. It must not keep a Goal-specific active
 context architecture alive.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-authority-behavior.md` owns the behavioral rule that classifier output,
-helper output, projection hiding, rendered text, durable state alone, and
-repair cannot prove authority.
-
-`goal-cadence-contract.md` owns cadence-required authority, steering-kind
-selection, supersedence, ordinary user-turn limits, and the rule that repair
-is not cadence.
-
-`goal-durable-state-and-pending-intent.md` owns current Goal facts, durable
-facts version, pending non-Continuation intent, exact-key consumption, and the
-default state-owned Continuation suppression record. Classifiers and repair
-must not recover or mutate those from artifacts.
-
-`goal-final-request-input.md` owns the only active authority callsite that may
-apply these classifications to the final request input. It owns selected item
-insertion or verification, commit metadata, Created-event commit, exact
-consumption call timing, committed carry, and final payload proof.
-
-`goal-idle-history-lifecycle.md` owns idle-created request lifecycle limits,
-model-visible history key semantics, eligible progress projection, and
-Continuation suppression. This doc keeps the local repair rule that
-idle-created request repair cannot create pending intent, consume unrelated
-intent, or advance suppression.
-
-`goal-recorded-request-evidence.md` owns structured committed evidence,
-fingerprint pairing, replay, rollback/fork/compaction evidence treatment, and
-the non-best-effort boundary. This doc owns only the repair-side rule that
-lost recorded item repair may use structured evidence, never rendered text.
-
-`goal-projection-reconstruction-and-raw-history.md` owns typed/materialized
-projection, raw notifications, contextual history boundaries, compaction,
-rollout reconstruction, rollback, fork, and legacy artifact cleanup effects.
-It consumes this doc's classifier and repair meanings.
-
-`goal-extension-lifecycle-and-reachability.md` owns extension and app-server
-mutation/accounting lifecycle, producer metadata, configuration treatment,
-and reachability. Extension helper output and source-tagged text remain
-non-authority unless routed through final request-input shaping.
-
-`goal-test-prep-and-replacement-proof.md` owns the global replacement proof
-matrix. This doc keeps only classifier and repair-local proof obligations.
+- `goal-authority-behavior.md` and `goal-cadence-contract.md` own authority
+  and cadence; classifier, helper, and repair output cannot prove either.
+- `goal-durable-state-and-pending-intent.md` owns durable facts and pending
+  state. Classifiers and repair must not recover or mutate them from
+  artifacts.
+- `goal-final-request-input.md` owns the active callsite that applies these
+  classifications to final request input and commits delivery side effects.
+- `goal-idle-history-lifecycle.md` owns idle/history effects; repair of
+  idle-created requests cannot create pending intent, consume unrelated
+  intent, or advance suppression.
+- Evidence, projection/raw, extension, and test-prep docs own their support
+  surfaces; this doc keeps classifier and repair meanings plus local proof
+  obligations.
 
 ## Local Proof Obligations
 
@@ -383,16 +350,3 @@ obligations for typed hiding, raw remaining raw, history-boundary behavior,
 compaction cleanup, rollout reconstruction, rollback, and fork. The test-prep
 successor doc owns how all repair/classification obligations join the broader
 replacement matrix.
-
-## Source Inputs And Coverage
-
-This classifier and repair surface was synthesized from the accepted
-successor topology, architecture requirements, repair/classifier integration
-contract, grounding truth, primary cadence contract, final request-input
-contract, fake-shim removal map, supporting history/evidence/idle/extension
-boundaries, test deletion map, and Pass 2 / Pass 2B coverage and compression
-artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.

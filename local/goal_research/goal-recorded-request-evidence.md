@@ -18,14 +18,10 @@ final request-input decision.
   selection, selected item rendering, idle scheduling, model-visible history
   key semantics, classifier mechanics, request repair, extension lifecycle, or
   the replacement test matrix.
-- Read with: `goal-authority-behavior.md`,
-  `goal-cadence-contract.md`,
-  `goal-durable-state-and-pending-intent.md`,
-  `goal-final-request-input.md`,
-  `goal-idle-history-lifecycle.md`,
-  `goal-request-repair-and-artifact-classification.md`,
-  `goal-projection-reconstruction-and-raw-history.md`, and
-  `goal-test-prep-and-replacement-proof.md`.
+- Primary pointers: `goal-final-request-input.md` for finalized-input
+  identity, `goal-durable-state-and-pending-intent.md` for live correctness by
+  default, and `goal-idle-history-lifecycle.md` for suppression reconstruction
+  precedence.
 - Fidelity note: evidence is metadata about a committed final request-input
   decision. It is not Goal authority, live durable correctness, pending
   intent, final-input selection, model input, or rendered-text recovery.
@@ -71,14 +67,12 @@ are not structured Goal request evidence.
 
 The ownership split is:
 
-- durable state owns current Goal facts, durable facts version, pending
-  Initial, ObjectiveUpdated, and BudgetLimit intent, exact-key consumption,
-  and the default state-owned automatic Continuation suppression record
-- final request input owns per-attempt selection, rendering, insertion or
-  verification, cleanup inside the finalized request, commit metadata,
+- durable state owns live facts, pending non-Continuation intent, exact-key
+  consumption, and the default automatic Continuation suppression record
+- final request input owns per-attempt selection, commit metadata,
   fingerprints, item index, and Created-event commit timing
-- idle/history owns automatic Continuation selection, model-visible history
-  key semantics, suppression comparison, and resume ordering
+- idle/history owns Continuation selection, model-visible history key
+  semantics, suppression comparison, and resume ordering
 - evidence owns structured metadata showing that one finalized attempt reached
   the commit point, plus replay/audit treatment of that metadata
 
@@ -412,49 +406,21 @@ from user-facing views. That hiding does not prove authority, does not prove
 evidence, and does not create active Goal state. Debug surfaces may expose
 typed evidence as metadata when they preserve the metadata/prose boundary.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-authority-behavior.md` owns why evidence is not active Goal authority
-and why proof substitutes are forbidden.
-
-`goal-cadence-contract.md` owns which Goal steering kind is due and why
-evidence does not select cadence.
-
-`goal-durable-state-and-pending-intent.md` owns current Goal facts, pending
-non-Continuation intent, exact-key consumption, and the default durable
-Continuation suppression record. Evidence does not replace those live
-correctness owners unless an equivalent non-best-effort path is explicitly
-chosen and tested.
-
-`goal-final-request-input.md` owns finalization, selected item identity,
-commit metadata, fingerprints, item index, attempt ordinal, Created-event
-commit timing, retry/follow-up shaping, and committed current-turn carry.
-Evidence records that finalized-input identity; it does not produce it.
-
-`goal-idle-history-lifecycle.md` owns idle stage order, synthetic request
-metadata lifecycle, automatic Continuation selection, model-visible history
-key semantics, suppression comparison, and resume hydration. Evidence may
-feed suppression reconstruction only through the precedence and
-non-best-effort rules in this doc.
-
-`goal-request-repair-and-artifact-classification.md` owns classifier outputs,
-purity rules, wrong-role cleanup classification, and request-local repair
-semantics. Repair may consume evidence only through strict fingerprint
-pairing; it must not parse rendered text.
-
-`goal-projection-reconstruction-and-raw-history.md` owns typed/materialized
-projection, raw notifications, contextual history boundaries, compaction,
-rollout reconstruction, rollback, fork, and legacy artifact cleanup effects.
-Those support surfaces may route evidence only through this doc's metadata
-and pairing rules.
-
-`goal-extension-lifecycle-and-reachability.md` owns producer lifecycle,
-mutation/accounting routes, app-server and extension metadata, configuration
-treatment, and reachability. Producers may create state and wake metadata, but
-they do not write evidence or construct active model input.
-
-`goal-test-prep-and-replacement-proof.md` owns the global replacement matrix.
-This doc keeps only evidence-local proof obligations.
+- `goal-authority-behavior.md` and `goal-cadence-contract.md` own authority
+  and cadence. Evidence is neither.
+- `goal-durable-state-and-pending-intent.md`,
+  `goal-final-request-input.md`, and `goal-idle-history-lifecycle.md` own live
+  correctness, finalized-input identity, and suppression selection. Evidence
+  records committed metadata and may support reconstruction only through this
+  doc's non-best-effort rules.
+- `goal-request-repair-and-artifact-classification.md` may consume evidence
+  only through strict fingerprint pairing and never by parsing rendered text.
+- `goal-projection-reconstruction-and-raw-history.md` may route evidence only
+  as metadata through raw/projection/rollback/fork/compaction behavior.
+- Extension and test-prep docs own producer routes and proof matrix support;
+  producers do not write evidence or construct active model input.
 
 ## Local Proof Obligations
 
@@ -492,17 +458,3 @@ Evidence coverage must prove:
 The test-prep successor doc owns how these obligations join the broader final
 payload, durable state, idle/history, cleanup/raw, extension, and UI proof
 matrix.
-
-## Source Inputs And Coverage
-
-This evidence surface was synthesized from the accepted successor topology,
-architecture requirements, recorded request evidence contract, final
-request-input contract, grounding truth, primary cadence contract, durable
-cadence state contract, idle continuation contract, model-visible history-key
-contract, repair/classifier integration, recorded-evidence design-pass
-handoff as provenance only, and Pass 2 / Pass 2B coverage and compression
-artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.

@@ -21,15 +21,10 @@ without owning active model input.
   decisions, pending-intent consumption, Continuation suppression advancement,
   recorded request evidence writes, fake-shim demolition outside extension
   reachability, or the replacement test matrix.
-- Read with: `goal-authority-behavior.md`,
-  `goal-cadence-contract.md`,
-  `goal-durable-state-and-pending-intent.md`,
-  `goal-final-request-input.md`,
-  `goal-idle-history-lifecycle.md`,
-  `goal-request-repair-and-artifact-classification.md`,
-  `goal-projection-reconstruction-and-raw-history.md`,
-  `goal-recorded-request-evidence.md`, and
-  `goal-test-prep-and-replacement-proof.md`.
+- Primary pointers: `goal-durable-state-and-pending-intent.md` for producer
+  state mutations, `goal-cadence-contract.md` and
+  `goal-idle-history-lifecycle.md` for wake/routing semantics, and
+  `goal-final-request-input.md` for active model input and commit.
 - Fidelity note: extension lifecycle ownership is not model-input authority.
   App-server and extension producers may create facts and request delivery;
   the shared final request-input path proves active Goal authority.
@@ -268,54 +263,25 @@ the ownership split in this doc and the referenced behavior, durable,
 cadence, idle/history, final-input, evidence, cleanup, and test-prep
 successors.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-authority-behavior.md` owns why active Goal authority requires final
-developer-role model input and why user-role, helper, provenance, tool output,
-projection, durable state alone, and extension output do not prove authority.
-
-`goal-cadence-contract.md` owns Initial, ObjectiveUpdated, BudgetLimit, and
-Continuation semantics, steering-kind ranking, ordinary user-turn limits, and
-the same-turn metadata boundary. This doc owns producer participation that can
-create durable cadence work.
-
-`goal-durable-state-and-pending-intent.md` owns durable Goal facts, durable
-facts version, pending Initial/ObjectiveUpdated/BudgetLimit intent, exact-key
-consumption, and state-owned Continuation suppression storage. This doc owns
-which producer lifecycle paths may call state and what metadata they may
-receive.
-
-`goal-final-request-input.md` owns per-attempt active shaping, selected item
-construction, final cleanup and repair effects inside final input, commit
-metadata, Created-event commit, exact consumption call timing, Continuation
-suppression advancement, committed carry, and final payload proof. Extension
-and app-server producers route active authority there.
-
-`goal-idle-history-lifecycle.md` owns legal idle callers, wake ordering,
-pending non-Goal precedence, same-turn metadata lifecycle, Goal-owned
-synthetic request metadata, stale synthetic aborts, automatic Continuation
-selection, and model-visible history-key behavior after producer mutations.
-
-`goal-request-repair-and-artifact-classification.md` owns classifier outputs,
-purity rules, wrong-role cleanup classification, request-local repair
-semantics, and helper non-ownership. Extension helper output and source tags
-remain non-authority unless final request input selects the resulting current
-developer-role item.
-
-`goal-projection-reconstruction-and-raw-history.md` owns typed/materialized
-projection, raw notification behavior, compaction, rollout reconstruction,
-rollback, fork, contextual history boundaries, and legacy artifact cleanup
-effects. This doc owns only the producer lifecycle that may expose or route
-extension-created data into those support surfaces.
-
-`goal-recorded-request-evidence.md` owns structured evidence carrier shape,
-persistence timing, replay, pairing, rollback/fork/compaction treatment, and
-evidence failure policy. Extension and app-server producers do not write
-evidence.
-
-`goal-test-prep-and-replacement-proof.md` owns the replacement proof matrix,
-baseline restoration, extension baseline caveat, and snapshot posture. This
-doc keeps only extension-local proof obligations.
+- `goal-authority-behavior.md` owns why extension output, helper text,
+  provenance, tools, projection, durable state alone, and user-role steering
+  do not prove authority.
+- `goal-cadence-contract.md`, `goal-durable-state-and-pending-intent.md`, and
+  `goal-idle-history-lifecycle.md` own cadence semantics, durable pending
+  state, and wake ordering. This doc owns producer participation that creates
+  durable cadence work and metadata-only wake requests.
+- `goal-final-request-input.md` owns active shaping, selected item
+  construction, final cleanup/repair effects, Created-event commit, exact
+  consumption timing, suppression advancement, committed carry, and final
+  payload proof. Extension and app-server producers route active authority
+  there.
+- Cleanup/projection and evidence docs own helper classification, projection,
+  raw/history behavior, and evidence policy; extension/app-server producers do
+  not write evidence or construct active model input.
+- `goal-test-prep-and-replacement-proof.md` owns the replacement proof matrix;
+  this doc keeps extension-local proof obligations and baseline caveats.
 
 ## Local Proof Obligations
 
@@ -350,16 +316,3 @@ Extension/app-server coverage must prove:
 The test-prep successor doc owns how these obligations join the broader final
 payload, durable state, idle/history, evidence, cleanup, UI, and snapshot
 replacement matrix.
-
-## Source Inputs And Coverage
-
-This extension lifecycle surface was synthesized from the accepted successor
-topology, architecture requirements, extension ownership contract, durable
-cadence state contract, primary cadence contract, final request-input
-contract, idle continuation contract, fake-shim removal map, extension
-baseline caveats from the test deletion map, and Pass 2 / Pass 2B coverage
-and compression artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.

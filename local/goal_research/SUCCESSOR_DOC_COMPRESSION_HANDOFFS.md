@@ -4,10 +4,57 @@ This is a temporary support file for running the successor-doc reader
 compression sessions. It is not Goal authority, not source corpus, and not an
 implementation plan.
 
-Use one session block at a time. Do not ask one agent to complete multiple
-blocks unless explicitly instructed. After all compression sessions,
+Use one session block at a time as the execution unit. A goal agent should
+continue through the remaining session blocks sequentially when the active goal
+is to complete successor-doc compression. After all compression sessions,
 navigation cutover, and stale-reference cleanup are complete, delete this file
 with the remaining support artifacts.
+
+## Compression Cursor
+
+Status: Compression sessions complete
+
+Current session: Successor-only consistency pass
+
+Completed sessions:
+
+- Session 1A Core Authority
+- Session 1B Core Mechanics
+- Session 1C.1 Idle And History
+- Session 1C.2 Recorded Evidence
+- Session 1D.1 Cleanup
+- Session 1D.2 Extension
+- Session 1E Proof And Handoff
+
+Remaining sessions:
+
+- None
+
+Last completion summary: Session 1E compressed proof/handoff reader
+scaffolding into primary pointers while preserving prep sequence, overlay
+deletion, upstream baseline restoration, replacement proof matrix, final
+acceptance proof layers, snapshot handling, stale-symbol audits,
+Ready/Open/Blocker meanings, source-corpus posture, handoff requirements,
+demolition terrain boundary, and final cleanup routing.
+
+Cursor update rule:
+
+- At the start of a compression session, read this cursor and the named session
+  block.
+- Execute the current session, then continue to the next remaining session
+  automatically when the active goal is successor-doc compression.
+- After the session passes verification, update `Status`, `Current session`,
+  `Completed sessions`, `Remaining sessions`, and `Last completion summary`.
+- Keep `Last completion summary` to one or two sentences.
+- Keep user-facing progress updates to one or two sentence completion
+  summaries, then keep working. Do not wait for user confirmation between
+  compression sessions.
+- Do not add detailed audit logs, per-section work logs, or broad planning
+  notes to this cursor.
+- If context compacts, resume from this cursor and continue with the current
+  session.
+- When Session 1E is complete, set `Status` to `Compression sessions complete`
+  and `Current session` to `Successor-only consistency pass`.
 
 ## Repeatable Context
 

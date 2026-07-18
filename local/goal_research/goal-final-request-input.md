@@ -18,14 +18,10 @@ and when delivery side effects become valid.
   model-visible history-key computation, recorded-evidence persistence and
   replay policy, broad projection/raw behavior, extension lifecycle, or the
   replacement test matrix.
-- Read with: `goal-authority-behavior.md`,
-  `goal-cadence-contract.md`,
-  `goal-durable-state-and-pending-intent.md`,
-  `goal-idle-history-lifecycle.md`,
-  `goal-recorded-request-evidence.md`,
-  `goal-request-repair-and-artifact-classification.md`,
-  `goal-extension-lifecycle-and-reachability.md`, and
-  `goal-test-prep-and-replacement-proof.md`.
+- Primary pointers: `goal-authority-behavior.md` for the authority rule,
+  `goal-cadence-contract.md` for due kinds,
+  `goal-durable-state-and-pending-intent.md` for durable facts and exact-key
+  operations, and `goal-idle-history-lifecycle.md` for Continuation metadata.
 - Fidelity note: helper output, rendered text, active-turn injection,
   reservation, same-turn metadata, pre-finalizer carry, raw notifications,
   projection hiding, evidence metadata, and active durable state alone are not
@@ -482,52 +478,22 @@ split: adapters may feed durable facts and typed metadata into finalization,
 but the finalizer owns the actual model input and commit metadata for each
 attempt.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-authority-behavior.md` owns what counts as active Goal authority and why
-proof substitutes are forbidden. This doc owns the mechanics that make that
-proof real for a request attempt.
-
-`goal-cadence-contract.md` owns when Goal steering is due, steering-kind
-semantics, supersedence, ordinary user-turn limits, and cadence-required
-authority. This doc applies the selected kind and ranking to one final
-request opportunity.
-
-`goal-durable-state-and-pending-intent.md` owns durable facts, facts version,
-pending non-Continuation intent, exact-key store operations, mechanical
-supersedence cleanup, and state-owned Continuation suppression storage. This
-doc owns only the commit timing and call site for exact consumption or
-suppression advancement.
-
-`goal-idle-history-lifecycle.md` owns idle stage order, pending-work
-precedence, Goal-owned synthetic request metadata lifecycle, stale synthetic
-abort behavior, automatic Continuation selection, model-visible history-key
-computation, resume ordering, and suppression comparison. This doc uses the
-selected Continuation metadata and commits advancement after final input
-reaches execution.
-
-`goal-request-repair-and-artifact-classification.md` owns classifier outputs,
-purity rules, wrong-role cleanup classification, and request-local repair
-semantics. This doc owns the cleanup and repair effects inside the final input
-for the attempt being submitted.
-
-`goal-projection-reconstruction-and-raw-history.md` owns typed/materialized
-projection, raw notification behavior, contextual history boundaries,
-compaction cleanup, rollout reconstruction, rollback, fork, and legacy
-artifact cleanup effects outside the final-input attempt.
-
-`goal-recorded-request-evidence.md` owns structured evidence carrier shape,
-persistence, replay, fingerprint pairing, rollback/fork/compaction treatment,
-raw/typed projection treatment, and evidence failure policy. This doc emits
-the finalized-input identity that evidence can record.
-
-`goal-extension-lifecycle-and-reachability.md` owns extension and app-server
-lifecycle, mutation/accounting participation, reachability, configuration
-treatment, and producer-facing metadata routes. This doc owns the shared
-final-input path those producers must use for active authority.
-
-`goal-test-prep-and-replacement-proof.md` owns the full replacement proof
-matrix. This doc keeps only final-input local proof obligations.
+- `goal-authority-behavior.md` owns the behavioral authority rule; this doc
+  owns the mechanics that make that proof real for a request attempt.
+- `goal-cadence-contract.md` owns due timing and ranking; this doc applies the
+  selected kind to one finalized request opportunity.
+- `goal-durable-state-and-pending-intent.md` owns durable facts, pending
+  non-Continuation intent, exact-key operations, and state-owned Continuation
+  suppression storage. This doc owns commit timing and the call site.
+- `goal-idle-history-lifecycle.md` owns idle selection, Goal-owned synthetic
+  metadata, model-visible history key computation, and suppression comparison.
+  This doc commits advancement only after final input reaches execution.
+- Cleanup/projection, evidence, extension, and test-prep docs own their
+  support surfaces; this doc owns only final-input cleanup, emitted commit
+  identity, producer routing into the shared finalizer, and local proof
+  obligations.
 
 ## Local Proof Obligations
 
@@ -567,17 +533,3 @@ Final-input coverage must prove:
 
 The test-prep successor doc owns how these obligations join the broader state,
 idle/history, evidence, repair/projection/raw, extension, and UI proof matrix.
-
-## Source Inputs And Coverage
-
-This final-input surface was synthesized from the accepted successor topology,
-architecture requirements, final request-input and commit contract, grounding
-truth, primary cadence contract, durable cadence state contract, idle
-continuation contract, model-visible history-key contract, recorded evidence
-boundary, repair/classifier integration, extension ownership boundary, fake
-shim removal map, open design deliverables, test deletion map, and Pass 2 /
-Pass 2B coverage and compression artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.

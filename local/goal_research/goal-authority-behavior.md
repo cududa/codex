@@ -16,14 +16,10 @@ forbidden.
   metadata, idle lifecycle, model-visible history keys, classifier details,
   extension lifecycle, evidence persistence, replacement test matrix, or
   readiness handoff.
-- Read with: `goal-cadence-contract.md`,
-  `goal-durable-state-and-pending-intent.md`,
-  `goal-final-request-input.md`,
-  `goal-request-repair-and-artifact-classification.md`,
-  `goal-projection-reconstruction-and-raw-history.md`,
-  `goal-recorded-request-evidence.md`,
-  `goal-extension-lifecycle-and-reachability.md`, and
-  `goal-test-prep-and-replacement-proof.md`.
+- Primary pointers: `goal-cadence-contract.md` for due timing,
+  `goal-final-request-input.md` for shaping and commit mechanics, and the
+  cleanup/evidence/extension docs for support surfaces that must not become
+  authority.
 - Fidelity note: do not weaken developer-role final request-input proof into
   rendered Goal text, source tags, helper output, hidden classification,
   durable state alone, tool output, recorded evidence, or tests.
@@ -63,21 +59,19 @@ additional authority.
 
 ## Current Goal Facts
 
-Durable Goal state is the source of truth for current Goal facts: identity,
-objective, status, budget, usage, timestamps, active run state, and related
-durable cadence facts.
+Durable Goal state is the source of truth for current Goal facts such as
+identity, objective, status, budget, usage, timestamps, active run state, and
+related durable cadence facts.
 
-Durable state is not model authority by itself. State may be used to render
-current Goal text only when cadence and final request-input owners determine
-that a Goal item is due or must be preserved for the request. An active durable
-Goal alone must not emit steering, prove steering, or make a request cadence
-required.
+Durable state is not model authority by itself. State may render current Goal
+text only when cadence and final request-input owners determine that a Goal
+item is due or must be preserved for the request. An active durable Goal alone
+must not emit steering, prove steering, or make a request cadence required.
 
-Runtime must not parse rendered Goal artifacts to recover active Goal state,
-current objective, budget state, cadence intent, pending steering kind,
-Continuation watermarks, or recorded request evidence. If structured durable
-Goal state is absent, historical rendered Goal text does not resurrect an
-active Goal.
+Runtime must not parse rendered Goal artifacts to recover active Goal facts,
+cadence intent, pending steering kind, Continuation watermarks, or recorded
+request evidence. If structured durable Goal state is absent, historical
+rendered Goal text does not resurrect an active Goal.
 
 ## Helper And Artifact Boundary
 
@@ -89,23 +83,21 @@ suppression, write recorded evidence, or prove that the model received Goal
 authority.
 
 Legacy `<goal_context>` is artifact handling only. It may be recognized for
-typed/materialized projection hiding, compaction or reconstruction cleanup,
-and preventing old pure artifacts from being treated as ordinary prose. It
-must not be used to recover durable state, infer objective text, decide
-cadence, construct new active steering, preserve user-role steering, or
-migrate old sessions into active Goals at request time.
+projection, compaction, reconstruction cleanup, or preventing old pure
+artifacts from being treated as ordinary prose. It must not recover durable
+state, infer objective text, decide cadence, construct active steering,
+preserve user-role steering, or migrate old sessions into active Goals at
+request time.
 
-Recorded request evidence is metadata about a committed final request-input
-decision. Evidence may support replay, audit, reconstruction, and tests when
-the evidence doc's persistence and pairing rules are satisfied. It is not
-current Goal facts, cadence selection, pending intent storage, final-input
-inspection replacement, model-visible input by itself, or rendered-text
-recovery.
+Recorded request evidence is committed metadata. It may support replay, audit,
+reconstruction, and tests under the evidence doc's rules, but it is not current
+Goal facts, cadence selection, pending intent storage, final-input inspection
+replacement, model-visible input, or rendered-text recovery.
 
-Tool output, app-server responses, UI state, typed/materialized projections,
-raw response item notifications, classifier matches, rollout trace payloads,
-ordinary rollout items, hidden metadata, helper outputs, reservations, and
-pre-finalizer carry do not prove active Goal authority.
+Tool output, app-server responses, UI state, projections, raw notifications,
+classifier matches, rollout trace payloads, ordinary rollout items, hidden
+metadata, helper outputs, reservations, and pre-finalizer carry do not prove
+active Goal authority.
 
 ## Forbidden Authority Shapes
 
@@ -172,45 +164,23 @@ request carried the selected developer-role item. They must not become the
 authority mechanism. Tests are proof obligations, and evidence is committed
 metadata; neither replaces the final request-input rule.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-cadence-contract.md` owns when Goal steering is due, steering-kind
-semantics, supersedence, ordinary user-turn limits, cadence-required authority,
-and the rule that repair is not cadence.
-
-`goal-durable-state-and-pending-intent.md` owns durable Goal facts, facts
-version, pending non-Continuation intent, exact-key consumption, and state
-non-ownership. This doc keeps only the behavior-level negative rule that state
-alone is not steering.
-
-`goal-final-request-input.md` owns per-attempt shaping, cleanup inside final
-input, selected item identity, final payload proof, commit metadata,
-fingerprints, Created-event commit, retry/follow-up behavior, and committed
-current-turn carry. This doc owns why that seam is the only authority proof.
-
-`goal-request-repair-and-artifact-classification.md` owns classifier outputs,
-purity rules, wrong-role cleanup classification, and request-local repair
-support. This doc owns why classifier and repair output cannot become
-authority.
-
-`goal-projection-reconstruction-and-raw-history.md` owns typed/materialized
-projection hiding, raw notification behavior, compaction, reconstruction,
-rollback, fork, and legacy artifact cleanup. This doc owns why those support
-surfaces cannot recover authority from rendered text.
-
-`goal-recorded-request-evidence.md` owns the structured evidence carrier,
-persistence timing, replay semantics, fingerprint pairing, and evidence
-failure policy. This doc owns only the behavior-level evidence boundary.
-
-`goal-extension-lifecycle-and-reachability.md` owns extension lifecycle,
-mutation/accounting participation, producer-facing cadence metadata, app-server
-ordering, configuration treatment, and reachability. This doc owns the
-behavior-level rule that no extension or compatibility path may emit user-role
-active steering or prebuilt active model input as authority.
-
-`goal-test-prep-and-replacement-proof.md` owns the replacement proof matrix,
-baseline restoration, local overlay deletion, and snapshot posture. This doc
-keeps local proof obligations for the behavior it owns.
+- `goal-cadence-contract.md` owns due timing, steering-kind ranking,
+  ordinary user-turn limits, cadence-required authority, and the rule that
+  repair is not cadence.
+- `goal-durable-state-and-pending-intent.md` and
+  `goal-final-request-input.md` own durable facts, pending intent, exact-key
+  consumption, final shaping, selected item proof, and commit mechanics. This
+  doc owns why those mechanics must culminate in final developer-role input.
+- `goal-request-repair-and-artifact-classification.md` and
+  `goal-projection-reconstruction-and-raw-history.md` own cleanup and support
+  behavior. This doc owns why their outputs cannot become authority.
+- `goal-recorded-request-evidence.md` owns structured evidence metadata, and
+  `goal-extension-lifecycle-and-reachability.md` owns extension participation.
+  Neither surface constructs active model input or proves authority by itself.
+- `goal-test-prep-and-replacement-proof.md` owns the replacement proof matrix;
+  this doc keeps only behavior-local proof obligations.
 
 ## Local Proof Obligations
 
@@ -220,34 +190,21 @@ same logical final request input.
 
 Behavior-level proof must show:
 
-- the selected current Goal item is in final model request input
-- the selected item is an outer `ResponseItem::Message` with role `developer`
-- the item is current for the durable Goal identity and facts being steered
-- durable Goal status allows the selected steering kind
-- the text uses the current internal-context representation when that
-  representation is part of the active design
-- objective text is escaped as untrusted text
-- no user-role active Goal item is accepted
-- no active `<goal_context>`, `GoalContext`, `GoalContextRole`, helper output,
-  projection output, raw notification, tool output, evidence record,
-  reservation, same-turn metadata, or pre-finalizer carry is accepted as the
-  authority proof
-- duplicate, stale, wrong-role, legacy, and pre-injected Goal-looking items
-  are rejected or routed to the owning cleanup/final-input seam
+- the selected current Goal item is in final model request input as an outer
+  `ResponseItem::Message` with role `developer`
+- the selected item is current for the durable Goal identity and facts being
+  steered, and the durable status allows that steering kind
+- the active text uses the current internal-context representation when that
+  representation is part of the design, with objective text escaped as
+  untrusted text
+- no user-role active Goal item or substitute surface is accepted as authority,
+  including active `<goal_context>`, `GoalContext`, `GoalContextRole`, helper
+  output, projection output, raw notification, tool output, evidence record,
+  reservation, same-turn metadata, or pre-finalizer carry
+- duplicate, stale, wrong-role, legacy, and pre-injected Goal-looking items are
+  rejected or routed to the owning cleanup/final-input seam
 
 The test-prep successor doc owns the full matrix. This doc keeps the local
-obligation that any behavior proof must inspect final request input, or
-structured recorded request evidence tied to that same logical input, rather
-than a substitute surface.
-
-## Source Inputs And Coverage
-
-This behavior surface was synthesized from the accepted successor topology,
-architecture requirements, the grounding truth, primary cadence contract, final
-request-input contract, evidence boundary, extension ownership boundary,
-fake-shim removal map, repair/classifier integration, test deletion map, open
-design posture, and Pass 2 / Pass 2B coverage and compression artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.
+obligation that behavior proof must inspect final request input, or structured
+recorded request evidence tied to that same logical input, rather than a
+substitute surface.

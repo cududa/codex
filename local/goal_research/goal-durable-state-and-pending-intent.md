@@ -19,12 +19,10 @@ clean up, and what state must never claim to prove.
   idle scheduling, model-visible history-key construction, request repair,
   recorded request evidence, extension lifecycle, or the replacement test
   matrix.
-- Read with: `goal-authority-behavior.md`,
-  `goal-cadence-contract.md`, `goal-final-request-input.md`,
-  `goal-idle-history-lifecycle.md`,
-  `goal-recorded-request-evidence.md`,
-  `goal-extension-lifecycle-and-reachability.md`, and
-  `goal-test-prep-and-replacement-proof.md`.
+- Primary pointers: `goal-cadence-contract.md` for cadence selection,
+  `goal-final-request-input.md` for commit-time consumption, and
+  `goal-idle-history-lifecycle.md` for Continuation selection and suppression
+  comparison.
 - Fidelity note: do not turn durable state into model authority or cadence.
   State stores current facts and structured pending work; another owner must
   decide and prove what reached final model request input.
@@ -318,48 +316,20 @@ to request same-turn recheck or idle wake behavior. Those results must not be
 active `ResponseItem` values, active `ResponseInputItem` values, committed
 carry, evidence records, final-input fingerprints, or proof of delivery.
 
-## Cross-Doc Boundaries
+## Primary Pointers
 
-`goal-authority-behavior.md` owns why durable state alone is not active model
-authority and why rendered-text recovery is forbidden.
-
-`goal-cadence-contract.md` owns the steering kinds, cadence-required
-authority, ordinary user-turn limits, and ranking of BudgetLimit,
-ObjectiveUpdated, Initial, and Continuation.
-
-`goal-final-request-input.md` owns per-attempt selection, rendering into final
-input, cleanup inside shaping, selected item identity, fingerprints, commit
-metadata, retry/follow-up behavior, current-turn carry, and the call site for
-exact-key consumption or Continuation suppression advancement.
-
-`goal-idle-history-lifecycle.md` owns pending-work precedence, idle hook
-stage order, synthetic turn reservation, stale synthetic abort behavior,
-resume ordering, automatic Continuation selection, model-visible history-key
-use, and duplicate-suppression comparison.
-
-`goal-recorded-request-evidence.md` owns evidence persistence, replay,
-rollback, fork, compaction treatment, fingerprint pairing, and evidence
-failure policy. Evidence does not create durable Goal facts or replace pending
-intent storage.
-
-`goal-request-repair-and-artifact-classification.md` owns classifier outputs,
-purity rules, wrong-role cleanup classification, and request-local repair
-semantics. Classifier and repair consumers may read durable facts but must not
-recover them from rendered text.
-
-`goal-projection-reconstruction-and-raw-history.md` owns typed/materialized
-projection hiding, raw notification behavior, contextual history boundaries,
-compaction cleanup, rollout reconstruction, rollback, fork, and legacy
-artifact cleanup effects. Those support surfaces must not recover durable
-facts, pending intent, or suppression records from rendered text.
-
-`goal-extension-lifecycle-and-reachability.md` owns extension lifecycle,
-tools, accounting participation, same-turn metadata routes, app-server
-ordering, configuration treatment, and reachability. Durable state owns the
-facts and pending-intent mutation outcomes those producers request.
-
-`goal-test-prep-and-replacement-proof.md` owns the full replacement test
-matrix. This doc keeps only state-local proof obligations.
+- `goal-authority-behavior.md` owns why durable state alone is not active
+  model authority and why rendered-text recovery is forbidden.
+- `goal-cadence-contract.md` owns steering-kind ranking and cadence-required
+  authority; state stores facts and pending rows, not request selection.
+- `goal-final-request-input.md` owns per-attempt finalization and the commit
+  call site for exact-key consumption or Continuation suppression advancement.
+- `goal-idle-history-lifecycle.md` owns idle selection, model-visible history
+  key use, and duplicate-suppression comparison; state owns only the selected
+  durable suppression storage route.
+- Evidence, cleanup/projection, extension, and test-prep docs own their
+  support surfaces without creating durable facts, recovering state from
+  rendered text, or replacing pending-intent storage.
 
 ## Local Proof Obligations
 
@@ -391,16 +361,3 @@ Durable-state coverage must prove:
 
 The test-prep successor doc owns how these obligations join the broader final
 payload, idle, evidence, extension, cleanup, and UI proof matrix.
-
-## Source Inputs And Coverage
-
-This durable-state surface was synthesized from the accepted successor
-topology, architecture requirements, durable cadence state contract, primary
-cadence contract, grounding truth, final request-input contract, idle
-continuation contract, model-visible history-key contract, recorded evidence
-boundary, extension ownership boundary, open design deliverables, test
-deletion map, and Pass 2 / Pass 2B coverage and compression artifacts.
-
-The Pass 2 and Pass 2B artifacts are coverage, interface, traceability, and
-compression checks. They are not the writing order and are not successor
-authority by themselves.
