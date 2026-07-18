@@ -39,9 +39,9 @@ plan.
 ## 136 Absorption Posture
 
 The v136 burn-down is tracked by `TEMP_136_ABSORPTION_POINTER.md` while an
-absorption list is active. When that pointer is complete, successor drafting
-starts from `SUCCESSOR_DOC_DRAFTING_PROTOCOL.md`, the corrected current
-`goal_research` docs, and the topology/protocol artifacts as standalone
+absorption list is active. When that pointer is complete, use
+`SUCCESSOR_DOC_DRAFTING_PROTOCOL.md`, the corrected current `goal_research`
+docs, and the topology/protocol artifacts as standalone successor-drafting
 inputs.
 
 Temporary v136 provenance records, including

@@ -13,11 +13,11 @@ docs remain the contracts until future successor docs replace them. For future
 successor-doc architecture design or concept-preserving rewrite planning, the
 current docs are the required source corpus and concept record; the rewrite may
 reorganize, synthesize, and compress prose as long as concepts, edge cases, and
-implementation-relevant detail are faithfully retained. Relevant v136 route
-decisions are tracked by `TEMP_136_ABSORPTION_POINTER.md` while burn-down is
-active. When the pointer is complete, successor drafting uses
-`SUCCESSOR_DOC_DRAFTING_PROTOCOL.md` and the corrected local docs as
-standalone inputs, not temporary route files.
+implementation-relevant detail are faithfully retained. The v136 burn-down is
+tracked by `TEMP_136_ABSORPTION_POINTER.md` while an absorption list is active.
+When that pointer is complete, use `SUCCESSOR_DOC_DRAFTING_PROTOCOL.md`, the
+corrected local docs, and the topology/protocol artifacts as standalone
+successor-drafting inputs, not temporary route files.
 
 Start with:
 
@@ -174,13 +174,12 @@ override.
 
 ## 136 Absorption Before Successor Drafting
 
-The immediate pre-drafting burn-down is tracked by
-`TEMP_136_ABSORPTION_POINTER.md`. When the pointer has an active batch, use it
-to identify the route decisions still being absorbed into the owning current
-`goal_research` authority/support docs.
+The v136 burn-down is tracked by `TEMP_136_ABSORPTION_POINTER.md`. When the
+pointer has an active batch, use it to identify the route decisions still being
+absorbed into the owning current `goal_research` authority/support docs.
 
 When the pointer is complete, use `SUCCESSOR_DOC_DRAFTING_PROTOCOL.md`, the
-corrected current docs, and the topology/protocol artifacts to start successor
+corrected local docs, and the topology/protocol artifacts to start successor
 authority drafting. Temporary v136 provenance records, including
 `TEMP_136_ROUTE_DECISION_INVENTORY.md` and
 `TEMP_136_AUTHORITY_ALIGNMENT_PACKETS.md` if present in a working copy, are
