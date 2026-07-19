@@ -45,6 +45,10 @@ objective = escaped as untrusted text
 `Prompt.input` and then `ResponsesApiRequest.input`, before any
 transport-specific full request or incremental delta is derived.
 
+The concrete Rust finalizer module name is implementation-owned, but the call
+site must sit after base logical input construction and before `Prompt.input`
+or client request input is derived.
+
 Final request-input shaping is the only seam that may turn due Goal cadence
 or request-local repair into active model input. It implements the behavior
 rule; it does not redefine the authority rule. It applies the cadence

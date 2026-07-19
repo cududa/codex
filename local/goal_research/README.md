@@ -104,6 +104,11 @@ These anchors help readers connect the contracts to current code. They are
 terrain, not mission; do not infer desired architecture from current local
 code.
 
+Some older terrain names may now resolve through newer session and context
+paths. For final request-input work, begin with `codex-rs/core/src/session/turn.rs`,
+`Prompt.input`, and the response request carriers, then follow the live code
+from there.
+
 - Active fake shim: `codex-rs/core/src/context/goal_context.rs`
 - Core Goal steering terrain: `codex-rs/core/src/goals.rs`
 - Idle lifecycle terrain: `codex-rs/core/src/goals.rs`
