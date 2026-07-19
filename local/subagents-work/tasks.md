@@ -1,7 +1,8 @@
 # Subagents Documentation Population Tasks
 
-This is the executable queue for turning the skeleton in `local/subagents/`
-into live feature-area documentation.
+This was the executable queue for turning `local/subagents/` into live
+feature-area documentation. It is retained as retired operational scaffolding,
+not as behavior authority or a normal reader path.
 
 ## Global Rules
 
@@ -10,6 +11,8 @@ into live feature-area documentation.
   briefs, and open decisions.
 - Do not treat work-dir notes as behavior authority.
 - Use current code as terrain until a fact is moved into an owning live doc.
+- Use `task-alignment` for each slice or subslice and emit a Direction Lock
+  before editing live docs.
 - Every slice must update `concept-ledger.md` and `open-decisions.md`.
 - Every slice must end with ownership, terminology, and whitespace checks.
 - If a slice is too large or underspecified after terrain sampling, use the
@@ -21,12 +24,12 @@ into live feature-area documentation.
 
 ## Queue
 
-- [ ] 00 Scope ledger
-- [ ] 01 Core trio
-- [ ] 02 Communication and results
-- [ ] 03 State and client projection
-- [ ] 04 Hooks and realtime
-- [ ] 05 Proof and hardening
+- [x] 00 Scope ledger
+- [x] 01 Core trio
+- [x] 02 Communication and results
+- [x] 03 State and client projection
+- [x] 04 Hooks and realtime
+- [x] 05 Proof and hardening
 
 ## Slice Order
 
@@ -83,7 +86,6 @@ answer:
 ## Current Notes
 
 - The default scope is thread-spawn subagents.
-- Realtime `background_agent` handoff remains a sibling adapter unless the
-  realtime scope decision changes.
-- v2 should be treated as canonical until the v1 compatibility slice resolves
-  exact wording.
+- Realtime `background_agent` handoff is resolved as a sibling Adapter doc.
+- v2 is canonical for thread-spawn docs; v1 is a compatibility surface unless
+  a task explicitly targets legacy collab behavior.

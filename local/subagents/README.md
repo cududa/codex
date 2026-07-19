@@ -1,8 +1,8 @@
 # Subagents Documentation
 
 This directory is the feature-area documentation home for thread-spawned
-subagents. The current files are a skeleton for future authority docs, not a
-finished behavior reference.
+subagents. The files here are the live local authority surface; use navigation
+headers to identify what each doc owns and does not own.
 
 ## Reader Route
 
@@ -48,9 +48,10 @@ own behavior by themselves.
 - `codex-rs/core/src/realtime_conversation.rs`
 - `codex-rs/codex-api/src/endpoint/realtime_websocket/`
 
-## Open Scope Decision
+## Realtime Scope
 
 Realtime `background_agent` handoff is related delegation terrain but not the
-same Module as thread-spawned subagents. The default documentation shape is to
-keep it in its own adapter doc unless a later pass deliberately widens the
-feature area.
+same Module as thread-spawned subagents. Its scope is resolved as a sibling
+Adapter doc in `realtime-background-agent-handoff.md`; it should not be used
+as authority for thread-spawn lifecycle, tree state, mailbox delivery, or TUI
+subagent navigation.

@@ -6,8 +6,8 @@
   behavior, or proof requirements.
 - Primary pointers: `README.md`, `delegation-interface.md`,
   `spawn-context-lifecycle.md`, `communication-and-results.md`.
-- Fidelity note: Skeleton only; keep definitions short and move behavior to
-  the owning doc.
+- Fidelity note: Glossary is populated; keep definitions short and move
+  behavior to the owning doc.
 
 ## Terms
 

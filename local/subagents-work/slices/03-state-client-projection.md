@@ -52,6 +52,24 @@ Likely subslices:
 - `03z-consolidation.md`: projection docs remain observers of core lifecycle
   behavior.
 
+## Decomposition Record
+
+- State: decomposed and consolidated.
+- Reason: terrain sampling showed three distinct seams: persisted
+  thread-spawn graph state, app-server projection, and TUI projection. Filling
+  all three in one pass would either make client adapters behavior owners or
+  leave the state rules too shallow.
+- Blocking decision: client projection authority is scoped through the
+  decomposition. Persisted state owns durable graph behavior; app-server and
+  TUI subslices document Adapter behavior and must not redefine lifecycle,
+  mailbox, or runtime rules.
+- Subslice directory: `slices/03-state-client-projection/`.
+- Subslice order: `03a-persisted-thread-tree.md`,
+  `03b-app-server-projection.md`, `03c-tui-projection.md`,
+  `03z-consolidation.md`.
+- Parent status: complete after `03z-consolidation.md` confirmed the parent
+  definition of done.
+
 ## Work Steps
 
 1. Read the target state/projection doc and related lifecycle docs.

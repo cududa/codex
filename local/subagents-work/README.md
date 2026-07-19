@@ -1,23 +1,30 @@
 # Subagents Documentation Work Packet
 
-This directory is temporary operational scaffolding for populating
-`local/subagents/`.
+This directory is retired operational scaffolding for the population pass that
+created the live docs in `local/subagents/`.
 
 The live docs live in `local/subagents/`. Files in this directory are work
 notes, extraction queues, slice briefs, and decision tracking. They are not
 behavior authority and should not remain part of the normal reader path once
 the feature-area docs are complete.
 
+Use this packet only for provenance or for deliberately reopening
+documentation-population work. Normal readers should start in
+`local/subagents/`.
+
 ## Use Order
+
+This order applies only if the retired packet is deliberately reopened:
 
 1. Read `local/subagents/AGENTS.md`.
 2. Read `local/subagents/README.md`.
 3. Open `tasks.md` and choose the next unchecked slice.
 4. Read the matching `slices/*.md` brief.
-5. Extract facts into `concept-ledger.md` before drafting live prose.
-6. Record scope or behavior questions in `open-decisions.md`.
-7. Edit only the owning live docs in `local/subagents/`.
-8. Return to `tasks.md` and update the slice status.
+5. Use `task-alignment` and emit a Direction Lock for the slice or subslice.
+6. Extract facts into `concept-ledger.md` before drafting live prose.
+7. Record scope or behavior questions in `open-decisions.md`.
+8. Edit only the owning live docs in `local/subagents/`.
+9. Return to `tasks.md` and update the slice status.
 
 ## File Roles
 
@@ -30,6 +37,7 @@ the feature-area docs are complete.
 ## Operating Rules
 
 - Treat current code as terrain until a fact is written into an owning live doc.
+- Use `task-alignment` for each slice or subslice before editing live docs.
 - Keep one durable rule in one owning doc.
 - Use `Module`, `Interface`, `Implementation`, `Seam`, `Adapter`, `Depth`,
   `Leverage`, and `Locality` deliberately.
@@ -83,6 +91,6 @@ complete.
 
 ## Retirement Rule
 
-When the live docs can pass cold-reader review, remove or archive this work
-packet outside the normal reader path. Repository history is enough for later
-provenance questions.
+This packet is outside the normal reader path. If it becomes distracting,
+archive or remove it in a separate cleanup change; repository history is
+enough for later provenance questions.

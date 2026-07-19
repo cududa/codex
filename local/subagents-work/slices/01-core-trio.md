@@ -54,6 +54,21 @@ Likely subslices:
 The parent slice remains incomplete until `01z-consolidation.md` confirms the
 three docs agree.
 
+## Decomposition Record
+
+- State: decomposed and consolidated.
+- Reason: terrain sampling showed three real seams: model-facing Interface,
+  spawn/context lifecycle, and runtime Module architecture. Filling all three
+  in one pass would either blur ownership or make the parent slice too broad.
+- Blocking decision: v1 compatibility posture applies primarily to the
+  Interface doc and should not stall runtime architecture extraction.
+- Subslice directory: `slices/01-core-trio/`.
+- Subslice order: `01a-delegation-interface.md`,
+  `01b-spawn-context-lifecycle.md`, `01c-runtime-architecture.md`,
+  `01z-consolidation.md`.
+- Parent status: complete after `01z-consolidation.md` confirmed the parent
+  definition of done.
+
 ## Work Steps
 
 1. Read the three target docs and their navigation headers.

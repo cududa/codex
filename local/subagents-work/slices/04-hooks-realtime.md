@@ -48,6 +48,32 @@ Likely subslices:
   non-equivalence to thread-spawn subagents.
 - `04z-consolidation.md`: integration docs do not redefine core lifecycle.
 
+## Decomposition Record
+
+- State: decomposed and consolidated.
+- Reason: terrain sampling showed two distinct seams with separate target docs
+  and proof paths: hook exposure for thread-spawn lifecycle events, and
+  realtime `background_agent` handoff as a sibling Adapter. Keeping them in one
+  pass would either stall hook authority on the realtime scope decision or
+  blur realtime non-equivalence.
+- Blocking decision: resolved. Realtime scope applies only to
+  `realtime-background-agent-handoff.md` as a sibling Adapter doc.
+- Subslice directory: `slices/04-hooks-realtime/`.
+- Subslice order: `04a-hooks.md`, `04b-realtime-handoff-scope.md`,
+  `04z-consolidation.md`.
+- Parent status: complete after `04z-consolidation.md` confirmed the parent
+  definition of done.
+
+## Consolidation Result
+
+- `hooks-and-integrations.md` owns thread-spawn lifecycle hook exposure,
+  normal hook subagent context, and internal/synthetic lifecycle hook
+  exclusions.
+- `realtime-background-agent-handoff.md` owns realtime `background_agent`
+  non-equivalence and handoff flow as a sibling Adapter.
+- Realtime scope is resolved in `open-decisions.md`; no widened realtime scope
+  remains for this parent slice.
+
 ## Work Steps
 
 1. Read the target integration docs and runtime architecture doc.

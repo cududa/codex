@@ -42,6 +42,23 @@ Likely subslices:
 - `05c-cold-reader-review.md`: cold-reader prompt and findings.
 - `05z-retirement.md`: final work-packet disposition.
 
+## Decomposition Record
+
+- State: decomposed.
+- Reason: terrain sampling showed four different proof paths and target-doc
+  jobs: proof matrix population, reader-route hardening, cold-reader review,
+  and final work-packet disposition. Keeping them in one pass would either
+  turn proof docs into behavior authority or make the final cleanup depend on
+  incomplete proof evidence.
+- Target live docs affected: `proof-and-readiness.md`, `README.md`,
+  `AGENTS.md`, `CONTEXT.md`, and seam docs only if stale proof placeholders or
+  duplicated ownership need local cleanup.
+- Subslice directory: `slices/05-proof-hardening/`.
+- Subslice order: `05a-proof-matrix.md`, `05b-reader-hardening.md`,
+  `05c-cold-reader-review.md`, `05z-retirement.md`.
+- Parent status: complete; `05z-retirement.md` confirmed the parent definition
+  of done and the final readiness gate in `tasks.md`.
+
 ## Work Steps
 
 1. Read every live doc in `local/subagents/`.

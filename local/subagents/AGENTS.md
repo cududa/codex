@@ -1,8 +1,8 @@
 # Subagents Documentation Instructions
 
-This feature-area doc set is a draft skeleton. Use it to route future
-documentation work, but do not treat placeholder behavior docs as complete
-authority until they are filled and reviewed.
+This feature-area doc set is the local authority surface for thread-spawn
+subagents. Use it to route planning, implementation, review, and maintenance
+work before relying on source terrain.
 
 ## Authority Order
 
@@ -22,7 +22,7 @@ This doc set does not own guardian review, compact/review subagents, memory
 consolidation subagents, or other internal subagent variants except as related
 terrain. It does not own realtime `background_agent` handoff behavior except
 where `realtime-background-agent-handoff.md` explicitly documents that sibling
-adapter.
+Adapter.
 
 ## Writing Rules
 
@@ -49,6 +49,8 @@ Stop and return to the user when:
 
 ## Validation Posture
 
-For docs-only skeleton changes, no Rust validation is required. Review the
-changed docs for routing clarity, single ownership, explicit non-ownership, and
-whether a fresh reader can identify the next doc to open.
+For docs-only changes, no Rust validation is required unless the change also
+touches code, generated contracts, or fixtures. Review changed docs for
+routing clarity, single ownership, explicit non-ownership, and whether a fresh
+reader can identify the next doc to open. Broader proof and readiness posture
+lives in `proof-and-readiness.md`.

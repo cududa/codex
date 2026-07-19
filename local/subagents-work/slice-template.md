@@ -12,7 +12,7 @@ job.
 - Root `AGENTS.md`.
 - `local/how-we-document.md`.
 - `local/subagents/AGENTS.md`.
-- The target live doc skeletons in `local/subagents/`.
+- The target live docs in `local/subagents/`.
 
 ## Target Live Docs
 
@@ -44,13 +44,14 @@ Do not decompose by source-file list.
 
 1. Read the target live docs and their navigation headers.
 2. Read only the terrain needed for this slice.
-3. Extract facts into `concept-ledger.md`.
-4. Sort each fact as owned-here, pointer-only, conflict/open, or rejected.
-5. Draft or update the owning live docs.
-6. Add short cross-doc pointers only where they prevent local mistakes.
-7. Move unresolved decisions to `open-decisions.md`.
-8. Run ownership, terminology, and whitespace checks.
-9. Update `tasks.md`.
+3. Use `task-alignment` to emit a Direction Lock for this slice or subslice.
+4. Extract facts into `concept-ledger.md`.
+5. Sort each fact as owned-here, pointer-only, conflict/open, or rejected.
+6. Draft or update the owning live docs.
+7. Add short cross-doc pointers only where they prevent local mistakes.
+8. Move unresolved decisions to `open-decisions.md`.
+9. Run ownership, terminology, and whitespace checks.
+10. Update `tasks.md`.
 
 ## Definition Of Done
 
