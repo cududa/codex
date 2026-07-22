@@ -5,6 +5,16 @@
 //! events, and owns helper hooks used by goal lifecycle behavior.
 
 use crate::StateDbHandle;
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=2
+// @@ -1,1 +1,4 @@
+// -use crate::context::GoalContext;
+// +use crate::context::ContextualUserFragment;
+// +use crate::context::InternalContextSource;
+// +use crate::context::InternalModelContextFragment;
+// +use crate::session::TurnInput;
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 use crate::context::GoalContext;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
@@ -26,7 +36,7 @@ use codex_otel::GOAL_TOKEN_COUNT_METRIC;
 use codex_otel::GOAL_USAGE_LIMITED_METRIC;
 use codex_protocol::ThreadId;
 use codex_protocol::config_types::ModeKind;
-use codex_protocol::models::ResponseInputItem;
+use codex_protocol::models::ResponseItem;
 use codex_protocol::protocol::EventMsg;
 use codex_protocol::protocol::MAX_THREAD_GOAL_OBJECTIVE_CHARS;
 use codex_protocol::protocol::ThreadGoal;
@@ -217,6 +227,14 @@ pub(crate) struct GoalRuntimeState {
 
 struct GoalContinuationCandidate {
     goal_id: String,
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=4
+// @@ -1,2 +1,1 @@
+// -    steering_kind: GoalSteeringKind,
+// -    items: Vec<ResponseInputItem>,
+// +    items: Vec<ResponseItem>,
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
     steering_kind: GoalSteeringKind,
     items: Vec<ResponseInputItem>,
 }
@@ -750,6 +768,20 @@ impl Session {
                         prompt: objective_updated_prompt(&goal),
                     }
                     .into_response_input_item();
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=7
+// @@ -1,8 +1,1 @@
+// -                    if self
+// -                        .inject_goal_response_items(
+// -                            GoalSteeringKind::ObjectiveUpdated.carry_purpose(),
+// -                            vec![item],
+// -                        )
+// -                        .await
+// -                        .is_err()
+// -                    {
+// +                    if self.inject_if_running(vec![item]).await.is_err() {
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
                     if self
                         .inject_goal_response_items(
                             GoalSteeringKind::ObjectiveUpdated.carry_purpose(),
@@ -1172,6 +1204,20 @@ impl Session {
                 prompt: budget_limit_prompt(&goal),
             }
             .into_response_input_item();
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=10
+// @@ -1,8 +1,1 @@
+// -            if self
+// -                .inject_goal_response_items(
+// -                    GoalSteeringKind::BudgetLimit.carry_purpose(),
+// -                    vec![item],
+// -                )
+// -                .await
+// -                .is_err()
+// -            {
+// +            if self.inject_if_running(vec![item]).await.is_err() {
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
             if self
                 .inject_goal_response_items(
                     GoalSteeringKind::BudgetLimit.carry_purpose(),
@@ -1437,6 +1483,18 @@ impl Session {
         self.input_queue
             .extend_goal_pending_input_for_turn_state(
                 turn_state.as_ref(),
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=12
+// @@ -1,2 +1,5 @@
+// -                candidate.steering_kind.carry_purpose(),
+// -                candidate.items,
+// +                candidate
+// +                    .items
+// +                    .into_iter()
+// +                    .map(TurnInput::ResponseItem)
+// +                    .collect(),
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
                 candidate.steering_kind.carry_purpose(),
                 candidate.items,
             )
@@ -1479,14 +1537,6 @@ impl Session {
             tracing::debug!("skipping active goal continuation because a turn is already active");
             return None;
         }
-        if self
-            .input_queue
-            .has_queued_response_items_for_next_turn()
-            .await
-        {
-            tracing::debug!("skipping active goal continuation because queued input exists");
-            return None;
-        }
         if self.input_queue.has_trigger_turn_mailbox_items().await {
             tracing::debug!(
                 "skipping active goal continuation because trigger-turn mailbox input is pending"
@@ -1524,10 +1574,6 @@ impl Session {
             return None;
         }
         if self.active_turn.lock().await.is_some()
-            || self
-                .input_queue
-                .has_queued_response_items_for_next_turn()
-                .await
             || self.input_queue.has_trigger_turn_mailbox_items().await
         {
             tracing::debug!("skipping active goal continuation because pending work appeared");
@@ -1768,6 +1814,22 @@ fn escape_xml_text(input: &str) -> String {
         .replace('>', "&gt;")
 }
 
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=14
+// @@ -0,0 +1,11 @@
+// +fn budget_limit_steering_item(goal: &ThreadGoal) -> ResponseItem {
+// +    goal_context_input_item(budget_limit_prompt(goal))
+// +}
+// +
+// +fn goal_context_input_item(prompt: String) -> ResponseItem {
+// +    ContextualUserFragment::into(InternalModelContextFragment::new(
+// +        InternalContextSource::from_static("goal"),
+// +        prompt,
+// +    ))
+// +}
+// +
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 pub(crate) fn protocol_goal_from_state(goal: codex_state::ThreadGoal) -> ThreadGoal {
     ThreadGoal {
         thread_id: goal.thread_id,
@@ -1852,7 +1914,7 @@ mod tests {
     use codex_protocol::ThreadId;
     use codex_protocol::config_types::ModeKind;
     use codex_protocol::models::ContentItem;
-    use codex_protocol::models::ResponseInputItem;
+    use codex_protocol::models::ResponseItem;
     use codex_protocol::protocol::ThreadGoal;
     use codex_protocol::protocol::ThreadGoalStatus;
     use codex_protocol::protocol::TokenUsage;
@@ -1898,6 +1960,132 @@ mod tests {
     }
 
     #[test]
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/goals.rs block=16
+// @@ -1,31 +1,90 @@
+// -    fn goal_steering_message_uses_configured_role_for_all_kinds() {
+// -        for (role, expected_response_role) in [
+// -            (GoalSteeringRole::Developer, "developer"),
+// -            (GoalSteeringRole::User, "user"),
+// -        ] {
+// -            for kind in [
+// -                GoalSteeringKind::Initial,
+// -                GoalSteeringKind::Continuation,
+// -                GoalSteeringKind::BudgetLimit,
+// -                GoalSteeringKind::ObjectiveUpdated,
+// -            ] {
+// -                let item = GoalSteeringMessage {
+// -                    kind,
+// -                    role,
+// -                    prompt: "Continue working.".to_string(),
+// -                }
+// -                .into_response_input_item();
+// -                let ResponseInputItem::Message {
+// -                    role,
+// -                    content,
+// -                    phase,
+// -                } = item
+// -                else {
+// -                    panic!("expected goal steering message item");
+// -                };
+// -                assert_eq!(expected_response_role, role);
+// -                let [ContentItem::InputText { text }] = content.as_slice() else {
+// -                    panic!("expected one input text item, got {content:#?}");
+// -                };
+// -                assert_eq!("<goal_context>\nContinue working.\n</goal_context>", text);
+// -                assert_eq!(None, phase);
+// +    fn continuation_prompt_allows_complete_and_strict_blocked_updates() {
+// +        let prompt = continuation_prompt(&ThreadGoal {
+// +            thread_id: ThreadId::new(),
+// +            objective: "finish the stack".to_string(),
+// +            status: ThreadGoalStatus::Active,
+// +            token_budget: Some(10_000),
+// +            tokens_used: 1_234,
+// +            time_used_seconds: 56,
+// +            created_at: 1,
+// +            updated_at: 2,
+// +        })
+// +        .replace("\r\n", "\n");
+// +
+// +        assert!(prompt.contains("finish the stack"));
+// +        assert!(prompt.contains("<objective>\nfinish the stack\n</objective>"));
+// +        assert!(prompt.contains("Token budget: 10000"));
+// +        assert!(prompt.contains("call update_goal with status \"complete\""));
+// +        assert!(prompt.contains("status \"blocked\""));
+// +        assert!(prompt.contains("at least three consecutive goal turns"));
+// +        assert!(prompt.contains("same blocking condition"));
+// +        assert!(prompt.contains("original/user-triggered turn"));
+// +        assert!(prompt.contains("truly at an impasse"));
+// +        assert!(!prompt.contains("budgetLimited"));
+// +        assert!(!prompt.contains("status \"paused\""));
+// +    }
+// +
+// +    #[test]
+// +    fn budget_limit_prompt_steers_model_to_wrap_up_without_pausing() {
+// +        let prompt = budget_limit_prompt(&ThreadGoal {
+// +            thread_id: ThreadId::new(),
+// +            objective: "finish the stack".to_string(),
+// +            status: ThreadGoalStatus::BudgetLimited,
+// +            token_budget: Some(10_000),
+// +            tokens_used: 10_100,
+// +            time_used_seconds: 56,
+// +            created_at: 1,
+// +            updated_at: 2,
+// +        })
+// +        .replace("\r\n", "\n");
+// +
+// +        assert!(prompt.contains("finish the stack"));
+// +        assert!(prompt.contains("<objective>\nfinish the stack\n</objective>"));
+// +        assert!(prompt.contains("Token budget: 10000"));
+// +        assert!(prompt.contains("Tokens used: 10100"));
+// +        assert!(prompt.to_lowercase().contains("wrap up this turn soon"));
+// +        assert!(!prompt.contains("status \"paused\""));
+// +    }
+// +
+// +    #[test]
+// +    fn objective_updated_prompt_supersedes_previous_goal_context() {
+// +        let prompt = objective_updated_prompt(&ThreadGoal {
+// +            thread_id: ThreadId::new(),
+// +            objective: "finish the revised stack".to_string(),
+// +            status: ThreadGoalStatus::Active,
+// +            token_budget: Some(10_000),
+// +            tokens_used: 1_234,
+// +            time_used_seconds: 56,
+// +            created_at: 1,
+// +            updated_at: 2,
+// +        })
+// +        .replace("\r\n", "\n");
+// +
+// +        assert!(prompt.contains("edited by the user"));
+// +        assert!(prompt.contains("supersedes any previous thread goal objective"));
+// +        assert!(
+// +            prompt.contains(
+// +                "<untrusted_objective>\nfinish the revised stack\n</untrusted_objective>"
+// +            )
+// +        );
+// +        assert!(prompt.contains("Token budget: 10000"));
+// +        assert!(prompt.contains("Tokens remaining: 8766"));
+// +        assert!(
+// +            prompt
+// +                .contains("Do not call update_goal unless the updated goal is actually complete.")
+// +        );
+// +    }
+// +
+// +    #[test]
+// +    fn goal_context_input_item_is_hidden_user_context() {
+// +        let item = goal_context_input_item("Continue working.".to_string());
+// +
+// +        assert_eq!(
+// +            item,
+// +            ResponseItem::Message {
+// +                id: None,
+// +                role: "user".to_string(),
+// +                content: vec![ContentItem::InputText {
+// +                    text: "<codex_internal_context source=\"goal\">\nContinue working.\n</codex_internal_context>".to_string(),
+// +                }],
+// +                phase: None,
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
     fn goal_steering_message_uses_configured_role_for_all_kinds() {
         for (role, expected_response_role) in [
             (GoalSteeringRole::Developer, "developer"),

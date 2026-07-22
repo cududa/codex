@@ -1,3 +1,59 @@
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/steering.rs block=1
+// @@ -1,38 +1,19 @@
+// -use codex_core::context::GoalContext;
+// -use codex_core::context::GoalContextRole;
+// -use codex_protocol::models::ResponseInputItem;
+// +use codex_core::context::ContextualUserFragment;
+// +use codex_core::context::InternalContextSource;
+// +use codex_core::context::InternalModelContextFragment;
+// +use codex_protocol::models::ResponseItem;
+//  use codex_protocol::protocol::ThreadGoal;
+//  
+// -#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// -pub(crate) enum GoalSteeringKind {
+// -    BudgetLimit,
+// -    ObjectiveUpdated,
+// +pub(crate) fn budget_limit_steering_item(goal: &ThreadGoal) -> ResponseItem {
+// +    goal_context_input_item(budget_limit_prompt(goal))
+//  }
+//  
+// -struct GoalSteeringFrame {
+// -    kind: GoalSteeringKind,
+// -    role: GoalContextRole,
+// -    prompt: String,
+// +pub(crate) fn objective_updated_steering_item(goal: &ThreadGoal) -> ResponseItem {
+// +    goal_context_input_item(objective_updated_prompt(goal))
+//  }
+//  
+// -impl GoalSteeringFrame {
+// -    fn into_response_input_item(self) -> ResponseInputItem {
+// -        let Self { kind, role, prompt } = self;
+// -        match kind {
+// -            GoalSteeringKind::BudgetLimit | GoalSteeringKind::ObjectiveUpdated => {}
+// -        }
+// -        GoalContext::new(prompt).into_response_input_item(role)
+// -    }
+// -}
+// -
+// -pub(crate) fn goal_steering_item(
+// -    kind: GoalSteeringKind,
+// -    goal: &ThreadGoal,
+// -    role: GoalContextRole,
+// -) -> ResponseInputItem {
+// -    let prompt = match kind {
+// -        GoalSteeringKind::BudgetLimit => budget_limit_prompt(goal),
+// -        GoalSteeringKind::ObjectiveUpdated => objective_updated_prompt(goal),
+// -    };
+// -
+// -    GoalSteeringFrame { kind, role, prompt }.into_response_input_item()
+// +fn goal_context_input_item(prompt: String) -> ResponseItem {
+// +    ContextualUserFragment::into(InternalModelContextFragment::new(
+// +        InternalContextSource::from_static("goal"),
+// +        prompt,
+// +    ))
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 use codex_core::context::GoalContext;
 use codex_core::context::GoalContextRole;
 use codex_protocol::models::ResponseInputItem;

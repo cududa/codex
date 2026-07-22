@@ -87,6 +87,29 @@ const fn default_hide_agent_reasoning() -> Option<bool> {
     Some(false)
 }
 
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/config/src/config_toml.rs block=2
+// @@ -1,16 +1,2 @@
+// -/// Delivery role for hidden goal steering prompts.
+// -#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq, JsonSchema)]
+// -#[serde(rename_all = "snake_case")]
+// -pub enum GoalSteeringRole {
+// -    User,
+// -    #[default]
+// -    Developer,
+// -}
+// -
+// -impl GoalSteeringRole {
+// -    pub fn as_response_role(self) -> &'static str {
+// -        match self {
+// -            Self::User => "user",
+// -            Self::Developer => "developer",
+// -        }
+// -    }
+// +const fn default_true() -> bool {
+// +    true
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 /// Delivery role for hidden goal steering prompts.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -647,6 +670,14 @@ pub struct ToolsToml {
         deserialize_with = "deserialize_optional_web_search_tool_config"
     )]
     pub web_search: Option<WebSearchToolConfig>,
+    pub experimental_request_user_input: Option<ExperimentalRequestUserInput>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, JsonSchema)]
+#[schemars(deny_unknown_fields)]
+pub struct ExperimentalRequestUserInput {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
 }
 
 #[derive(Deserialize)]

@@ -2,7 +2,8 @@ use super::has_non_contextual_dev_message_content;
 use super::is_contextual_dev_message_content;
 use super::parse_turn_item;
 use crate::context::ContextualUserFragment;
-use crate::context::GoalContext;
+use crate::context::InternalContextSource;
+use crate::context::InternalModelContextFragment;
 use codex_protocol::items::AgentMessageContent;
 use codex_protocol::items::HookPromptFragment;
 use codex_protocol::items::TurnItem;
@@ -319,6 +320,34 @@ fn parses_hook_prompt_and_hides_other_contextual_fragments() {
 }
 
 #[test]
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/event_mapping_tests.rs block=2
+// @@ -1,10 +1,13 @@
+// -fn goal_context_does_not_parse_as_visible_turn_item() {
+// -    for role in ["user", "developer"] {
+// -        let item = ResponseItem::Message {
+// -            id: Some("msg-1".to_string()),
+// -            role: role.to_string(),
+// -            content: vec![ContentItem::InputText {
+// -                text: GoalContext::new("Continue working toward the active thread goal.").render(),
+// -            }],
+// -            phase: None,
+// -        };
+// +fn internal_model_context_does_not_parse_as_visible_turn_item() {
+// +    let item = ResponseItem::Message {
+// +        id: Some("msg-1".to_string()),
+// +        role: "user".to_string(),
+// +        content: vec![ContentItem::InputText {
+// +            text: InternalModelContextFragment::new(
+// +                InternalContextSource::from_static("goal"),
+// +                "Continue working toward the active thread goal.",
+// +            )
+// +            .render(),
+// +        }],
+// +        phase: None,
+// +    };
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 fn goal_context_does_not_parse_as_visible_turn_item() {
     for role in ["user", "developer"] {
         let item = ResponseItem::Message {
