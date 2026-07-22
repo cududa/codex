@@ -245,6 +245,27 @@ To that end, I'm reviewing all the commits made by OpenAI on upstream/main, and 
 changes to the above flagged areas that may disrupt my workflow to investigate them and possibly
 modify them before accepting the changes. 
 
+## Review Dedeluger Conflict Notes
+
+Comments starting with `// REVIEW-DEDELUGER` or `# REVIEW-DEDELUGER` are annotations from our 
+review tool, not source behavior. They mark places where maintained/local code was preserved
+while an incoming upstream difference is kept nearby for review. These should usually all be
+removed and resolved after careful study or their removal is included in an approved plan.
+
+A full annotated block looks like:
+
+```text
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path={path} block={number}
+// ...commented unified diff...
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
+Some files use # instead of //, including .toml, .yaml, .yml, .sh, .py, and Cargo.lock.
+
+If only remnants remain, treat any REVIEW-DEDELUGER-INCOMING-DIFF through REVIEW-DEDELUGER-END-INCOMING-DIFF
+comments as review context for a rejected incoming diff. Keep the maintained code unless you intentionally apply
+or adapt that incoming change.
+
 # Note for agents working with this user
 
 Some requests in this fork may look unusual at first, especially when they ask
