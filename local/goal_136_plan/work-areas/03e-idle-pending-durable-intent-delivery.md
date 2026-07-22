@@ -15,16 +15,18 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-final-request-input.md`
 
 Route context:
 
 - `local/goal_136_plan/work-areas/01-existing-pass-validation.md`
 - `local/goal_136_plan/work-areas/02-direct-split-readiness-check.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/03c-goal-turn-request-metadata.md`
 - `local/goal_136_plan/work-areas/03d-idle-stage-order-refactor.md`
 
@@ -54,6 +56,8 @@ Locked direction:
 - Stage 2 chooses pending durable intent only by snapshot metadata and
   supersedence order
 - the reserved turn stores `GoalTurnRequest::IdlePendingCadence`
+- the turn is metadata-only until the WA02 request-input shaper selects the
+  current item from durable facts
 - the request-input shaper rechecks and commits; the idle hook does not
   consume intent
 - the synthetic launch path must not absorb newly arrived pending non-Goal
@@ -100,6 +104,11 @@ start Goal-owned task without draining newly arrived queued/mailbox work into
   the synthetic turn
 ```
 
+This is delivery of already-persisted non-Continuation intent. It is not a
+fresh cadence event, not automatic Continuation, and not authority proof until
+the finalized request input contains the selected outer developer-role Goal
+item.
+
 ## Exact Files To Edit
 
 - `codex-rs/core/src/goals.rs`
@@ -125,6 +134,8 @@ Add a Stage 2 helper in `goals.rs` that:
   queued/mailbox work, or uses a Goal-owned launch path that refuses or
   requeues newly arrived pending work before model submission
 - clears reservation and metadata when the candidate becomes stale
+- leaves pending intent intact when reservation, request construction, or
+  submission fails before Created-event commit
 
 Ensure the WA02 request-input shaper:
 
@@ -134,6 +145,9 @@ Ensure the WA02 request-input shaper:
   item after recheck
 - returns commit metadata for the selected pending intent when delivery is
   valid
+- renders the selected item from durable Goal facts, not from pending-intent
+  bodies, producer requests, prior rendered artifacts, UI projection, raw
+  notifications, rollout items, trace payloads, or helper output
 - after Created-event commit consumes the selected pending intent and records
   committed carry, the uncommitted `IdlePendingCadence` metadata is cleared or
   obsolete before any same-turn follow-up attempt
@@ -156,6 +170,7 @@ Add focused tests:
 - `goal_idle_delivers_pending_initial_as_initial_not_continuation`
 - `goal_idle_delivers_pending_objective_updated_after_injection_unavailable`
 - `goal_idle_delivers_pending_budget_limit_and_supersedes_older_intent`
+- `goal_idle_regular_turn_can_deliver_already_pending_intent`
 - `goal_idle_pending_durable_intent_suppresses_automatic_continuation`
 - `goal_idle_pending_intent_stale_after_reservation_aborts_before_submit`
 - `goal_idle_pending_intent_late_pending_work_is_not_drained_into_synthetic_turn`

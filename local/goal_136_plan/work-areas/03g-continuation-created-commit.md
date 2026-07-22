@@ -15,16 +15,18 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
 
 Route context:
 
 - `local/goal_136_plan/work-areas/02-direct-split-readiness-check.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/03a-watermark-schema-store-apis.md`
 - `local/goal_136_plan/work-areas/03f-automatic-continuation-preflight-shaper-recheck.md`
 
@@ -41,6 +43,8 @@ Code-shape temptation:
 - trust preflight instead of verifying the finalized request identity
 - use ordinary rollout `ResponseItem`, rollout trace, raw notification, or
   rendered text as commit metadata
+- treat optional structured evidence as the default live duplicate-suppression
+  owner
 
 Locked direction:
 
@@ -50,6 +54,8 @@ Locked direction:
   key
 - keep recorded evidence metadata-only and optional unless the typed carrier
   and explicit failure policy already exist
+- preserve durable state as the default live correctness owner even when
+  evidence is appended
 
 Exclusions:
 
@@ -57,6 +63,9 @@ Exclusions:
 - no evidence-as-authority behavior
 - no pending Continuation intent
 - no request shaping in the commit handler
+- no commit based on rendered Goal text, rollout trace payloads, raw
+  notifications, classifier matches, ordinary rollout items, or
+  `history_version()`
 
 ## Code Terrain Read
 
@@ -87,6 +96,10 @@ Created-event commit:
   record committed carry metadata
   clear or obsolete the uncommitted GoalTurnRequest metadata for this turn
 ```
+
+The commit handler consumes the inert metadata produced by final request-input
+shaping. It does not reselect cadence, render Goal text, or treat preflight as
+a durable commit.
 
 ## Exact Files To Edit
 
@@ -122,6 +135,8 @@ In `ResponseEvent::Created`:
   durable snapshots instead of replaying the stale synthetic request
 - append `GoalRequestEvidence` only if the typed carrier and failure policy
   have already been implemented
+- never use a best-effort evidence append as the only reason a Continuation is
+  suppressed after resume or retry
 
 Do not advance the watermark when:
 

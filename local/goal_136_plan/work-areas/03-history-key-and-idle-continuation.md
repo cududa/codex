@@ -87,16 +87,15 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-repair-classifier-integration.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-projection-reconstruction-and-raw-history.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
 - `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
 
@@ -349,7 +348,7 @@ evidence can be appended from the same Created-event commit path for replay or
 audit, but it does not replace this table unless a later implementation pass
 explicitly selects a non-best-effort evidence-backed reconstruction strategy
 and carries the failure policy from
-`goal-authority-recorded-request-evidence.md`.
+`goal-recorded-request-evidence.md`.
 
 Add migration:
 
@@ -927,7 +926,7 @@ Compaction must not synthesize or carry a new Continuation watermark merely
 because it removed, summarized, or repaired Goal-looking items. The state-owned
 watermark remains the correctness owner unless a later pass deliberately
 implements the structured evidence carry-forward path described in
-`goal-authority-recorded-request-evidence.md`.
+`goal-recorded-request-evidence.md`.
 
 ### 11. Failure And Retry Semantics
 
@@ -1102,7 +1101,8 @@ Initial. Planned coverage:
 
 Tests that currently assert resumed active Goal emits Initial, active
 `<goal_context>` output, or user-role Goal steering must be deleted or
-rewritten according to `local/goal_research/goal-test-deletion-map.md`.
+rewritten according to
+`local/goal_research/goal-test-prep-and-replacement-proof.md`.
 
 ## Verification
 

@@ -14,19 +14,22 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
 
 Route context:
 
 - `local/goal_136_plan/work-areas/02-direct-split-readiness-check.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/03a-watermark-schema-store-apis.md`
 - `local/goal_136_plan/work-areas/03b-model-visible-history-key-projection.md`
 - `local/goal_136_plan/work-areas/03c-goal-turn-request-metadata.md`
 - `local/goal_136_plan/work-areas/03d-idle-stage-order-refactor.md`
+- `local/goal_136_plan/work-areas/03e-idle-pending-durable-intent-delivery.md`
 
 Terrain:
 
@@ -36,6 +39,9 @@ Terrain:
 - `clone_history().for_prompt(...)` gives the base input used for preflight and
   later exact-attempt shaping
 - the watermark table from 03a is the default duplicate-suppression owner
+- rendered Goal text, ordinary rollout items, rollout trace payloads, raw
+  notifications, classifier matches, structured evidence, and
+  `history_version()` are not live Continuation suppression authority
 
 Code-shape temptation:
 
@@ -63,6 +69,7 @@ Exclusions:
 - no pending intent consumption
 - no recorded evidence write
 - no active model input construction outside `goal_cadence/`
+- no use of `history_version()` or artifact counts as the Continuation key
 
 ## Code Terrain Read
 
@@ -111,6 +118,9 @@ Request-input shaper:
   otherwise insert exactly one developer-role Continuation item
 ```
 
+Preflight and reservation are launch filters only. They are not delivery,
+commit metadata, recorded evidence, or a durable suppression update.
+
 ## Exact Files To Edit
 
 - `codex-rs/core/src/goals.rs`
@@ -139,10 +149,18 @@ with a metadata candidate that:
 - makes the pending-work recheck and task start effectively atomic for
   queued/mailbox work, or uses a Goal-owned launch path that refuses or
   requeues newly arrived pending work before model submission
+- does not compute the suppression decision from rendered Goal text, ordinary
+  rollout items, rollout trace payloads, raw notifications, classifier
+  matches, structured evidence, or `ContextManager::history_version()`
 
 Extend request-input shaping so a synthetic automatic Continuation turn returns
 an internal abort-before-submit outcome when the candidate is stale,
 suppressed, or superseded.
+
+The shaper must recompute `ModelVisibleHistoryKey` from the exact cleaned base
+input for the attempt before inserting the Continuation item. The preflight key
+may be compared to detect staleness, but it must not be reused as a substitute
+for per-attempt projection.
 
 If shaping succeeds and 03g later commits the Continuation at
 `ResponseEvent::Created`, the uncommitted `IdleAutomaticContinuation`

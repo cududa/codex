@@ -13,15 +13,17 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-repair-classifier-integration.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
 
 Route context:
 
+- `local/goal_136_plan/work-areas/goal-work-area-coordination-note.md#accepted-v136-placement-default`
+- `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
 - `local/goal_136_plan/work-areas/02-direct-split-readiness-check.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
@@ -42,6 +44,8 @@ Code-shape temptation:
 - compute the key from rollout counts, raw notifications, or UI projections
 - let the automatic Continuation Goal item change the key that permits another
   Continuation
+- treat structured request evidence, ordinary rollout Goal text, or compaction
+  event counts as eligible progress by themselves
 
 Locked direction:
 
@@ -50,6 +54,8 @@ Locked direction:
   inserted
 - keep classifier use cleanup-only and subordinate to WA05's later shared
   classifier work
+- compute the key from the exact cleaned base input that the request-input
+  shaper sees before inserting a new Continuation item
 
 Exclusions:
 
@@ -58,6 +64,8 @@ Exclusions:
 - no Created-event commit
 - no broad projection/raw-notification cleanup
 - no recorded evidence carrier
+- no key derived from rendered Goal text, raw rollout counts, or
+  `history_version()`
 
 ## Code Terrain Read
 
@@ -117,10 +125,22 @@ Add helpers equivalent to:
 - `ModelVisibleHistoryKey::as_storage_key()`
 
 Add private projection entries that serialize ordered eligible progress. Include
-model-visible work items such as user messages, assistant messages, reasoning,
-tool calls and outputs, local shell calls, search/image generation calls,
-compaction items, and unknown model-visible placeholders that reach prompt
-input.
+model-visible work items:
+
+- ordinary user messages that are not pure contextual fragments
+- assistant messages
+- reasoning items
+- function/tool calls
+- function/tool outputs
+- custom tool calls and outputs
+- local shell calls
+- tool-search calls and outputs
+- web-search calls
+- image-generation calls
+- compaction and context-compaction items that alter model-visible summary
+  state
+- `ResponseItem::Other` only as a typed placeholder entry if it reaches prompt
+  input, so unknown model-visible items do not silently disappear from the key
 
 Exclude:
 
@@ -133,9 +153,19 @@ Exclude:
 - raw notification counts
 - typed/materialized projection counts
 - helper output that never reached final request input
+- `ContextManager::history_version()` as a standalone key component
+- structured request evidence and recorded metadata as eligible progress
 
 Whole-message purity controls exclusions. Mixed ordinary prose with marker-like
 text remains eligible progress.
+
+`eligible_progress_fingerprint` is a digest of ordered eligible entries.
+`latest_eligible_progress_fingerprint` is the digest of the last eligible
+entry, or `None` if there are no eligible entries.
+`compaction_basis_fingerprint` is a digest of ordered explicit compaction
+entries when such entries are available in cleaned base input, otherwise
+`None`. Compaction summaries converted into ordinary assistant messages still
+participate in the main eligible progress fingerprint.
 
 The key helper must not read durable Goal state, choose cadence, consume
 pending intent, advance watermarks, or append evidence.
@@ -185,3 +215,5 @@ This pass does not:
 - construct active Goal model input
 - treat classifier output as authority
 - use recorded evidence or rendered text as suppression state
+- let automatic Continuation itself create the key change that permits another
+  automatic Continuation

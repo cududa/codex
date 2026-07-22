@@ -15,13 +15,16 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
 
 Route context:
 
+- `local/goal_136_plan/work-areas/goal-work-area-coordination-note.md#accepted-v136-placement-default`
+- `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
 - `local/goal_136_plan/work-areas/03c-goal-turn-request-metadata.md`
@@ -42,6 +45,9 @@ Code-shape temptation:
 - treat pending Initial delivery as automatic Continuation because the idle
   hook launched it
 - add no-op architecture to simulate independent pass acceptance
+- assume a pending-work recheck before generic `start_task(...)` is sufficient
+  even if that path can drain newly arrived queued/mailbox work into a
+  Goal-owned synthetic turn
 
 Locked direction:
 
@@ -50,6 +56,8 @@ Locked direction:
   second, automatic Continuation last
 - keep Stage 2 and Stage 3 calls metadata-only and allowed to decline until
   later passes implement them
+- keep `continuation_lock` as the Goal-owned scheduling guard, with active-turn
+  and pending-work rechecks inside the lock
 
 Exclusions:
 
@@ -58,6 +66,8 @@ Exclusions:
 - no watermark mutation
 - no request-input shaping logic in `goals.rs`
 - no final deletion of old helpers
+- no claim that Stage 2 or Stage 3 is complete merely because the stage-order
+  shell exists
 
 ## Code Terrain Read
 
@@ -130,6 +140,11 @@ Inside the Goal lock, re-check:
 
 Stage 2 and Stage 3 helper calls may decline until later passes complete. They
 must not call old concrete Goal input injection as the new WA03 path.
+
+Stage 2 is pending durable cadence delivery, not Continuation. A pending
+Initial, ObjectiveUpdated, or BudgetLimit item launched from idle must still be
+delivered through durable pending intent and the Work Area 02 request-input
+shaper; it must not advance the automatic Continuation watermark.
 
 This pass sets up ordering only. Later Goal-owned Stage 2 and Stage 3 launch
 paths must either make the pending-work recheck and task start effectively

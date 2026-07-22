@@ -17,6 +17,7 @@ Authority:
 
 - `local/goal_research/goal-authority-grounding-truth.md`
 - `local/goal_research/goal-authority-primary-cadence-contract.md`
+- `local/goal_research/goal-authority-idle-continuation-contract.md`
 - `local/goal_research/goal-authority-durable-cadence-state.md`
 - `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
@@ -72,11 +73,19 @@ Directly read:
 - `codex-rs/state/src/runtime/goals.rs`
 - `codex-rs/state/src/model/thread_goal.rs`
 - `codex-rs/state/src/lib.rs`
-- compile-pressure callers in:
+- downstream caller surfaces, read to keep producer conversion out of this pass:
   - `codex-rs/core/src/goals.rs`
   - `codex-rs/app-server/src/request_processors/thread_goal_processor.rs`
   - `codex-rs/ext/goal/src/tool.rs`
   - `codex-rs/ext/goal/src/runtime.rs`
+- request/replay terrain from the parent Work Area, only to keep cadence-aware
+  mutations from absorbing final request-input commit or replay duties:
+  - `codex-rs/protocol/src/protocol.rs`
+  - `codex-rs/core/src/session/mod.rs`
+  - `codex-rs/core/src/session/turn.rs`
+  - `codex-rs/core/src/session/rollout_reconstruction.rs`
+  - `codex-rs/thread-store/src/live_thread.rs`
+  - `codex-rs/rollout/src/policy.rs`
 
 Observed facts:
 
@@ -93,6 +102,9 @@ Observed facts:
 - recorded request evidence is not present in current state code, rollout
   item shape, or reconstruction. It belongs to the later Created-event commit
   and replay integration, not to these state mutations.
+- state may later own default automatic Continuation watermark durability, but
+  Work Area 01c does not advance Continuation suppression and does not create
+  persisted Continuation intent.
 
 ## Pass Goal
 
@@ -107,7 +119,7 @@ tests. Leave caller conversion as a later ordered pass.
 - `codex-rs/state/src/model/thread_goal.rs` if additional outcome types belong
   with the model
 
-Do not edit these production callers except for compile fallout from public
+Do not edit these production callers except for direct public type fallout from
 type changes:
 
 - `codex-rs/core/src/goals.rs`
@@ -162,6 +174,8 @@ responsibilities may not:
   transaction
 - state does not choose the request-attempt steering kind
 - state does not build prompt text or model input
+- state does not store request-input fingerprints, item fingerprints, attempt
+  ordinals, `ResponseEvent::Created` evidence, or rollout trace payloads
 
 Add an accounting outcome type that distinguishes:
 
@@ -202,10 +216,17 @@ Keep facts-only methods available and non-cadence:
 - `replace_thread_goal`
 - `insert_thread_goal`
 - `update_thread_goal`
+- `pause_active_thread_goal`
+- `usage_limit_active_thread_goal`
+- `delete_thread_goal`
 - `account_thread_goal_usage`
 
 They may maintain facts version and mechanical stale-intent cleanup, but they
 must not create new pending Initial, ObjectiveUpdated, or BudgetLimit intent.
+
+Do not scatter deferred-work notes through production callers. If comments are
+needed, keep them near the new cadence-aware APIs and frame them as APIs for
+later cadence-aware producer conversion.
 
 ## Tests And Checks
 
@@ -256,6 +277,12 @@ cd codex-rs
 just fmt
 ```
 
+These checks are the local confidence bar for the Work Area 01 state slice.
+They do not mean the full route, product runtime, or every downstream test must
+be usable after 01c. Broad build or workspace validation belongs later in the
+ordered Work Areas unless a focused state API change creates a specific reason
+to run it.
+
 ## Branch Continuation State
 
 After this pass, Work Area 01 durable state work should be ready for later
@@ -270,9 +297,19 @@ producer and request-input commit passes to consume:
   correctness source
 
 The next Work Area, Work Area 02, owns selection, final request-input shaping,
-commit-time consumption, and evidence metadata. If implementation pressure
-suggests switching production callers during 01c, stop and move that work into
-the later producer conversion pass.
+commit-time consumption, and evidence metadata.
+
+Later producer conversion must remain deliberate:
+
+- core Goal mutation and tool paths switch when final request-input shaping can
+  consume pending intent
+- app-server external Goal mutation switches when resume/idle ordering is
+  aligned with the cadence contract
+- `ext/goal` switches when extension steering is converted away from concrete
+  Goal item injection
+
+If implementation pressure suggests switching production callers during 01c,
+stop and move that work into the later producer conversion pass.
 
 ## Non-Goals
 
@@ -286,5 +323,7 @@ This pass does not:
 - record committed request-input evidence
 - advance Continuation watermarking
 - persist Continuation intent
+- repair request input
+- classify current or legacy Goal items
 - convert core, app-server, or `ext/goal` producers
 - delete `GoalContext`, `GoalContextRole`, or active `<goal_context>` paths

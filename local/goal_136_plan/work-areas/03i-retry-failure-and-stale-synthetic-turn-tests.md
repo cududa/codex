@@ -14,17 +14,20 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
-- `local/goal_research/goal-authority-repair-classifier-integration.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-projection-reconstruction-and-raw-history.md`
 
 Route context:
 
 - all completed WA03 pass docs `03a` through `03h`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 
 Terrain:
 
@@ -34,6 +37,8 @@ Terrain:
 - stale synthetic turns must abort before `build_prompt(...)` / model submit
 - WA05 owns broad classifier/projection/compaction cleanup, but WA03 owns key
   correctness for request-input shaper base input
+- structured evidence may support replay only under explicit non-best-effort
+  recorded-evidence rules; it is not the default live suppression owner
 
 Code-shape temptation:
 
@@ -50,6 +55,8 @@ Locked direction:
 - assert final request input, Created-event commit timing, and durable
   watermark state
 - leave broad cleanup and final acceptance to WA05/WA06
+- prove that stale synthetic acceptance aborts before submission rather than
+  submitting an empty or helper-only model request
 
 Exclusions:
 
@@ -57,6 +64,9 @@ Exclusions:
 - no ext/goal conversion
 - no broad raw/typed projection cleanup
 - no final deletion of all old Goal shim symbols
+- no assertions that treat helper output, rendered text, trace payloads, raw
+  notifications, classifier matches, ordinary rollout items, or
+  `history_version()` as final request-input proof or suppression authority
 
 ## Code Terrain Read
 
@@ -101,6 +111,11 @@ rollback/fork -> recompute key from surviving reconstructed history
 eligible progress/facts change -> permit later Continuation
 ```
 
+The acceptance target is cross-seam behavior, not final Goal rewrite
+completion. A request-producing test must prove the final `/responses` input;
+a suppression test must prove durable watermark state or the recomputed
+model-visible key predicate.
+
 ## Exact Files To Edit
 
 - `codex-rs/core/src/session/turn.rs`
@@ -144,6 +159,10 @@ Verify and, if needed, tighten integration behavior:
   reconstructed prompt input
 - rolled-back or non-surviving Goal items, request evidence, rollout text, or
   trace payloads do not suppress or permit Continuation by themselves
+- ordinary rollout `ResponseItem`s containing Goal text are not structured
+  evidence and do not reconstruct state-owned watermarks
+- `ContextManager::history_version()` may be useful diagnostic terrain but is
+  not a key, permit, or suppression check by itself
 
 Do not broaden this pass into WA05 cleanup. Add only narrow classifier/key
 hooks needed for the WA03 request-input base input.

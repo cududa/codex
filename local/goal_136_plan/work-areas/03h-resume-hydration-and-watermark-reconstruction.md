@@ -14,17 +14,19 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/goal_research/goal-projection-reconstruction-and-raw-history.md`
 
 Route context:
 
 - `local/goal_136_plan/work-areas/03a-watermark-schema-store-apis.md`
 - `local/goal_136_plan/work-areas/03b-model-visible-history-key-projection.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
+- `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/03g-continuation-created-commit.md`
 
 Terrain:
@@ -37,6 +39,8 @@ Terrain:
 - rollout reconstruction rebuilds `ContextManager` before resume effects
 - structured request evidence is metadata only and does not create durable
   facts
+- rollback and fork recompute suppression keys from surviving reconstructed
+  model-visible history, not from removed rollout segments or old Goal text
 
 Code-shape temptation:
 
@@ -44,6 +48,8 @@ Code-shape temptation:
 - reconstruct Continuation suppression from ordinary rendered Goal text
 - clear duplicate suppression on resume and let idle immediately duplicate
   Continuation
+- treat surviving structured evidence, rollout traces, classifier matches, or
+  raw notifications as the default state-owned watermark
 
 Locked direction:
 
@@ -52,6 +58,8 @@ Locked direction:
 - resume does not emit steering, consume intent, or advance watermark
 - the later idle hook decides pending work, pending durable cadence delivery,
   or automatic Continuation
+- rollback, fork, and reconstruction compute any new request key from the
+  surviving model-visible prompt input rather than from Goal artifacts
 
 Exclusions:
 
@@ -60,6 +68,8 @@ Exclusions:
   explicitly implemented earlier
 - no parsing rendered Goal artifacts
 - no broad WA05 projection cleanup
+- no watermark reconstruction from raw notifications, rollout trace payloads,
+  classifier matches, ordinary rollout Goal text, or `history_version()`
 
 ## Code Terrain Read
 
@@ -97,6 +107,9 @@ ThreadResumed:
   do not advance watermark
 ```
 
+Resume hydration reloads state. It does not fabricate cadence, reconstruct
+facts, or synthesize suppression from history artifacts.
+
 ## Exact Files To Edit
 
 - `codex-rs/core/src/goals.rs`
@@ -133,6 +146,19 @@ If structured request evidence exists, resume may read it only under the
 recorded-evidence rules. The default correctness path is the state-owned
 watermark.
 
+For compaction, rollback, fork, and reconstruction behavior in this pass:
+
+- compute `ModelVisibleHistoryKey` from the reconstructed or surviving
+  model-visible prompt input that the request-input shaper will see
+- allow compaction summaries or replacement history to affect the key only
+  when they alter model-visible eligible progress
+- ignore rolled-back or non-surviving Goal items, evidence records, trace
+  payloads, and raw notifications as suppression authority
+- do not create durable Goal facts, pending intent, committed carry, or a
+  Continuation watermark by parsing rendered Goal text
+- keep structured evidence metadata-only unless an explicit non-best-effort
+  reconstruction path was implemented earlier
+
 ## Tests And Checks
 
 Add focused tests:
@@ -142,6 +168,8 @@ Add focused tests:
 - `goal_idle_resume_unchanged_watermark_suppresses_duplicate_continuation`
 - `goal_idle_resume_after_new_progress_permits_continuation`
 - `goal_idle_resume_ignores_ordinary_rollout_goal_text_for_watermark`
+- `goal_idle_rollback_recomputes_key_from_surviving_history`
+- `goal_idle_fork_recomputes_key_from_surviving_history`
 
 Use captured final request input for any request-producing scenario and state
 assertions for hydration/watermark rows.

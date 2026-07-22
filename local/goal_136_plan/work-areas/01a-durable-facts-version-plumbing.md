@@ -16,6 +16,7 @@ Authority:
 
 - `local/goal_research/goal-authority-grounding-truth.md`
 - `local/goal_research/goal-authority-primary-cadence-contract.md`
+- `local/goal_research/goal-authority-idle-continuation-contract.md`
 - `local/goal_research/goal-authority-durable-cadence-state.md`
 - `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
@@ -74,11 +75,20 @@ Directly read:
 - `codex-rs/state/src/runtime.rs`
 - `codex-rs/state/src/migrations.rs`
 - `codex-rs/state/BUILD.bazel`
-- compile-pressure callers in:
+- `codex-rs/state/Cargo.toml`
+- downstream caller surfaces, read to keep the facts-only route available:
   - `codex-rs/core/src/goals.rs`
   - `codex-rs/app-server/src/request_processors/thread_goal_processor.rs`
   - `codex-rs/ext/goal/src/tool.rs`
   - `codex-rs/ext/goal/src/runtime.rs`
+- request/replay terrain from the parent Work Area, only to keep recorded
+  request evidence out of facts-version plumbing:
+  - `codex-rs/protocol/src/protocol.rs`
+  - `codex-rs/core/src/session/mod.rs`
+  - `codex-rs/core/src/session/turn.rs`
+  - `codex-rs/core/src/session/rollout_reconstruction.rs`
+  - `codex-rs/thread-store/src/live_thread.rs`
+  - `codex-rs/rollout/src/policy.rs`
 
 Observed facts:
 
@@ -87,11 +97,18 @@ Observed facts:
 - `ThreadGoal` and `ThreadGoalRow` do not currently carry facts identity.
 - every row projection in `GoalStore` must be updated because the SQL column
   lists are explicit.
+- `GoalStore` currently exposes `get_thread_goal`, `replace_thread_goal`,
+  `insert_thread_goal`, `update_thread_goal`, `pause_active_thread_goal`,
+  `usage_limit_active_thread_goal`, `delete_thread_goal`, and
+  `account_thread_goal_usage`.
 - `replace_thread_goal`, `insert_thread_goal`, `update_thread_goal`,
-  `update_active_thread_goal_status`, and `account_thread_goal_usage` are the
-  write surfaces that must maintain a facts version.
+  status-update helpers, deletion, and `account_thread_goal_usage` are the
+  facts surfaces that must maintain facts versioning or stale-intent cleanup.
 - existing callers convert `ThreadGoal` into protocol types and should not need
-  new arguments to keep compiling.
+  producer-conversion work in this pass.
+- recorded request evidence, replay pairing, rollout trace policy, and request
+  input fingerprints are not present in the Goal facts store and do not belong
+  in this pass.
 
 ## Pass Goal
 
@@ -107,7 +124,7 @@ pending intent without changing cadence behavior.
 - `codex-rs/state/src/lib.rs`
 - `codex-rs/state/src/runtime/goals.rs`
 
-Caller files are read for compile pressure only. Do not switch them to new
+Caller files are read for downstream API awareness only. Do not switch them to new
 cadence-aware APIs in this pass:
 
 - `codex-rs/core/src/goals.rs`
@@ -123,16 +140,32 @@ Add the Work Area 01 migration file:
 codex-rs/state/goals_migrations/0002_goal_cadence_state.sql
 ```
 
-The migration should add `facts_version` and may also include the pending
-intent table DDL required by Work Area 01 so the Work Area has one schema migration.
-If this pass includes the pending-intent table DDL, do not expose or use that
-table until 01b.
+The migration should add both `facts_version` and the pending-intent table DDL
+required by Work Area 01 so the Work Area has one schema migration. This pass
+does not expose or use the pending-intent table; 01b owns the Rust model and
+storage helpers for that table.
 
-Required `facts_version` DDL:
+Required logical SQL:
 
 ```sql
 ALTER TABLE thread_goals
 ADD COLUMN facts_version INTEGER NOT NULL DEFAULT 1;
+
+CREATE TABLE thread_goal_pending_intents (
+    thread_id TEXT NOT NULL,
+    goal_id TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK(kind IN (
+        'initial',
+        'objective_updated',
+        'budget_limit'
+    )),
+    facts_version INTEGER NOT NULL,
+    created_at_ms INTEGER NOT NULL,
+    PRIMARY KEY (thread_id, kind)
+);
+
+CREATE INDEX thread_goal_pending_intents_thread_goal_idx
+ON thread_goal_pending_intents(thread_id, goal_id);
 ```
 
 Add `facts_version: i64` to:
@@ -162,6 +195,12 @@ Maintain facts version in existing facts-only writes:
   - `GoalAccountingOutcome::Unchanged` does not
 - `delete_thread_goal`
   - no facts version update is needed because the row is removed
+
+Because the shared Work Area 01 pending-intent table is created in this pass,
+facts-only replacement, deletion, or terminal-status paths should explicitly
+clear stale pending rows where the cleanup is mechanical. Do not rely on SQLite
+foreign-key behavior. Existing production callers still must not create pending
+cadence intent merely by calling their current facts-only methods.
 
 Do not add request cadence selection here. This pass only makes the facts
 identity durable and visible.
@@ -198,12 +237,16 @@ cd codex-rs
 just fmt
 ```
 
+These checks are the local confidence bar for the 01a state slice. The route
+does not need to produce a generally usable product runtime or broad test pass
+after this pass.
+
 ## Branch Continuation State
 
 After this pass, the branch should have durable facts versioning on the
-existing Goal facts path. Pending intent may have schema DDL if included in the
-shared migration file, but it is not yet represented by Rust model types or
-store APIs.
+existing Goal facts path and the shared Work Area 01 migration should contain
+the pending-intent table DDL. Pending intent is not yet represented by Rust
+model types or store APIs.
 
 The next pass, 01b, inherits:
 

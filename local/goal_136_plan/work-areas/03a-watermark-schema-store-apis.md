@@ -15,16 +15,18 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
 
 Route context:
 
 - `local/goal_136_plan/work-areas/implementation-pass-planning-rules.md`
+- `local/goal_136_plan/work-areas/goal-work-area-coordination-note.md#accepted-v136-placement-default`
+- `local/goal_136_plan/work-areas/01-durable-cadence-state.md`
+- `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
 
@@ -33,6 +35,8 @@ Terrain:
 - current local and `rust-v0.136.0` Goal state stores are facts-only
 - WA01 adds `facts_version`, pending Initial / ObjectiveUpdated /
   BudgetLimit intent, and cadence snapshots
+- WA02 adds final request-input commit metadata and Created-event commit
+  timing, but the watermark remains state-owned suppression state
 - `codex-rs/state/src/runtime/goals.rs` is the existing `GoalStore` owner and
   focused state-test home
 
@@ -42,6 +46,8 @@ Code-shape temptation:
 - make `GoalStore` choose Continuation eligibility because the watermark row
   is nearby
 - store rendered Goal text or request evidence fields in the watermark table
+- reconstruct suppression from ordinary rollout items, raw notifications,
+  classifier matches, rollout trace payloads, or rendered Goal text
 
 Locked direction:
 
@@ -49,6 +55,8 @@ Locked direction:
 - expose load/upsert/clear operations and snapshot plumbing only
 - leave eligibility, request input, commit timing, and recorded evidence to
   later passes
+- keep recorded request evidence optional metadata from the Created-event
+  commit path, not the default live suppression owner
 
 Exclusions:
 
@@ -58,6 +66,8 @@ Exclusions:
 - no Created-event commit wiring
 - no recorded request evidence carrier
 - no idle lifecycle rewrite
+- no resume/reconstruction path that parses rendered Goal text into a
+  watermark
 
 ## Code Terrain Read
 
@@ -135,6 +145,12 @@ Add public model types equivalent to:
 - `ThreadGoalContinuationWatermark`
 - `ThreadGoalContinuationWatermarkInput`
 
+The row stores the suppression triple and supporting key components. It must
+not store rendered prompt text, full finalized request input, request-input
+fingerprint, attempt ordinal, item index, replay pairing metadata, ordinary
+rollout items, rollout trace payloads, or raw notification payloads. Those
+belong to typed request evidence when such evidence is implemented.
+
 Expose store operations equivalent to:
 
 - `get_thread_goal_continuation_watermark(thread_id)`
@@ -153,6 +169,14 @@ Clear stale watermark rows when:
 The state layer must not decide whether a candidate Continuation is due. It
 stores and returns data only.
 
+Resume, rollback, fork, and compaction code must not reconstruct this
+watermark by parsing rendered Goal text or by treating ordinary rollout
+`ResponseItem`s as commit evidence. If structured `GoalRequestEvidence` is
+later used to reconstruct a missing watermark, it must be paired by
+fingerprint with the surviving committed Goal item and follow the
+recorded-evidence failure policy; that is not the default Work Area 03 live
+correctness path.
+
 ## Tests And Checks
 
 Add focused state tests in `codex-rs/state/src/runtime/goals.rs`:
@@ -162,6 +186,9 @@ Add focused state tests in `codex-rs/state/src/runtime/goals.rs`:
 - `goal_cadence_continuation_watermark_cleared_when_goal_deleted`
 - `goal_cadence_continuation_watermark_does_not_consume_pending_intent`
 - `goal_cadence_continuation_watermark_is_not_request_evidence`
+  - watermark rows do not store rendered prompt text, full finalized request
+    input, request-input fingerprints, attempt ordinals, item indexes,
+    ordinary rollout items, or rollout trace payloads
 
 Suggested implementation validation:
 

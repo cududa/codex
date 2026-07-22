@@ -17,6 +17,7 @@ Authority:
 
 - `local/goal_research/goal-authority-grounding-truth.md`
 - `local/goal_research/goal-authority-primary-cadence-contract.md`
+- `local/goal_research/goal-authority-idle-continuation-contract.md`
 - `local/goal_research/goal-authority-durable-cadence-state.md`
 - `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_136_plan/goal-authority-implementation-execution-plan.md`
@@ -59,8 +60,9 @@ Exclusions:
 - no final request-input shaping
 - no `ResponseEvent::Created` commit
 - no `GoalRequestEvidence` carrier, item fingerprint, request-input
-  fingerprint, replay pairing, or rollout trace policy
-- no Continuation persisted intent
+  fingerprint, replay pairing, rollout trace policy, or raw response
+  notification behavior
+- no idle Continuation watermarking or persisted Continuation intent
 - no active steering repair or classifier work
 
 ## Code Terrain Read
@@ -71,7 +73,16 @@ Directly read:
 - `codex-rs/state/src/model/mod.rs`
 - `codex-rs/state/src/runtime/goals.rs`
 - `codex-rs/state/src/lib.rs`
-- `codex-rs/state/goals_migrations/0002_goal_cadence_state.sql` from 01a
+- `codex-rs/state/goals_migrations/0002_goal_cadence_state.sql` from 01a,
+  which already contains the pending-intent table DDL
+- request/replay terrain from the parent Work Area, only to keep pending intent
+  separate from committed request evidence and replay policy:
+  - `codex-rs/protocol/src/protocol.rs`
+  - `codex-rs/core/src/session/mod.rs`
+  - `codex-rs/core/src/session/turn.rs`
+  - `codex-rs/core/src/session/rollout_reconstruction.rs`
+  - `codex-rs/thread-store/src/live_thread.rs`
+  - `codex-rs/rollout/src/policy.rs`
 
 Observed facts:
 
@@ -82,6 +93,9 @@ Observed facts:
   cadence snapshot needs a new type instead of overloading facts-only methods.
 - exact-key cleanup should be a simple SQL delete with all key columns in the
   `WHERE` clause.
+- a durable Continuation watermark table may be added by a later state pass, but
+  pending cadence intent is not persisted Continuation intent and is not the
+  typed evidence carrier for committed request attempts.
 
 ## Pass Goal
 
@@ -99,7 +113,7 @@ key. Leave cadence-aware facts-plus-intent producer operations to 01c.
 
 ## Required Edits
 
-Ensure the Work Area 01 migration includes the pending intent table:
+Use the pending intent table created by the Work Area 01 migration:
 
 ```sql
 CREATE TABLE thread_goal_pending_intents (
@@ -147,6 +161,10 @@ request-input fingerprint, commit point, rendered prompt text, or rollout trace
 payload fields to pending intent rows. Those belong to recorded request
 evidence after a finalized request attempt reaches the commit point.
 
+Export only the pending-intent and cadence snapshot types that core,
+app-server, or extension callers will need for later producer conversion. Keep
+SQL row helpers and storage-only conversion details crate-private.
+
 Add a crate-private row helper for pending intents, following the
 `ThreadGoalRow` pattern.
 
@@ -192,12 +210,12 @@ WHERE thread_id = ?
   AND facts_version = ?;
 ```
 
-Update existing facts-only delete/replace/status cleanup only where the helper
-exists and the behavior is mechanical:
+Update existing facts-only delete/replace/status cleanup where the behavior is
+mechanical:
 
 - deleting a Goal deletes all pending rows for the thread
-- replacing a Goal clears pending rows for the thread before inserting new
-  Goal facts or in the same transaction if the implementation has one
+- replacing a Goal clears pending rows for the thread as part of the same
+  facts-only operation
 - terminal/manual statuses clear active-state pending intent that can no
   longer be delivered
 
@@ -237,6 +255,10 @@ cd codex-rs
 just fmt
 ```
 
+These checks are the local confidence bar for the 01b state slice. The route
+does not need to produce a generally usable product runtime or broad test pass
+after this pass.
+
 ## Branch Continuation State
 
 After this pass, the branch should have:
@@ -263,4 +285,5 @@ This pass does not:
 - record committed request-input evidence
 - render internal Goal context
 - construct or repair final request input
+- classify current or legacy Goal items
 - persist Continuation intent

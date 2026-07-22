@@ -18,11 +18,10 @@ automatic Continuation selection, and Continuation watermark commit behavior.
 
 ## Implementation Pass Planning Status
 
-Work Area 02 should be split directly from targeted request-construction code
-reads. It is not expected to need a separate prep-map layer. The relevant
-pressure points are the request-loop seam, the Created-event commit seam,
-current core producer conversion, committed carry metadata, and request-payload
-tests.
+Work Area 02 has been split directly from targeted request-construction code
+reads. It did not need a separate prep-map layer. The relevant pressure points
+are the request-loop seam, the Created-event commit seam, current core producer
+conversion, committed carry metadata, and request-payload tests.
 
 Pre-pass validation is complete in
 `02-direct-split-readiness-check.md`. That note confirms the direct split is
@@ -30,10 +29,36 @@ grounded in the actual local and `rust-v0.136.0` request loop, identifies the
 Created-event commit hook, names the local fork concrete-carry terrain, and
 records the core producers that still create pre-shaper Goal model input.
 
+Implement Work Area 02 through these ordered implementation passes:
+
+- `02a-goal-cadence-module-and-shaper-primitives.md`
+  - private `core/src/goal_cadence/` module and core-private shaper/commit
+    data types
+  - fingerprints, repair report, context, finalization outcome, and inert
+    `GoalRequestCommit`
+- `02b-final-request-input-shaper.md`
+  - pure final request-input shaper over `Vec<ResponseItem>` plus typed facts
+  - cleanup, selection priority, developer-role item construction, and commit
+    metadata
+- `02c-per-attempt-request-loop-wiring.md`
+  - shaper placement inside `run_sampling_request(...)` for every retry or
+    follow-up attempt before `build_prompt(...)`
+  - attempt ordinals and inert commit metadata passed toward the stream path
+- `02d-created-event-commit-and-evidence.md`
+  - Created-event commit side effects, exact-key pending intent consumption,
+    and typed evidence boundary
+- `02e-core-producer-conversion-and-carry-cleanup.md`
+  - conversion of core Initial, ObjectiveUpdated, and BudgetLimit producers to
+    durable pending intent
+  - cleanup of concrete current-turn Goal carry authority for converted core
+    paths
+- `02f-final-payload-tests-and-target-state.md`
+  - focused final `/responses` payload, retry, follow-up, cleanup, carry, and
+    evidence tests for the integrated Work Area 02 target state
+
 The old labels for module types, no-op request-input shaper wiring, pending
 insertion, Created commit, producer conversion, and request-payload tests are
-not authority by themselves. Reuse, rename, merge, or split them only after a
-targeted direct read confirms the boundaries.
+not authority by themselves. The split docs above are the execution route.
 
 The parent Work Area 02 file remains the overview contract. Final implementation
 pass docs should be ordered units of work for the same rewrite branch. They

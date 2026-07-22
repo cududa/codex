@@ -15,14 +15,16 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
 
 Route context:
 
+- `local/goal_136_plan/work-areas/goal-work-area-coordination-note.md#accepted-v136-placement-default`
+- `local/goal_136_plan/work-areas/02-final-request-input-shaping-and-commit.md`
 - `local/goal_136_plan/work-areas/02-direct-split-readiness-check.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation.md`
@@ -33,6 +35,8 @@ Terrain:
   `ResponseInputItem`
 - `InputQueue::extend_goal_pending_input_for_turn_state(...)` and
   `inject_goal_response_items(...)` append prebuilt model input
+- `InputQueue::current_turn_goal_steering_items(...)` and mid-turn compaction
+  consumers are old concrete-carry terrain, not authority for WA03 metadata
 - WA02 is expected to define `GoalRequestContext` and a submit-or-internal-abort
   outcome
 
@@ -48,6 +52,9 @@ Locked direction:
 - add metadata-only `GoalTurnRequest` storage and adapters
 - pass metadata into the request-input shaper context
 - keep current-turn committed carry separate from uncommitted turn requests
+- provide one vocabulary for same-turn recheck, idle pending cadence delivery,
+  and idle automatic Continuation while preserving their different lifecycle
+  rules
 
 Exclusions:
 
@@ -56,6 +63,7 @@ Exclusions:
 - no pending Continuation intent
 - no idle scheduling behavior beyond metadata storage
 - no Created-event commit side effects
+- no mid-turn compaction authority based on uncommitted metadata
 
 ## Code Terrain Read
 
@@ -126,6 +134,13 @@ Add turn-state accessors equivalent to:
 - `Session::set_goal_turn_request_for_reserved_turn(...)`
 - `Session::goal_turn_request_for_turn(...)`
 
+Add or adapt input-queue/session APIs so WA03-owned paths can set, inspect, and
+clear metadata without appending concrete Goal model input. These APIs replace
+`extend_goal_pending_input_for_turn_state(...)` and
+`inject_goal_response_items(...)` only for converted WA03-owned paths; do not
+delete old helpers until all reachable old producers are converted in later
+Work Areas.
+
 Extend the WA02 `GoalRequestContext` assembly so each request attempt receives:
 
 - fresh `ThreadGoalCadenceSnapshot`
@@ -146,6 +161,10 @@ Lifecycle rules:
   aborts before submit
 - uncommitted metadata is not current-turn carry and must not support mid-turn
   compaction as authority
+- active-turn cleanup paths must clear reserved synthetic turn metadata without
+  emitting user-visible model/request errors
+- public adapters must not expose private `goal_cadence` internals beyond the
+  metadata needed to request a same-turn recheck or Goal-owned synthetic turn
 
 Do not delete old concrete injection helpers in this pass unless every caller
 has been converted. WA06 owns final dead-code deletion.
