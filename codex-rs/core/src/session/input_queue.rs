@@ -2,7 +2,7 @@ use crate::state::ActiveTurn;
 use crate::state::GoalSteeringCarryPurpose;
 use crate::state::MailboxDeliveryPhase;
 use crate::state::TurnState;
-use codex_protocol::models::ResponseInputItem;
+use codex_protocol::models::ResponseItem;
 use codex_protocol::protocol::InterAgentCommunication;
 use codex_protocol::user_input::UserInput;
 use std::collections::VecDeque;
@@ -12,8 +12,11 @@ use tokio::sync::watch;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum TurnInput {
-    UserInput(Vec<UserInput>),
-    ResponseInputItem(ResponseInputItem),
+    UserInput {
+        content: Vec<UserInput>,
+        client_id: Option<String>,
+    },
+    ResponseItem(ResponseItem),
 }
 
 /// Turn-local pending input storage owned by the input queue flow.
@@ -26,8 +29,6 @@ pub(crate) struct TurnInputQueue {
 pub(crate) struct InputQueue {
     mailbox_tx: watch::Sender<()>,
     mailbox_pending_mails: Mutex<VecDeque<InterAgentCommunication>>,
-
-    idle_pending_input: Mutex<Vec<ResponseInputItem>>,
 }
 
 impl InputQueue {
@@ -36,7 +37,6 @@ impl InputQueue {
         Self {
             mailbox_tx,
             mailbox_pending_mails: Mutex::new(VecDeque::new()),
-            idle_pending_input: Mutex::new(Vec::new()),
         }
     }
 
@@ -71,29 +71,13 @@ impl InputQueue {
             .any(|mail| mail.trigger_turn)
     }
 
-    pub(crate) async fn drain_mailbox_input_items(&self) -> Vec<ResponseInputItem> {
+    pub(crate) async fn drain_mailbox_input_items(&self) -> Vec<ResponseItem> {
         self.mailbox_pending_mails
             .lock()
             .await
             .drain(..)
-            .map(|mail| mail.to_response_input_item())
+            .map(|mail| ResponseItem::from(mail.to_response_input_item()))
             .collect()
-    }
-
-    pub(crate) async fn queue_response_items_for_next_turn(&self, items: Vec<ResponseInputItem>) {
-        if items.is_empty() {
-            return;
-        }
-
-        self.idle_pending_input.lock().await.extend(items);
-    }
-
-    pub(crate) async fn take_queued_response_items_for_next_turn(&self) -> Vec<ResponseInputItem> {
-        std::mem::take(&mut *self.idle_pending_input.lock().await)
-    }
-
-    pub(crate) async fn has_queued_response_items_for_next_turn(&self) -> bool {
-        !self.idle_pending_input.lock().await.is_empty()
     }
 
     pub(crate) async fn turn_state_for_sub_id(
@@ -203,6 +187,33 @@ impl InputQueue {
         clippy::await_holding_invalid_type,
         reason = "active turn checks and turn state updates must remain atomic"
     )]
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/session/input_queue.rs block=2
+// @@ -1,22 +0,0 @@
+// -    pub(crate) async fn inject_response_items(
+// -        &self,
+// -        active_turn: &Mutex<Option<ActiveTurn>>,
+// -        input: Vec<ResponseInputItem>,
+// -    ) -> Result<(), Vec<ResponseInputItem>> {
+// -        let mut active = active_turn.lock().await;
+// -        match active.as_mut() {
+// -            Some(active_turn) => {
+// -                self.extend_pending_input_for_turn_state(
+// -                    active_turn.turn_state.as_ref(),
+// -                    input
+// -                        .into_iter()
+// -                        .map(TurnInput::ResponseInputItem)
+// -                        .collect(),
+// -                )
+// -                .await;
+// -                Ok(())
+// -            }
+// -            None => Err(input),
+// -        }
+// -    }
+// -
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
     pub(crate) async fn inject_response_items(
         &self,
         active_turn: &Mutex<Option<ActiveTurn>>,
@@ -292,6 +303,15 @@ impl InputQueue {
             .current_turn_goal_steering_items()
     }
 
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/session/input_queue.rs block=4
+// @@ -1,4 +0,0 @@
+// -    #[expect(
+// -        clippy::await_holding_invalid_type,
+// -        reason = "active turn checks and turn state updates must remain atomic"
+// -    )]
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
     #[expect(
         clippy::await_holding_invalid_type,
         reason = "active turn checks and turn state updates must remain atomic"
@@ -320,7 +340,7 @@ impl InputQueue {
             .drain_mailbox_input_items()
             .await
             .into_iter()
-            .map(TurnInput::ResponseInputItem);
+            .map(TurnInput::ResponseItem);
         if pending_input.is_empty() {
             mailbox_items.collect()
         } else {
@@ -430,8 +450,8 @@ mod tests {
         assert_eq!(
             input_queue.drain_mailbox_input_items().await,
             vec![
-                mail_one.to_response_input_item(),
-                mail_two.to_response_input_item()
+                ResponseItem::from(mail_one.to_response_input_item()),
+                ResponseItem::from(mail_two.to_response_input_item())
             ]
         );
         assert!(!input_queue.has_pending_mailbox_items().await);

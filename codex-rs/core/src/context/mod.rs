@@ -9,10 +9,10 @@ mod contextual_user_message;
 mod environment_context;
 mod fragment;
 mod fragments;
-mod goal_context;
 mod guardian_followup_review_reminder;
 mod hook_additional_context;
 mod image_generation_instructions;
+mod internal_model_context;
 mod legacy_apply_patch_exec_command_warning;
 mod legacy_model_mismatch_warning;
 mod legacy_unified_exec_process_limit_warning;
@@ -43,13 +43,29 @@ pub(crate) use fragment::FragmentRegistration;
 pub(crate) use fragment::FragmentRegistrationProxy;
 pub(crate) use fragments::AdditionalContextDeveloperFragment;
 pub(crate) use fragments::AdditionalContextUserFragment;
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/mod.rs block=2
+// @@ -1,2 +0,0 @@
+// -pub use goal_context::GoalContext;
+// -pub use goal_context::GoalContextRole;
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 pub use goal_context::GoalContext;
 pub use goal_context::GoalContextRole;
 pub(crate) use goal_context::is_goal_context_response_item;
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/mod.rs block=4
+// @@ -1,1 +0,0 @@
+// -pub(crate) use goal_context::is_goal_context_text;
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 pub(crate) use goal_context::is_goal_context_text;
 pub(crate) use guardian_followup_review_reminder::GuardianFollowupReviewReminder;
 pub(crate) use hook_additional_context::HookAdditionalContext;
 pub(crate) use image_generation_instructions::ImageGenerationInstructions;
+pub use internal_model_context::InternalContextSource;
+pub use internal_model_context::InternalModelContextFragment;
+pub use internal_model_context::InvalidInternalContextSource;
 pub(crate) use legacy_apply_patch_exec_command_warning::LegacyApplyPatchExecCommandWarning;
 pub(crate) use legacy_model_mismatch_warning::LegacyModelMismatchWarning;
 pub(crate) use legacy_unified_exec_process_limit_warning::LegacyUnifiedExecProcessLimitWarning;

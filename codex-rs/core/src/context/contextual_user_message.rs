@@ -6,6 +6,12 @@ use super::AdditionalContextUserFragment;
 use super::EnvironmentContext;
 use super::FragmentRegistration;
 use super::FragmentRegistrationProxy;
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/contextual_user_message.rs block=2
+// @@ -0,0 +1,1 @@
+// +use super::InternalModelContextFragment;
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 use super::LegacyApplyPatchExecCommandWarning;
 use super::LegacyModelMismatchWarning;
 use super::LegacyUnifiedExecProcessLimitWarning;
@@ -30,6 +36,14 @@ static TURN_ABORTED_REGISTRATION: FragmentRegistrationProxy<TurnAborted> =
     FragmentRegistrationProxy::new();
 static SUBAGENT_NOTIFICATION_REGISTRATION: FragmentRegistrationProxy<SubagentNotification> =
     FragmentRegistrationProxy::new();
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/contextual_user_message.rs block=4
+// @@ -0,0 +1,3 @@
+// +static INTERNAL_MODEL_CONTEXT_REGISTRATION: FragmentRegistrationProxy<
+// +    InternalModelContextFragment,
+// +> = FragmentRegistrationProxy::new();
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
 static LEGACY_UNIFIED_EXEC_PROCESS_LIMIT_WARNING_REGISTRATION: FragmentRegistrationProxy<
     LegacyUnifiedExecProcessLimitWarning,
 > = FragmentRegistrationProxy::new();
@@ -48,6 +62,12 @@ static CONTEXTUAL_USER_FRAGMENTS: &[&dyn FragmentRegistration] = &[
     &USER_SHELL_COMMAND_REGISTRATION,
     &TURN_ABORTED_REGISTRATION,
     &SUBAGENT_NOTIFICATION_REGISTRATION,
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/core/src/context/contextual_user_message.rs block=6
+// @@ -0,0 +1,1 @@
+// +    &INTERNAL_MODEL_CONTEXT_REGISTRATION,
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
     &LEGACY_UNIFIED_EXEC_PROCESS_LIMIT_WARNING_REGISTRATION,
     &LEGACY_APPLY_PATCH_EXEC_COMMAND_WARNING_REGISTRATION,
     &LEGACY_MODEL_MISMATCH_WARNING_REGISTRATION,

@@ -7,7 +7,7 @@ use codex_core::GoalSteeringCarryPurpose;
 use codex_core::ThreadManager;
 use codex_core::context::GoalContextRole;
 use codex_protocol::ThreadId;
-use codex_protocol::models::ResponseInputItem;
+use codex_protocol::models::ResponseItem;
 use codex_protocol::protocol::ThreadGoal;
 
 use crate::accounting::BudgetLimitedGoalDisposition;
@@ -23,6 +23,11 @@ pub struct GoalRuntimeHandle {
     inner: Arc<GoalRuntimeInner>,
 }
 
+pub(crate) struct GoalRuntimeConfig {
+    pub(crate) enabled: bool,
+    pub(crate) tools_available_for_thread: bool,
+}
+
 struct GoalRuntimeInner {
     thread_id: ThreadId,
     state_dbs: Arc<codex_state::StateRuntime>,
@@ -31,6 +36,7 @@ struct GoalRuntimeInner {
     thread_manager: Weak<ThreadManager>,
     accounting_state: Arc<GoalAccountingState>,
     enabled: AtomicBool,
+    tools_available_for_thread: bool,
 }
 
 pub(crate) struct AccountedGoalProgress {
@@ -69,7 +75,7 @@ impl GoalRuntimeHandle {
         metrics: GoalMetrics,
         thread_manager: Weak<ThreadManager>,
         accounting_state: Arc<GoalAccountingState>,
-        enabled: bool,
+        config: GoalRuntimeConfig,
     ) -> Self {
         Self {
             inner: Arc::new(GoalRuntimeInner {
@@ -79,7 +85,8 @@ impl GoalRuntimeHandle {
                 metrics,
                 thread_manager,
                 accounting_state,
-                enabled: AtomicBool::new(enabled),
+                enabled: AtomicBool::new(config.enabled),
+                tools_available_for_thread: config.tools_available_for_thread,
             }),
         }
     }
@@ -90,6 +97,10 @@ impl GoalRuntimeHandle {
 
     pub(crate) fn is_enabled(&self) -> bool {
         self.inner.enabled.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn tools_visible(&self) -> bool {
+        self.is_enabled() && self.inner.tools_available_for_thread
     }
 
     pub(crate) fn thread_id(&self) -> ThreadId {
@@ -273,6 +284,31 @@ impl GoalRuntimeHandle {
         Ok(())
     }
 
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/runtime.rs block=2
+// @@ -1,19 +1,1 @@
+// -    pub(crate) async fn inject_active_turn_goal_steering(
+// -        &self,
+// -        kind: GoalSteeringKind,
+// -        goal: &ThreadGoal,
+// -        role: GoalContextRole,
+// -    ) -> Result<(), ResponseInputItem> {
+// -        let item = goal_steering_item(kind, goal, role);
+// -        let purpose = match kind {
+// -            GoalSteeringKind::BudgetLimit => GoalSteeringCarryPurpose::BudgetLimit,
+// -            GoalSteeringKind::ObjectiveUpdated => GoalSteeringCarryPurpose::ObjectiveUpdated,
+// -        };
+// -        self.inject_active_turn_steering(purpose, item).await
+// -    }
+// -
+// -    async fn inject_active_turn_steering(
+// -        &self,
+// -        purpose: GoalSteeringCarryPurpose,
+// -        item: ResponseInputItem,
+// -    ) -> Result<(), ResponseInputItem> {
+// +    pub(crate) async fn inject_active_turn_steering(&self, item: ResponseItem) {
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
     pub(crate) async fn inject_active_turn_goal_steering(
         &self,
         kind: GoalSteeringKind,
@@ -300,6 +336,17 @@ impl GoalRuntimeHandle {
             tracing::debug!("skipping goal steering because live thread is unavailable");
             return Err(item);
         };
+// REVIEW-DEDELUGER: preserved maintained content; incoming upstream difference follows.
+// REVIEW-DEDELUGER-INCOMING-DIFF path=codex-rs/ext/goal/src/runtime.rs block=4
+// @@ -1,5 +1,1 @@
+// -        if thread
+// -            .inject_goal_steering_items_into_active_turn(purpose, vec![item.clone()])
+// -            .await
+// -            .is_err()
+// -        {
+// +        if thread.inject_if_running(vec![item]).await.is_err() {
+// REVIEW-DEDELUGER-END-INCOMING-DIFF
+
         if thread
             .inject_goal_steering_items_into_active_turn(purpose, vec![item.clone()])
             .await
