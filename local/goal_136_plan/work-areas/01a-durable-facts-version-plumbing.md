@@ -171,19 +171,24 @@ identity durable and visible.
 Update existing `codex-rs/state/src/runtime/goals.rs` tests to account for the
 new `facts_version` field when constructing expected `ThreadGoal` values.
 
-Add focused state tests with names such as:
+Add one focused state test:
 
-- `goal_facts_version_starts_at_one_for_new_goals`
-- `goal_facts_version_increments_on_replace_update_and_accounting`
-- `goal_facts_version_does_not_increment_for_unchanged_reads`
-- `goal_facts_version_is_returned_by_get_and_accounting_paths`
+- `goal_cadence_facts_version_tracks_facts_only_mutations`
+
+It should prove:
+
+- new inserted Goals start at `facts_version = 1`
+- replacing, updating, status-changing, and usage/status accounting writes
+  increment `facts_version`
+- unchanged reads and unchanged accounting outcomes do not increment
+  `facts_version`
+- get and accounting paths return the current durable facts version
 
 Suggested implementation validation:
 
 ```powershell
 cd codex-rs
-cargo test -p codex-state --lib goal_facts_version
-cargo test -p codex-state --lib replace_update_and_get_thread_goal
+cargo test -p codex-state --lib goal_cadence_facts_version
 ```
 
 Run formatting if Rust files changed:

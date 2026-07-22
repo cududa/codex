@@ -466,42 +466,25 @@ production callers.
 
 ## Focused Tests
 
-Add tests in:
+Add and update tests in:
 
 - `codex-rs/state/src/runtime/goals.rs`
 
-Use a shared prefix such as `goal_cadence_` so focused local validation can run
-all Work Area 01 tests with one Cargo filter.
+Required Work Area 01 test surface:
 
-Required tests:
+- 01a updates existing `ThreadGoal` expectations for `facts_version` and adds
+  `goal_cadence_facts_version_tracks_facts_only_mutations`
+- 01b adds `goal_cadence_pending_intent_storage_and_exact_key_consumption`
+- 01c adds `goal_cadence_mutations_write_current_pending_intent`
 
-- `goal_cadence_replace_active_goal_writes_initial_intent_atomically`
-  - cadence-aware replace writes facts and pending Initial intent
-  - snapshot contains matching `goal_id`, `facts_version`, and kind
-- `goal_cadence_insert_active_goal_writes_initial_intent_atomically`
-  - cadence-aware insert writes Initial intent only on successful insert
-  - failed insert does not alter the existing pending intent
-- `goal_cadence_objective_update_writes_objective_updated_intent`
-  - objective update increments `facts_version`
-  - pending ObjectiveUpdated intent uses the returned durable facts version
-- `goal_cadence_budget_accounting_writes_budget_limit_intent`
-  - budget-crossing accounting persists usage/status first
-  - pending BudgetLimit intent uses current facts
-- `goal_cadence_budget_limit_supersedes_active_state_intents`
-  - BudgetLimit clears stale Initial and ObjectiveUpdated intent for the same
-    Goal when required
-- `goal_cadence_consume_pending_intent_requires_exact_key`
-  - wrong goal, kind, or facts version does not consume
-  - exact key consumes exactly one row
-- `goal_cadence_replacing_or_deleting_goal_clears_stale_intents`
-  - replacement clears old goal pending rows
-  - delete clears all pending rows for the thread
-- `goal_cadence_facts_only_methods_do_not_create_pending_intent`
-  - existing production-facing facts-only methods remain non-cadence until
-    later producer conversion
+The 01c test may be split only if the implemented flow becomes difficult to
+read as one test. In that case, split out the smallest BudgetLimit-specific
+piece and keep the Work Area 01 surface to four focused state tests.
 
-Update existing state tests for `ThreadGoal { facts_version, ... }` expectations
-without weakening budget, usage, status, or concurrency behavior.
+The tests inspect durable state, returned snapshots, and pending-intent rows.
+They do not inspect rendered Goal text, model roles, final request payloads,
+rollout history, rollout trace payloads, raw notifications, or recorded
+request evidence.
 
 ## Verification
 

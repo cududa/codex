@@ -206,15 +206,20 @@ methods. That belongs to 01c cadence-aware APIs and later caller conversion.
 
 ## Tests And Checks
 
-Add focused tests in `codex-rs/state/src/runtime/goals.rs` with names such as:
+Add one focused state test:
 
-- `goal_pending_intent_snapshot_reads_goal_and_intents`
-- `goal_pending_intent_consume_requires_exact_key`
-- `goal_pending_intent_clear_superseded_intents_is_goal_scoped`
-- `goal_pending_intent_delete_goal_clears_thread_intents`
-- `goal_pending_intent_facts_only_methods_do_not_create_intent`
+- `goal_cadence_pending_intent_storage_and_exact_key_consumption`
 
-The tests may seed pending rows through a private test helper. They should not
+It should prove:
+
+- snapshot reads return the durable Goal facts plus structured pending intent
+  metadata
+- exact-key consumption fails for stale thread, Goal, kind, or facts-version
+  attempts and consumes exactly one matching row
+- exact-key consumption leaves nonmatching pending rows intact
+- deleting a Goal clears pending rows for that thread
+
+Use a private test helper to seed pending rows when useful. The test must not
 construct prompt text, model input, rollout items, recorded request evidence,
 or legacy Goal artifacts.
 
@@ -222,7 +227,7 @@ Suggested implementation validation:
 
 ```powershell
 cd codex-rs
-cargo test -p codex-state --lib goal_pending_intent
+cargo test -p codex-state --lib goal_cadence_pending_intent_storage
 ```
 
 Run formatting if Rust files changed:

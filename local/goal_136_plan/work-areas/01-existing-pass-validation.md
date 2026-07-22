@@ -90,8 +90,7 @@ Local state terrain:
   - `delete_thread_goal`
   - `account_thread_goal_usage`
 - Existing state tests live in `codex-rs/state/src/runtime/goals.rs`; the
-  same file is the right home for `goal_facts_version`,
-  `goal_pending_intent`, and `goal_cadence` focused tests.
+  same file is the right home for the three focused Work Area 01 state tests.
 - The goals DB migrator is `sqlx::migrate!("./goals_migrations")`, and
   `codex-rs/state/BUILD.bazel` already includes `goals_migrations/**`.
 - Other state runtime modules already use SQL transactions through
@@ -258,7 +257,8 @@ Implementation focus should stay on:
 - adding `facts_version`
 - updating row models and explicit SQL projections
 - maintaining facts version in existing facts-only writes
-- updating existing state tests plus focused `goal_facts_version` tests
+- updating existing state tests plus
+  `goal_cadence_facts_version_tracks_facts_only_mutations`
 
 Do not add pending-intent producer behavior, evidence fields, or caller
 conversion in 01a.
@@ -273,7 +273,7 @@ Implementation focus should stay on:
 - exact-key consumption
 - mechanical cleanup helpers
 - snapshot reads
-- focused `goal_pending_intent` tests
+- `goal_cadence_pending_intent_storage_and_exact_key_consumption`
 
 Do not let `GoalStore` select which pending intent is due for a request.
 
@@ -287,7 +287,8 @@ Implementation focus should stay on:
 - accounting outcome that distinguishes unchanged facts, updated facts without
   BudgetLimit intent, and updated facts with BudgetLimit intent
 - BudgetLimit transition detection inside the transaction
-- focused `goal_cadence` tests
+- `goal_cadence_mutations_write_current_pending_intent`, split only if the
+  implemented flow becomes difficult to read as one test
 
 Do not switch production callers in 01c except for compile fallout from public
 type changes. Producer conversion belongs to later Work Areas after final

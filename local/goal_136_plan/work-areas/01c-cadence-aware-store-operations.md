@@ -209,30 +209,37 @@ must not create new pending Initial, ObjectiveUpdated, or BudgetLimit intent.
 
 ## Tests And Checks
 
-Add focused state tests in `codex-rs/state/src/runtime/goals.rs` with a shared
-prefix such as `goal_cadence_`:
+Add one focused state test:
 
-- `goal_cadence_replace_active_goal_writes_initial_intent_atomically`
-- `goal_cadence_insert_active_goal_writes_initial_intent_atomically`
-- `goal_cadence_insert_duplicate_does_not_mutate_existing_intent`
-- `goal_cadence_objective_update_writes_objective_updated_intent`
-- `goal_cadence_budget_accounting_writes_budget_limit_intent`
-- `goal_cadence_budget_limit_supersedes_active_state_intents`
-- `goal_cadence_consume_pending_intent_requires_exact_key`
-- `goal_cadence_replacing_or_deleting_goal_clears_stale_intents`
-- `goal_cadence_facts_only_methods_do_not_create_pending_intent`
+- `goal_cadence_mutations_write_current_pending_intent`
 
-These tests should inspect state snapshots and pending-intent rows. They should
-not inspect rendered Goal text, model roles, request payloads, or rollout
-history. Request payload tests belong to Work Area 02.
+It should prove:
+
+- active create/replace writes pending Initial intent with the returned
+  durable facts version, while non-active create/replace does not
+- duplicate insert does not mutate existing facts or pending intent
+- active objective update writes pending ObjectiveUpdated intent with the
+  returned durable facts version
+- budget-limit transition writes pending BudgetLimit intent with the returned
+  durable facts version
+- already-budget-limited accounting does not create a fresh BudgetLimit intent
+- BudgetLimit clears stale Initial and ObjectiveUpdated intent for the same
+  Goal when the supersedence rule applies
+- existing facts-only methods still do not create pending cadence intent
+
+Split out the smallest BudgetLimit-specific test only if the implemented flow
+becomes difficult to read as one test.
+
+This test should inspect state snapshots and pending-intent rows. It should
+not inspect rendered Goal text, model roles, request payloads, rollout history,
+raw notifications, or recorded request evidence. Request payload tests belong
+to Work Area 02.
 
 Suggested implementation validation:
 
 ```powershell
 cd codex-rs
 cargo test -p codex-state --lib goal_cadence
-cargo test -p codex-state --lib goal_pending_intent
-cargo test -p codex-state --lib goal_facts_version
 ```
 
 Optional compile check if exports or outcome types churn:
