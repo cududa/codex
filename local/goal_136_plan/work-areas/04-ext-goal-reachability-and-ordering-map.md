@@ -19,15 +19,15 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-idle-continuation-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 
 Route context:
 
@@ -1014,8 +1014,9 @@ plumbing:
   shapes remain
 - app-server ordered response/notification behavior remains
 - thread preview fill remains when a new objective is provided
-- upstream Goal product tests listed by `goal-test-deletion-map.md` remain
-  active unless replaced by a separate product change
+- upstream Goal product tests listed by
+  `goal-test-prep-and-replacement-proof.md` remain active unless replaced by a
+  separate product change
 
 ## Active Model-Input Construction Targets
 

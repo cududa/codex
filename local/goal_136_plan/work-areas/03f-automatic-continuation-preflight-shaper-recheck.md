@@ -104,6 +104,7 @@ Stage 3 preflight:
   no pending non-Goal work
   no pending durable cadence intent
   active durable Goal exists
+  candidate TurnContext is created so input modalities are known
   preflight key is not suppressed by latest watermark
   reserve turn with GoalTurnRequest::IdleAutomaticContinuation
   launch without draining newly arrived queued/mailbox work into the synthetic
@@ -139,6 +140,8 @@ with a metadata candidate that:
 - rejects when pending non-Goal work exists
 - rejects when pending durable cadence intent is due
 - reads durable active Goal facts and facts version
+- creates the candidate `TurnContext` needed for prompt/input modality
+  decisions before deriving the preflight base input
 - computes preflight base input from `clone_history().for_prompt(...)`
 - computes `ModelVisibleHistoryKey` through the same projection as the shaper
 - loads latest watermark and rejects a matching triple
@@ -161,6 +164,12 @@ The shaper must recompute `ModelVisibleHistoryKey` from the exact cleaned base
 input for the attempt before inserting the Continuation item. The preflight key
 may be compared to detect staleness, but it must not be reused as a substitute
 for per-attempt projection.
+
+The automatic Continuation item being considered for this request must not be
+included in the key that permits this request, and it must not by itself create
+the key change that permits a later automatic Continuation. Later user,
+mailbox, assistant, reasoning, tool, shell/search/image, or eligible
+compaction progress may change the key and permit a later Continuation.
 
 If shaping succeeds and 03g later commits the Continuation at
 `ResponseEvent::Created`, the uncommitted `IdleAutomaticContinuation`
@@ -186,7 +195,10 @@ Add focused tests:
 - `goal_idle_automatic_continuation_preflight_mismatch_aborts_before_submit`
 - `goal_idle_candidate_rejected_if_pending_work_appears_after_reservation`
 
-Tests that assert model submission should use captured `/responses` input.
+Tests that assert model submission should use captured `/responses` input and
+prove exactly one outer developer-role Continuation Goal item, no active
+`<goal_context>` item, no user-role active Goal item, and no duplicate Goal
+item for the same synthetic request.
 Abort tests should assert no request is submitted and no pending intent or
 watermark state changes.
 Late pending-work tests should assert queued next-turn or trigger-turn mailbox

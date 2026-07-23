@@ -4,6 +4,12 @@ This implementation pass records the selected Work Area 04 ordering route and
 adds or reuses the core metadata-only cadence request adapter that extension
 and app-server producers need.
 
+This pass establishes producer delivery-request plumbing only. It does not
+make extension, app-server, or the adapter a delivery authority. Delivery means
+the WA02 final request-input shaper selects a current developer-role Goal item
+from fresh durable state, and the WA02/WA03 Created-event commit path consumes
+or commits the exact cadence effect.
+
 It is an ordered unit on the Goal authority rewrite branch, not a standalone
 PR, release unit, or final acceptance checkpoint.
 
@@ -19,11 +25,11 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
 
@@ -56,6 +62,11 @@ Locked direction:
   topology as the selected route
 - add or reuse one public core adapter that translates producer facts into
   turn-local metadata or wake/recheck behavior
+- keep app-server on its current processor path; it may call state and core
+  adapters, but it must not depend on `codex-goal-extension`
+- treat accepted metadata as a recheck signal only, not pending model input,
+  pending-intent consumption, recorded evidence, or proof that a Goal item
+  reached the model
 - do not add `ext/goal/src/api.rs` in the planned route
 - if implementation proves adapter/runtime plus WA01/WA02/WA03 seams cannot
   carry ordering, update the WA04 map and stop before downstream conversion
@@ -64,6 +75,9 @@ Exclusions:
 
 - no active Goal `ResponseItem` construction in extension, app-server, or this
   adapter
+- no active `ResponseInputItem`, rendered Goal prompt text, or model role
+  chosen by producers or this adapter
+- no app-server dependency on `codex-goal-extension`
 - no pending-intent consumption
 - no Continuation watermark advancement
 - no recorded request evidence writer
@@ -74,11 +88,11 @@ Exclusions:
 Implementation should reread:
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
 - `local/goal_136_plan/work-areas/01-existing-pass-validation.md`
 - `local/goal_136_plan/work-areas/02-direct-split-readiness-check.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
@@ -120,11 +134,13 @@ Create the public producer-facing seam that WA04 producers can call:
 producer durable mutation/accounting outcome
   -> metadata-only same-turn cadence request or wake/recheck
   -> WA02 request-input shaper reselects from fresh facts
-  -> Created-event commit consumes pending intent or records carry
+  -> Created-event commit consumes exact pending intent or records carry
 ```
 
-The adapter must not let producers pass rendered Goal text, model role, or
-prebuilt model input.
+The adapter must not let producers pass rendered Goal text, model role,
+prebuilt model input, recorded evidence, or a decision that a specific Goal item
+has already been delivered. Producers request another sampling opportunity;
+they do not deliver Goal steering.
 
 ## Exact Files To Edit
 
@@ -155,7 +171,10 @@ them instead of creating parallel metadata.
    ```
 
    The concrete type names should match WA02/WA03 naming if those modules
-   already exist.
+   already exist. The request is metadata only: `goal_id`, pending cadence kind,
+   and `facts_version`, or the exact WA02/WA03 equivalent. It must not carry
+   rendered text, helper output, `ResponseItem`, `ResponseInputItem`, request
+   fingerprints, final-input evidence, or role selection.
 3. Add a public core adapter, likely on `CodexThread` or translated through
    `ThreadManager`, equivalent to:
 
@@ -172,7 +191,8 @@ them instead of creating parallel metadata.
    ```
 
 5. On `AcceptedForActiveTurn`, store turn-local metadata only. Do not append
-   pending input and do not store rendered Goal prompt text.
+   pending input and do not store rendered Goal prompt text. Accepted metadata
+   is not delivery and must not clear durable pending intent.
 6. Replace or augment the current repeat-loop predicate so accepted cadence
    metadata is visible as a recheck reason without representing it as pending
    `TurnInput`, mailbox input, rendered Goal prompt text, `ResponseItem`, or
@@ -181,9 +201,16 @@ them instead of creating parallel metadata.
    sampling opportunity when no model/tool follow-up is already pending.
 8. Ensure the request-input shaper remains responsible for fresh durable
    snapshot lookup, supersedence selection, item construction, and submit or
-   internal-abort outcome.
-9. Ensure stale metadata is cleared or made obsolete by the Created-event
-   commit path, per WA02/WA03 lifecycle rules.
+   internal-abort outcome. The shaper may select a superseding kind from the
+   fresh snapshot rather than the kind named by the producer request.
+9. If the shaper finds the pending intent gone, stale, active-ineligible, or
+   superseded, it must decline or abort internally before model submission; it
+   must not submit an empty Goal-owned request merely because metadata was
+   accepted.
+10. Ensure stale metadata is cleared or made obsolete by the Created-event
+    commit path or the abort-before-submit path, per WA02/WA03 lifecycle rules.
+    Created-event commit is the point that consumes exact pending intent and
+    creates any structured recorded evidence if evidence is in scope.
 
 Stop condition:
 
@@ -198,6 +225,8 @@ Focused checks for this pass should cover:
 
 - accepted same-turn cadence request stores metadata and no pending model
   input
+- accepted same-turn cadence request does not consume pending intent, advance
+  Continuation watermarks, or write recorded evidence
 - unavailable same-turn request returns a non-success outcome and does not
   clear durable pending intent
 - the replacement for
@@ -208,6 +237,8 @@ Focused checks for this pass should cover:
   when no other follow-up already does that
 - request-input shaper reselects from fresh durable state and can decline stale
   metadata
+- stale, gone, or superseded metadata leads to no model submission rather than
+  an empty Goal-owned request
 
 Suggested focused test homes:
 
@@ -228,6 +259,9 @@ After this pass:
 
 - WA04 has a selected adapter/runtime route in implementation, not just docs
 - producers have a metadata-only way to request same-turn cadence recheck
+- accepted producer metadata can make the regular task run another sampling
+  opportunity, but pending intent remains durable until WA02/WA03 Created-event
+  commit or an abort/supersedence path makes the metadata obsolete
 - final model input construction still belongs to WA02
 - idle fallback and stale synthetic turn behavior still belong to WA03
 - app-server and extension producers may still call old injection paths until

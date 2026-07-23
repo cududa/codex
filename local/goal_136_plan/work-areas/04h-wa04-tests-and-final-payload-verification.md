@@ -30,13 +30,13 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
 
@@ -74,6 +74,9 @@ Locked direction:
   `ResponseItem::Message { role: "developer", ... }`
 - no active `<goal_context>` or user-role Goal item may reach final request
   input for converted WA04 scenarios
+- Created-event commit remains the only point that consumes matching pending
+  Initial/ObjectiveUpdated/BudgetLimit intent or records structured evidence
+  when evidence is in scope
 
 Exclusions:
 
@@ -82,19 +85,22 @@ Exclusions:
   converted WA04 path directly touches them
 - no extension-owned evidence writer
 - no helper-output authority tests
+- no final authority proof from raw notifications, rollout items, rollout
+  trace payloads, classifier matches, rendered Goal text, or evidence alone
 
 ## Authority Docs Read
 
 Implementation should reread:
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
 - `local/goal_136_plan/work-areas/01-existing-pass-validation.md`
 - `local/goal_136_plan/work-areas/02-direct-split-readiness-check.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
@@ -131,6 +137,17 @@ Finish WA04's test profile:
 extension tests prove producer state/runtime outcomes
 app-server/core tests prove final `/responses` payload authority
 stale fake-shim tests are removed or rewritten
+```
+
+The test profile is layered:
+
+```text
+producer tests: durable facts, pending intent, accounting, metrics/events,
+  metadata request outcomes
+final-input tests: captured /responses input with exactly one selected current
+  outer developer-role Goal item
+commit/evidence tests: Created-event side effects only when that path is in
+  scope
 ```
 
 ## Exact Files To Edit
@@ -175,6 +192,7 @@ stale fake-shim tests are removed or rewritten
    - require exactly one current outer developer-role Goal item
    - require no active `<goal_context>` item
    - require no user-role active Goal item
+   - require no duplicate Goal item for the same cadence opportunity
 7. Add app-server/core final payload scenarios as needed:
    - app-server objective update delivers ObjectiveUpdated from persisted
      objective
@@ -190,6 +208,12 @@ stale fake-shim tests are removed or rewritten
 8. If recorded request evidence is in scope for a scenario, assert structured
    Created-event metadata paired to captured final input by fingerprint. Do not
    use evidence by itself as the active authority check.
+9. Add or update assertions that retry/failure before Created leaves pending
+   intent unconsumed for WA04-produced Initial/ObjectiveUpdated/BudgetLimit
+   scenarios when those scenarios are in scope for this pass.
+10. Ensure unavailable or rejected same-turn metadata tests preserve the WA03
+    idle Stage 2 handoff: pending intent remains durable and later delivery is
+    through WA02 request-input shaping, not extension/core concrete injection.
 
 ## Tests And Checks
 
@@ -233,6 +257,9 @@ After this pass:
   producer-to-core-request integration route; otherwise extension producer
   effects and shared-shaper final payload behavior are covered as paired tests
 - extension helper output is not used as model authority
+- final payload tests prove exactly one selected current outer developer-role
+  Goal item, no active `<goal_context>`, no user-role active Goal item, and no
+  duplicate Goal item for converted WA04 cadence opportunities
 - remaining broad cleanup and final audit belong to WA05/WA06
 
 ## Non-Goals

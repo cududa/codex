@@ -9,6 +9,11 @@ product status mutation and does not create active cadence intent; when it
 moves the Goal out of active delivery, it clears or supersedes any active-state
 pending intent that can no longer be delivered.
 
+This pass preserves extension-owned tools while removing any temptation to make
+tool code an active model-input authority. Tool output, metrics, events, and
+accounting are product/runtime effects. The WA02 final request-input shaper is
+the next delivery authority.
+
 ## Direction Lock
 
 Request:
@@ -20,11 +25,11 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
 
 Terrain:
@@ -50,6 +55,9 @@ Locked direction:
 
 - preserve `create_goal` as extension-owned mutation
 - successful create uses a WA01 cadence-aware insert operation
+- tool-origin create creates an active Goal only; every successful create
+  writes pending Initial intent for the new `goal_id` and facts version
+- duplicate create remains a product error and writes no new intent
 - normal tool output follow-up or WA04a metadata recheck gives WA02 the next
   chance to deliver pending Initial
 - terminal `update_goal` remains terminal product behavior and creates no
@@ -63,6 +71,7 @@ Exclusions:
 - no role selection
 - no pending-intent consumption
 - no Continuation watermark changes
+- no recorded request evidence writer
 - no app-server mutation changes
 
 ## Authority Docs Read
@@ -70,11 +79,11 @@ Exclusions:
 Implementation should reread:
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/01-existing-pass-validation.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
@@ -116,6 +125,22 @@ insert_thread_goal_with_initial_intent(...)
   -> pending Initial remains until WA02 final request-input commit
 ```
 
+The logical `create_goal` order is:
+
+```text
+parse and validate tool request
+persist active Goal facts plus pending Initial intent atomically
+fill preview if empty
+mark current-turn accounting active
+emit metrics and ThreadGoalUpdated event
+return structured tool output and remaining-token data
+let normal tool follow-up or metadata recheck reach WA02 shaper
+```
+
+The normal tool follow-up is not delivery by itself. It merely gives the shared
+request-input shaper an opportunity to read fresh durable facts and select the
+pending Initial item.
+
 ## Exact Files To Edit
 
 - `codex-rs/ext/goal/src/tool.rs`
@@ -128,13 +153,17 @@ insert_thread_goal_with_initial_intent(...)
 1. Replace `GoalStore::insert_thread_goal(...)` in
    `handle_create(...)` with the WA01 cadence-aware create/insert API.
 2. Require the returned state outcome to include the current durable Goal facts
-   and pending Initial intent summary for the same facts version.
+   and pending Initial intent summary for the same facts version. A successful
+   tool-origin create always writes pending Initial for the newly active Goal.
 3. Preserve objective trimming, objective validation, budget validation, and
    duplicate-create error behavior.
+   Duplicate create must not allocate a new facts version or write any new
+   pending intent.
 4. Preserve empty preview fill.
 5. Preserve current-turn accounting baseline reset through
    `GoalAccountingState`.
-6. Preserve created metric and `ThreadGoalUpdated` event.
+6. Preserve created metric, `ThreadGoalUpdated` event, structured tool output,
+   and remaining-token calculation.
 7. Do not request cadence delivery by constructing model input. If a wake is
    needed beyond normal tool follow-up, use the WA04a metadata adapter only.
 8. Keep `handle_update(...)` complete/blocked-only. Use a WA01 status API that
@@ -142,6 +171,13 @@ insert_thread_goal_with_initial_intent(...)
    active-state pending intent that can no longer be delivered.
 9. Do not create active cadence intent for complete/blocked terminal updates.
 10. Keep completion budget report behavior for `Complete`.
+11. Do not consume pending Initial, ObjectiveUpdated, or BudgetLimit intent from
+    tool code. Exact pending-intent consumption belongs to the Created-event
+    commit path after final request input contains the selected developer-role
+    Goal item.
+12. Do not write recorded request evidence. If evidence is in scope, it belongs
+    to the WA02 Created-event commit path and must be paired to captured final
+    input by fingerprint.
 
 ## Tests And Checks
 
@@ -163,18 +199,24 @@ Update extension tests:
 Add or rename focused tests:
 
 - `goal_extension_create_active_goal_writes_initial_intent`
+- `goal_extension_duplicate_create_writes_no_new_intent`
 - `goal_extension_update_goal_terminal_status_does_not_create_active_intent`
 - `goal_extension_update_goal_terminal_status_clears_stale_active_intent`
 
 Extension tests may inspect state, tool output, events, metrics, and pending
 intent. They do not prove final model authority; final payload coverage stays
-in 04h or core/app-server tests.
+in 04h or core/app-server tests. They also do not write or validate recorded
+request evidence, and they must not treat helper output, tool output, rollout
+items, raw notifications, classifier matches, or rendered Goal text as delivery
+proof.
 
 ## Branch Continuation State
 
 After this pass:
 
 - extension `create_goal` produces durable pending Initial intent
+- duplicate `create_goal` remains a product error and does not create or alter
+  pending intent
 - extension terminal `update_goal` preserves product behavior without active
   cadence intent
 - extension terminal `update_goal` clears or supersedes stale active-state

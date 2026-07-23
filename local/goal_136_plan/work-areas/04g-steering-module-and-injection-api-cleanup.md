@@ -17,11 +17,11 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
 
@@ -45,6 +45,8 @@ Code-shape temptation:
   temporary compatibility on the branch
 - forget that `core/src/goals.rs` is itself a WA04 reachability path for
   app-server external mutation, not only old core cleanup terrain
+- treat prompt-body helper output, recorded evidence, raw notifications, or
+  rollout traces as proof that WA04 producers reached the model correctly
 
 Locked direction:
 
@@ -55,6 +57,8 @@ Locked direction:
   terrain needs them
 - verify `core/src/goals.rs` no longer routes WA04 app-server/external
   mutation effects through `GoalSteeringMessage` or concrete injection
+- final model-input construction and proof remain owned by WA02/04h captured
+  final `/responses` assertions
 
 Exclusions:
 
@@ -62,17 +66,20 @@ Exclusions:
 - no broad WA05 classifier/projection cleanup
 - no final deletion of legacy artifact handling
 - no app-server product behavior changes
+- no extension/app-server pending-intent consumption, Continuation watermark
+  advancement, or recorded evidence writing
 
 ## Authority Docs Read
 
 Implementation should reread:
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
 
@@ -174,6 +181,16 @@ extension mutation/accounting
 10. Update TODOs and comments in touched files that still describe configured
    steering role, role-neutral `<goal_context>`, or host-applied active item
    construction as the future design.
+11. Replacement wording in touched comments should say that extension-owned
+    mutation/accounting requests durable cadence intent and final
+    request-input shaping owns active Goal model input.
+12. Do not remove or rewrite legacy classifier/projection/raw-history helpers
+    merely because they mention `GoalContext`; remove only active WA04
+    producer reachability into model-input injection in this pass.
+13. Ensure any remaining core injection API is explicitly isolated as later
+    WA05/WA06 terrain and cannot be reached from converted app-server,
+    extension tool, runtime ObjectiveUpdated, or post-tool BudgetLimit
+    producers.
 
 ## Tests And Checks
 
@@ -205,6 +222,8 @@ After this pass:
 - app-server/core external mutation no longer reaches
   `core/src/goals.rs` active `GoalSteeringMessage` construction
 - old core injection APIs are deleted or isolated as later cleanup terrain
+- helper prompt text, if retained elsewhere, is text-only input to the WA02
+  prompt owner and not an extension-owned `ResponseInputItem`
 - final WA04 payload and product tests still need consolidation in 04h
 - broad classifier/projection cleanup still belongs to WA05
 

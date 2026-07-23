@@ -8,6 +8,9 @@ It is for `ext/goal` runtime paths. App-server production mutation ordering is
 handled by 04b, although both paths should share the same WA01 outcome and
 WA04a metadata concepts.
 
+The runtime effect is after-the-fact accounting/event/cadence-request handling.
+It is not the durable mutation owner and is not a prompt renderer.
+
 ## Direction Lock
 
 Request:
@@ -19,11 +22,11 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
 
 Terrain:
@@ -53,6 +56,8 @@ Locked direction:
 - runtime does not create, infer, or repair durable pending intent by itself;
   it trusts the WA01 mutation outcome supplied by the selected ordering path
 - final role and model input construction remain WA02 responsibilities
+- failed or unavailable same-turn delivery leaves durable pending intent intact
+  for ordinary turn or WA03 idle Stage 2
 
 Exclusions:
 
@@ -60,6 +65,7 @@ Exclusions:
 - no role selection
 - no state mutation outside the selected ordering path
 - no pending-intent consumption
+- no Continuation watermark advancement
 - no recorded request evidence writing
 
 ## Authority Docs Read
@@ -67,11 +73,11 @@ Exclusions:
 Implementation should reread:
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
 
@@ -114,6 +120,29 @@ apply_external_goal_set(GoalSetRuntimeEffect)
   -> metadata-only cadence recheck when pending intent exists
 ```
 
+The runtime must preserve the external-set effect order without becoming the
+source of durable cadence facts:
+
+```text
+new active Goal:
+  prepare/account usage
+  durable mutation path persists facts plus pending Initial intent
+  runtime marks current or idle accounting state active
+  runtime requests cadence delivery/recheck from the pending-intent summary
+
+same active Goal objective edit:
+  prepare/account usage
+  durable mutation path persists updated objective plus pending ObjectiveUpdated
+  runtime refreshes current or idle accounting baseline
+  runtime requests cadence delivery/recheck from the pending-intent summary
+
+status changes away from Active:
+  prepare/account usage
+  durable mutation path persists status and clears/supersedes stale active intent
+  runtime clears active-goal accounting when required
+  runtime does not create active Goal steering
+```
+
 ## Exact Files To Edit
 
 - `codex-rs/ext/goal/src/runtime.rs`
@@ -134,7 +163,9 @@ apply_external_goal_set(GoalSetRuntimeEffect)
    Runtime must not write durable Goal facts, create pending intent, or infer
    pending kind from request bodies or prompt/helper text.
 3. Include in that outcome:
+   - `goal_id`
    - current durable Goal facts
+   - current durable status
    - previous Goal facts/status needed for metrics
    - whether a pending Initial, ObjectiveUpdated, or BudgetLimit intent was
      created
@@ -147,9 +178,23 @@ apply_external_goal_set(GoalSetRuntimeEffect)
 6. Preserve active accounting cleanup for stopped statuses.
 7. Delete ObjectiveUpdated active injection from the runtime effect path.
 8. Call the WA04a metadata adapter when the durable mutation outcome includes
-   a deliverable pending cadence intent.
+   a deliverable pending cadence intent. The request carries metadata only,
+   such as `goal_id`, pending kind, and facts version, or the exact WA02/WA03
+   equivalent.
 9. On `NoActiveTurn` or `ActiveTurnCannotAccept`, leave pending intent intact.
 10. Remove `GoalContextRole` from this runtime call chain.
+11. Delete the ObjectiveUpdated injection path:
+
+    ```text
+    goal_steering_item(...)
+      -> GoalContext
+      -> ResponseInputItem
+      -> ThreadManager::inject_goal_steering_items_into_active_turn(...)
+    ```
+
+12. Do not consume pending intent, advance Continuation watermarks, or write
+    recorded request evidence from runtime effects. Created-event commit owns
+    exact pending-intent consumption and any structured evidence append.
 
 ## Tests And Checks
 
@@ -163,6 +208,8 @@ Update extension tests:
   - seed or call the WA01 mutation path that creates the structured
     effect/outcome
   - assert runtime accounting resets baseline
+  - assert the WA01 objective-update outcome carries pending intent when the
+    objective changes
   - assert ObjectiveUpdated pending intent remains in state when delivery is
     unavailable
   - assert runtime did not create that pending intent independently
@@ -173,6 +220,10 @@ Add or update:
 - `goal_extension_external_mutation_failed_same_turn_delivery_leaves_intent`
 
 No extension helper-output assertion substitutes for a final payload test.
+Extension tests may inspect durable state, pending intent snapshots,
+metrics/events, and metadata request outcomes. They must not use helper output,
+raw notifications, ordinary rollout items, rollout trace payloads, classifier
+matches, rendered Goal text, or recorded evidence alone as active authority.
 
 ## Branch Continuation State
 
@@ -180,8 +231,12 @@ After this pass:
 
 - extension runtime objective effects no longer take `GoalContextRole`
 - extension runtime no longer injects ObjectiveUpdated model input
+- extension runtime uses WA01 mutation outcomes as the only pending-intent
+  source and does not infer cadence from request bodies or helper prompt text
 - durable ObjectiveUpdated intent remains pending until WA02 Created-event
   commit consumes it
+- failed same-turn cadence requests leave pending intent available for ordinary
+  turns or WA03 idle Stage 2
 - post-tool BudgetLimit may still use old injection until 04e
 - `ext/goal/src/steering.rs` may still exist until 04g
 

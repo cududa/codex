@@ -68,6 +68,8 @@ Exclusions:
 - no automatic Continuation launch
 - no Continuation watermark advancement
 - no rendered prompt or prebuilt model input in idle code
+- no recorded request evidence write from idle reservation, request
+  construction, or Stage 2 launch
 - no producer conversion outside idle delivery
 
 ## Code Terrain Read
@@ -176,7 +178,9 @@ Add focused tests:
 - `goal_idle_pending_intent_late_pending_work_is_not_drained_into_synthetic_turn`
 
 Request tests should inspect captured `/responses` input for exactly one
-outer developer-role Goal `ResponseItem` when delivery occurs.
+outer developer-role Goal `ResponseItem` when delivery occurs, no active
+`<goal_context>` item, no user-role active Goal item, and no duplicate Goal
+item for the cadence opportunity.
 Late pending-work tests should prove queued next-turn or trigger-turn mailbox
 input stays regular pending work rather than becoming input to the Goal-owned
 synthetic cadence-delivery turn.
@@ -210,6 +214,7 @@ This pass does not:
 - persist pending Continuation intent
 - launch automatic Continuation
 - advance the Continuation watermark
+- write recorded request evidence
 - consume pending intent before `ResponseEvent::Created`
 - convert `ext/goal` producers
 - finish broad compaction or classifier cleanup

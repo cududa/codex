@@ -1,7 +1,10 @@
 # WA04e Extension BudgetLimit Cadence Intent
 
 This implementation pass converts the extension post-tool BudgetLimit producer
-to atomic BudgetLimit pending intent plus metadata-only cadence recheck.
+to atomic BudgetLimit pending intent plus metadata-only cadence recheck. It is
+the BudgetLimit producer slice of WA04; it must carry the parent WA04 ordering
+and reachability rules directly, not rely on the parent document for hidden
+specification.
 
 Producer-side reported flags may suppress duplicate producer notifications.
 They must not consume pending cadence intent.
@@ -17,11 +20,11 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
 
 Terrain:
@@ -54,6 +57,9 @@ Locked direction:
 - shared accounting callers that merely preserve product accounting, terminal
   status, usage-limit behavior, or continued BudgetLimited accrual must not
   become implicit BudgetLimit cadence producers
+- extension/runtime code does not consume pending intent, advance Continuation
+  watermarks, write recorded request evidence, or treat helper output as
+  delivery proof
 
 Exclusions:
 
@@ -62,17 +68,20 @@ Exclusions:
 - no pending-intent consumption
 - no recorded request evidence writer
 - no Continuation watermark advancement
+- no final `/responses` proof by extension helper output, raw notifications,
+  rollout items, trace payloads, rendered Goal text, or evidence alone
 
 ## Authority Docs Read
 
 Implementation should reread:
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-durable-cadence-state.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-durable-state-and-pending-intent.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/01-existing-pass-validation.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
@@ -113,10 +122,28 @@ with:
 ```text
 account_thread_goal_usage_with_budget_intent(...)
   -> state outcome says BudgetLimit cadence is newly due
-  -> status/usage facts and pending BudgetLimit intent
+  -> status/usage facts and pending BudgetLimit intent are persisted atomically
   -> mark producer reported only for duplicate producer reporting
   -> metadata-only cadence recheck
 ```
+
+The required logical order is:
+
+```text
+record token usage
+account progress through the cadence-aware budget API
+persist BudgetLimited facts plus pending BudgetLimit intent atomically only
+  when the producer outcome says wrap-up cadence is newly due
+emit metrics/events
+mark producer-side reported flag only to avoid duplicate producer reporting
+request metadata-only same-turn recheck if possible
+leave intent pending if unavailable
+```
+
+If tool output or another model follow-up already forces a later sampling
+attempt, this pass still does not deliver BudgetLimit. WA02 final request-input
+shaping re-reads fresh durable state for that attempt and may select BudgetLimit
+or a superseding eligible cadence item according to WA02 ordering.
 
 ## Exact Files To Edit
 
@@ -151,6 +178,15 @@ account_thread_goal_usage_with_budget_intent(...)
     allocate facts versions, or clear/supersede stale intent as their WA01
     outcomes require, but they must not create duplicate/new BudgetLimit
     cadence unless the outcome explicitly says model wrap-up work is due.
+12. Do not consume pending BudgetLimit intent until WA02 final request-input
+    shaping selects the exact matching pending intent and the request reaches
+    the Created-event commit path.
+13. Do not advance Continuation watermarks, write recorded request evidence, or
+    update committed carry from the BudgetLimit producer path.
+14. Ensure the state outcome, not rendered prompt text, helper output,
+    `mark_budget_limit_reported_if_new(...)`, raw notification counts, or
+    rollout traces, is the only source of BudgetLimit pending-cadence metadata
+    for this producer.
 
 ## Tests And Checks
 
@@ -177,7 +213,10 @@ Add or update:
   cadence after BudgetLimit was already pending or reported
 
 Final payload coverage for BudgetLimit delivery belongs in 04h or a core
-request test once converted producers exist.
+request test once converted producers exist. Extension state/runtime tests may
+prove durable pending intent, accounting, metrics/events, and metadata request
+outcomes, but they must not be described as final model-input authority unless
+they also capture a real final `/responses` request path.
 
 ## Branch Continuation State
 
@@ -186,6 +225,8 @@ After this pass:
 - extension post-tool BudgetLimit producer writes durable pending intent when
   the WA01 outcome says BudgetLimit cadence is newly due
 - extension BudgetLimit no longer injects concrete model input
+- pending BudgetLimit survives unavailable same-turn metadata until ordinary
+  turn or WA03 idle Stage 2 delivery
 - ObjectiveUpdated conversion from 04d and create conversion from 04c now cover
   all extension cadence producers
 - steering role config and `steering.rs` cleanup still remain for 04f/04g
@@ -197,3 +238,5 @@ After this pass:
 - do not implement final payload tests for all WA04 scenarios
 - do not change app-server Goal APIs
 - do not consume pending BudgetLimit intent outside WA02 commit
+- do not use `mark_budget_limit_reported_if_new(...)` as delivery, commit, or
+  evidence authority

@@ -41,6 +41,9 @@ Terrain:
   facts
 - rollback and fork recompute suppression keys from surviving reconstructed
   model-visible history, not from removed rollout segments or old Goal text
+- `ContextManager::history_version()` may be diagnostic terrain, but it is not
+  a resume hydration source, model-visible key, Continuation permit, or
+  Continuation suppression record
 
 Code-shape temptation:
 
@@ -123,11 +126,17 @@ facts, or synthesize suppression from history artifacts.
 Change `restore_thread_goal_runtime_after_resume()` so it:
 
 - loads the WA01 cadence snapshot
+- preserves pending Initial, ObjectiveUpdated, and BudgetLimit intent from that
+  snapshot exactly as durable state reports it
 - loads the latest 03a Continuation watermark
 - records usage/accounting baselines for active Goals
 - clears stopped-goal runtime state for ineligible statuses
 - removes resume use of `mark_initial_goal_steering_pending(...)`
 - does not inspect rendered Goal items to create state
+- does not use `ContextManager::history_version()` to reconstruct, permit, or
+  suppress Continuation
+- does not consume pending intent or advance the Continuation watermark during
+  hydration
 
 Keep caller order as hydration followed by optional idle lifecycle:
 
@@ -142,6 +151,11 @@ The later idle hook may:
 - deliver already-persisted pending cadence intent
 - launch automatic Continuation only when key/watermark facts allow it
 
+If pending Initial, ObjectiveUpdated, or BudgetLimit intent existed before
+resume, resume must leave it available for the later idle hook or an ordinary
+turn. Hydration is not delivery and must not supersede pending durable cadence
+intent merely because an active Goal was reloaded.
+
 If structured request evidence exists, resume may read it only under the
 recorded-evidence rules. The default correctness path is the state-owned
 watermark.
@@ -153,7 +167,8 @@ For compaction, rollback, fork, and reconstruction behavior in this pass:
 - allow compaction summaries or replacement history to affect the key only
   when they alter model-visible eligible progress
 - ignore rolled-back or non-surviving Goal items, evidence records, trace
-  payloads, and raw notifications as suppression authority
+  payloads, raw notifications, classifier matches, ordinary rollout Goal text,
+  and `history_version()` as suppression authority
 - do not create durable Goal facts, pending intent, committed carry, or a
   Continuation watermark by parsing rendered Goal text
 - keep structured evidence metadata-only unless an explicit non-best-effort
@@ -165,14 +180,21 @@ Add focused tests:
 
 - `goal_idle_resume_does_not_fabricate_initial`
 - `goal_idle_resume_preserves_existing_pending_initial`
+- `goal_idle_resume_preserves_existing_pending_objective_updated`
+- `goal_idle_resume_preserves_existing_pending_budget_limit`
 - `goal_idle_resume_unchanged_watermark_suppresses_duplicate_continuation`
 - `goal_idle_resume_after_new_progress_permits_continuation`
 - `goal_idle_resume_ignores_ordinary_rollout_goal_text_for_watermark`
+- `goal_idle_resume_ignores_history_version_for_watermark`
 - `goal_idle_rollback_recomputes_key_from_surviving_history`
 - `goal_idle_fork_recomputes_key_from_surviving_history`
 
 Use captured final request input for any request-producing scenario and state
-assertions for hydration/watermark rows.
+assertions for hydration/watermark rows. Any resume scenario that submits a
+Goal-bearing request must prove exactly one current outer developer-role Goal
+item for the expected cadence kind, no active `<goal_context>` item, no
+user-role active Goal item, and no duplicate Goal item for the same cadence
+decision.
 
 Suggested implementation validation:
 
@@ -191,16 +213,22 @@ just fmt
 ## Branch Continuation State
 
 After this pass, resume hydrates durable Goal state and Continuation
-suppression basis without creating cadence. Broad rollback/fork/compaction
-cleanup and final old-path deletion still belong to WA05/WA06 unless needed
-for the focused tests here.
+suppression basis without creating cadence. Existing pending Initial,
+ObjectiveUpdated, and BudgetLimit intent survives hydration for later ordinary
+or idle delivery. Broad rollback/fork/compaction cleanup and final old-path
+deletion still belong to WA05/WA06 unless needed for the focused tests here.
 
 ## Non-Goals
 
 This pass does not:
 
 - create Initial from active Goal state alone
+- create, delete, consume, or supersede pending durable cadence intent during
+  resume hydration except through explicit durable-state cleanup required by
+  active-ineligible status
 - parse rendered Goal text for durable facts, pending intent, or watermark
+- use `history_version()` as a key, permit, suppression record, or
+  reconstruction authority
 - make evidence the default live suppression owner
 - rewrite app-server Goal APIs
 - finish broad classifier/projection cleanup

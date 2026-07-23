@@ -64,6 +64,8 @@ Exclusions:
 - no model input construction in the idle hook
 - no pending intent consumption
 - no watermark mutation
+- no recorded request evidence write or committed carry update from the
+  stage-order shell
 - no request-input shaping logic in `goals.rs`
 - no final deletion of old helpers
 - no claim that Stage 2 or Stage 3 is complete merely because the stage-order
@@ -197,5 +199,6 @@ This pass does not:
 - launch automatic Continuation
 - consume pending intent
 - advance a watermark
+- write recorded request evidence or committed carry
 - construct or inject Goal model input
 - convert same-turn or extension producers

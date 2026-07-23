@@ -1,7 +1,9 @@
 # WA04f Extension Steering Role Config Removal
 
 This implementation pass removes or hard-maps extension steering-role config
-influence for converted extension Goal paths.
+influence for converted extension Goal paths. It must leave no self-contained
+path by which extension configuration can select a user-role active Goal item
+for converted WA04 producers.
 
 Active Goal role is always selected by WA02 request-input shaping:
 `ResponseItem::Message { role: "developer", ... }`.
@@ -18,11 +20,11 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 
 Terrain:
@@ -32,6 +34,8 @@ Terrain:
 - extension tests vary `GoalContextRole::Developer` and `GoalContextRole::User`
 - core config still has local steering-role terrain in this fork
 - converted WA04 producer paths no longer need steering role
+- final active role proof belongs to captured final `/responses` input, not
+  extension helper output or config inspection by itself
 
 Code-shape temptation:
 
@@ -48,6 +52,8 @@ Locked direction:
 - if broader config removal is not owned here, hard-map compatibility so the
   old key cannot affect converted active steering
 - final request-input shaping remains the only active role owner
+- old config compatibility, if retained, is parsing compatibility only; it must
+  not be active steering behavior
 
 Exclusions:
 
@@ -55,17 +61,20 @@ Exclusions:
 - no active model input construction
 - no broad config refactor unless needed by touched types
 - no final WA06 cleanup of every old symbol unless it is local to this pass
+- no evidence, helper-output, raw-notification, rollout-trace, or rendered-text
+  substitute for final payload authority
 
 ## Authority Docs Read
 
 Implementation should reread:
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-primary-cadence-contract.md`
-- `local/goal_research/goal-authority-ext-goal-ownership.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-extension-lifecycle-and-reachability.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
+- `local/goal_research/goal-final-request-input.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-conversion.md`
 - `local/goal_136_plan/work-areas/04-ext-goal-reachability-and-ordering-map.md`
 
@@ -106,8 +115,8 @@ Allowed interim outcome if core config fallout must wait:
 old config may parse for compatibility
 converted extension paths ignore it for active steering
 final request-input shaping still uses developer role
-04h proves any old app-server/core user-role config value cannot change final
-  payload authority
+04h proves any old app-server/core user-role config value, if still parseable,
+  cannot change final payload authority
 ```
 
 ## Exact Files To Edit
@@ -141,6 +150,15 @@ final request-input shaping still uses developer role
    Rust implementation per root `AGENTS.md`.
 9. If core config fields remain for later cleanup, document in code/tests that
    converted WA04 producers ignore them.
+10. Ensure converted extension producers never pass role metadata to the WA04a
+    same-turn cadence adapter, WA02 request shaper, runtime effects, or helper
+    prompt rendering.
+11. Ensure removal or hard-mapping does not change extension enablement,
+    product tool registration, accounting, metrics/events, or durable pending
+    intent behavior.
+12. Keep active role proof tied to final `/responses` capture in 04h: exactly
+    one selected current outer developer-role Goal item, no active
+    `<goal_context>`, and no user-role active Goal item.
 
 ## Tests And Checks
 
@@ -174,6 +192,8 @@ After this pass:
 - extension config no longer carries steering role, or it is explicitly
   ignored by converted paths
 - active role selection remains only in WA02 request-input shaping
+- retained core config parsing, if any, is compatibility terrain for later
+  cleanup and not active steering authority
 - captured final `/responses` proof for old user-role config remains owned by
   04h
 - `ext/goal/src/steering.rs` may still need deletion/reduction in 04g

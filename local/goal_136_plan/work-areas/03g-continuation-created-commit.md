@@ -117,6 +117,7 @@ Extend `GoalRequestCommit` so Continuation commit metadata includes:
 - visible key component fields
 - `facts_version`
 - `goal_id`
+- committed turn identifier
 - selected item fingerprint
 - full finalized request-input fingerprint
 - item index
@@ -126,7 +127,10 @@ Extend `GoalRequestCommit` so Continuation commit metadata includes:
 In `ResponseEvent::Created`:
 
 - verify the selected item still matches the commit metadata
-- upsert the watermark row with the storage key and visible key fields
+- verify the full finalized logical request input still matches the
+  `request_input_fingerprint`
+- upsert the watermark row with the storage key, visible key fields,
+  committed turn id, item fingerprint, and commit timestamp
 - keep pending Initial / ObjectiveUpdated / BudgetLimit consumption on the
   WA02 exact-key path
 - record committed carry metadata
@@ -135,6 +139,9 @@ In `ResponseEvent::Created`:
   durable snapshots instead of replaying the stale synthetic request
 - append `GoalRequestEvidence` only if the typed carrier and failure policy
   have already been implemented
+- if evidence is used for replay, audit, resume, rollback, fork, or
+  reconstruction, append the committed Goal item and typed evidence record as
+  one logical thread-history batch with a non-best-effort failure policy
 - never use a best-effort evidence append as the only reason a Continuation is
   suppressed after resume or retry
 
@@ -162,9 +169,13 @@ Add focused tests:
 - `goal_idle_continuation_created_commit_records_evidence_metadata` when the
   typed evidence carrier and explicit failure policy exist
 
-Tests must inspect final `/responses` input and durable watermark state. They
-must not use ordinary rollout items, raw notifications, classifier matches, or
-rendered Goal text as structured commit metadata.
+Tests must inspect final `/responses` input and durable watermark state. Final
+payload assertions must prove exactly one outer developer-role Continuation
+Goal item, no active `<goal_context>` item, no user-role active Goal item, and
+no duplicate Goal item for the committed synthetic request. Tests must not use
+ordinary rollout items, raw notifications, classifier matches, rollout trace
+payloads, recorded evidence alone, or rendered Goal text as structured commit
+metadata.
 
 Suggested implementation validation:
 

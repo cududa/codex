@@ -54,6 +54,9 @@ Locked direction:
   WA03
 - assert final request input, Created-event commit timing, and durable
   watermark state
+- for every request-producing assertion, prove the final `/responses` payload
+  contains exactly one current outer developer-role Goal item and no active
+  `<goal_context>` or user-role Goal item
 - leave broad cleanup and final acceptance to WA05/WA06
 - prove that stale synthetic acceptance aborts before submission rather than
   submitting an empty or helper-only model request
@@ -116,6 +119,12 @@ completion. A request-producing test must prove the final `/responses` input;
 a suppression test must prove durable watermark state or the recomputed
 model-visible key predicate.
 
+For request-producing tests, final `/responses` proof means the captured final
+request contains exactly one current outer developer-role Goal `ResponseItem`
+for the expected cadence kind. It also means the captured request contains no
+active `<goal_context>` item, no user-role active Goal item, and no duplicate
+Goal item for the same cadence decision.
+
 ## Exact Files To Edit
 
 - `codex-rs/core/src/session/turn.rs`
@@ -163,6 +172,9 @@ Verify and, if needed, tighten integration behavior:
   evidence and do not reconstruct state-owned watermarks
 - `ContextManager::history_version()` may be useful diagnostic terrain but is
   not a key, permit, or suppression check by itself
+- every request-producing retry/failure/stale-turn scenario asserts the exact
+  final payload shape: one current outer developer-role Goal item, no active
+  `<goal_context>`, no user-role Goal item, and no duplicate Goal item
 
 Do not broaden this pass into WA05 cleanup. Add only narrow classifier/key
 hooks needed for the WA03 request-input base input.
@@ -172,9 +184,15 @@ hooks needed for the WA03 request-input base input.
 Add or complete focused tests:
 
 - `goal_idle_request_failure_before_created_does_not_advance_watermark`
+  - if a later retry submits a Continuation, assert exactly one current outer
+    developer-role Continuation item and no active `<goal_context>` or
+    user-role Goal item
 - `goal_idle_retry_after_created_does_not_duplicate_continuation`
+  - assert no second request contains a duplicate Continuation for the same
+    `{ goal_id, model_visible_history_key, facts_version }`
 - `goal_idle_created_follow_up_does_not_reuse_stale_goal_turn_request`
 - `goal_idle_automatic_continuation_preflight_mismatch_aborts_before_submit`
+  - assert no `/responses` request is submitted for the stale synthetic turn
 - `goal_idle_candidate_rejected_if_pending_work_appears_after_reservation`
 - `goal_idle_late_pending_work_is_not_drained_into_goal_owned_synthetic_turn`
 - `goal_idle_resume_unchanged_watermark_suppresses_duplicate_continuation`
@@ -190,6 +208,14 @@ Assertions should use:
 - `ResponseMock::requests()`
 - `ResponsesRequest::message_input_texts("developer")`
 - durable state reads for watermark rows
+
+Every request-producing final payload assertion must prove:
+
+- exactly one current outer developer-role Goal item for the expected cadence
+  kind
+- no active `<goal_context>` item
+- no user-role active Goal item
+- no duplicate Goal item created by retry, stale metadata, or follow-up shaping
 
 Reject these as substitutes for final request input or structured commit
 metadata:
