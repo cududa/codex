@@ -1,7 +1,10 @@
 # WA05e: Rollout Reconstruction, Rollback, And Fork Cleanup
 
 This pass converts rollout reconstruction, rollback, and fork cleanup to use
-the shared classifier and to reject rendered-text recovery.
+the shared classifier and to reject rendered-text recovery. Reconstruction may
+filter or route pure artifacts, but it must not recover active Goal facts,
+pending intent, cadence, committed carry, structured evidence, or Continuation
+suppression from ordinary history artifacts.
 
 ## Direction Lock
 
@@ -13,12 +16,15 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
-- `local/goal_research/goal-authority-repair-classifier-integration.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-projection-reconstruction-and-raw-history.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/how-we-test.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/05-repair-classifiers-and-projections-surface-map.md`
 
@@ -35,12 +41,15 @@ Terrain:
   checkpoints
 - v140 typed replay materializes `InterAgentCommunication` into model input,
   but Goal request evidence must not copy that materialization shape
+- evidence/carry may be absent in the target branch; absence is not permission
+  to parse rendered Goal text as a fallback
 
 Code-shape temptation:
 
 - reconstruct active Goal facts or cadence from rendered Goal text in history
 - accept ordinary rollout `ResponseItem`, rollout trace, classifier match, or
   raw notification as structured commit evidence
+- copy v140 typed replay materialization so Goal evidence becomes model input
 
 Locked direction:
 
@@ -49,6 +58,8 @@ Locked direction:
   pairing when the evidence carrier exists
 - never recover active Goal facts, pending intent, or Continuation suppression
   by parsing rendered Goal text
+- when evidence/carry is unavailable, leave recorded-history repair to WA06
+  acceptance instead of inventing unstructured reconstruction
 
 Exclusions:
 
@@ -60,12 +71,15 @@ Exclusions:
 ## Authority Docs Read
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
-- `local/goal_research/goal-authority-repair-classifier-integration.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-projection-reconstruction-and-raw-history.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/how-we-test.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 
 ## Code Terrain Read
 
@@ -80,7 +94,9 @@ Exclusions:
 
 Convert reconstruction cleanup from old Goal marker filtering to strict
 current/legacy artifact classification while maintaining replay and rollback
-boundaries.
+boundaries. Rollback and fork operate on surviving history plus durable state
+or explicitly supported evidence-derived metadata, not on rendered Goal
+artifacts from discarded or unrelated history.
 
 ## Exact Files To Edit
 
@@ -109,10 +125,24 @@ boundaries.
   later WA06 acceptance item. Do not fall back to rendered text parsing.
 - Keep rollback/fork behavior based on surviving history and durable state, not
   on old rendered Goal artifacts.
+- Ignore rolled-back evidence and evidence whose paired model-visible Goal item
+  no longer survives the reconstruction/rollback/fork boundary.
+- Do not materialize structured evidence as a `ResponseItem`, hook prompt, raw
+  notification, typed projection item, or model input.
 
 ## Tests And Checks
 
-Add or update focused tests:
+Use `local/how-we-test.md` and the cleanup triage doc. This pass should burn
+down tests that defend rendered-text recovery, ordinary rollout artifacts,
+classifier matches, raw notifications, or fake-shim evidence substitutes after
+those code paths are removed. Delete old rendered-text recovery or fake-shim
+tests with no replacement by default. Keep or add focused
+reconstruction/rollback/fork boundary coverage only where a current cleanup
+contract remains and no existing boundary validates it; do not create tests
+just to confirm old tests were removed.
+
+Only keep or add focused boundary cases when they protect a real current
+reconstruction/rollback/fork cleanup contract and are not already covered:
 
 - reconstruction filters pure current Goal internal-context items
 - reconstruction filters pure legacy `<goal_context>` artifacts
@@ -126,6 +156,11 @@ Add or update focused tests:
   structured committed Goal request evidence
 - if structured evidence is available, reconstruction pairs evidence by
   fingerprint before using it as metadata
+
+Assertions should inspect reconstructed history, surviving-history boundaries,
+or metadata pairing outcomes. They should not rely on classifier matches or
+rendered Goal text alone as validation. For docs/test-deletion-only work, diff
+inspection is valid validation.
 
 ## Branch Continuation State
 

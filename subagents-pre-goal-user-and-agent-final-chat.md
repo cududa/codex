@@ -2,7 +2,28 @@
 
 Source session: `019f7918-4db2-7d82-84a3-9aba1fca3565`
 
-This keeps visible user messages and only assistant messages where the assistant turn had ended or was handing control back. Intermediary progress updates, tool calls, tool outputs, injected context, and aborted-turn markers are omitted.
+## Progression Map
+
+1. The user asked for a scoped planning pass for documenting thread-spawn
+   subagents, not a full documentation rewrite.
+2. The assistant sampled terrain and proposed `local/subagents/` as a feature
+   documentation area.
+3. The user approved a skeleton; the assistant created it.
+4. The user asked how to populate the docs comprehensively across many passes.
+5. The assistant proposed `local/subagents-work/` as temporary executable
+   scaffolding.
+6. The user approved; the assistant created the work packet.
+7. The user raised context-pressure concerns; the assistant introduced the
+   Slice Decomposition Checkpoint / Subslice Protocol.
+8. The user approved integrating that protocol; the assistant added it across
+   the work packet.
+9. The user asked whether this should become a long-running `/goal`.
+10. The assistant proposed a slim cursor, task-alignment usage, and a terminal
+    goal objective.
+11. The user requested a more explicit goal prompt that would not stall on
+    `00 Scope ledger` and would use the cursor for subslicing cadence.
+12. The assistant produced the final candidate goal objective and kickoff
+    instruction.
 
 ## User - 2026-07-19 06:39:55
 
@@ -10,59 +31,57 @@ Hello, using $task-alignment alongside $codebase-design I'd like to work on docu
 
 ## Assistant - 2026-07-19 06:45:39
 
-Using `$task-alignment` and `$codebase-design`, I treated this as a terrain and planning pass only. I did not edit files or run tests.
+Using `$task-alignment` and `$codebase-design`, I treated this as a terrain and
+planning pass only. I did not edit files or run tests.
 
 ## Direction Lock
 
-- Request: sample the repo and plan documentation for the end-to-end subagents feature, especially agent exposure, full/fresh context modes, and architecture.
-- Authority: root `AGENTS.md` plus [local/how-we-document.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/how-we-document.md:1). Docs should be organized by ownership seams and reader jobs, not current file topology.
-- Terrain: core tool specs/handlers, `AgentControl`/`AgentRegistry`, protocol types, mailbox delivery, state graph, app-server projection, hooks, TUI rendering/navigation, and realtime background-agent handoff.
-- Locked direction: plan a feature-area doc set for thread-spawn subagents. Treat realtime `background_agent` handoff as a sibling adapter/front-door unless we deliberately widen scope.
-- Exclusions: no full documentation rewrite now, no product docs in `docs/`, no code changes, and do not treat guardian/memory/compact/review subagents as the same feature except as related variants.
+- Request: sample the repo and plan documentation for the end-to-end subagents
+  feature, especially agent exposure, full/fresh context modes, and
+  architecture.
+- Authority: root `AGENTS.md` plus `local/how-we-document.md`. Docs should be
+  organized by ownership seams and reader jobs, not current file topology.
+- Terrain: core tool specs/handlers, `AgentControl`/`AgentRegistry`, protocol
+  types, mailbox delivery, state graph, app-server projection, hooks, TUI
+  rendering/navigation, and realtime background-agent handoff.
+- Locked direction: plan a feature-area doc set for thread-spawn subagents.
+  Treat realtime `background_agent` handoff as a sibling adapter/front-door
+  unless we deliberately widen scope.
+- Exclusions: no full documentation rewrite now, no product docs in `docs/`,
+  no code changes, and do not treat guardian/memory/compact/review subagents
+  as the same feature except as related variants.
 
-**What I Found**
+Compressed terrain summary:
 
-The core owner Module is [agent/control.rs](C:/Users/cullendudas/Documents/GitHub/codex-pinned/codex-rs/core/src/agent/control.rs:1). Tool handlers are mostly Adapters around it.
+- Core owner module: `codex-rs/core/src/agent/control.rs`.
+- Agent-facing interface: `multi_agents_spec.rs`.
+- v1 surface: namespaced `multi_agent_v1.*`, with `fork_context: bool`.
+- v2 surface: `spawn_agent`, `send_message`, `followup_task`, `wait_agent`,
+  `list_agents`, `close_agent`, with optional namespace override and
+  `fork_turns`.
+- Context modes: fresh, full context fork, and partial context fork.
+- Runtime concepts: `AgentControl`, `AgentRegistry`,
+  `SessionSource::SubAgent(ThreadSpawn)`, `InterAgentCommunication`,
+  `InputQueue`, and `thread_spawn_edges`.
+- Realtime `background_agent` is related delegation terrain but not equivalent
+  to thread-spawn subagents.
 
-The agent-facing Interface is in [multi_agents_spec.rs](C:/Users/cullendudas/Documents/GitHub/codex-pinned/codex-rs/core/src/tools/handlers/multi_agents_spec.rs:1). There are two relevant surfaces:
+Recommended doc set:
 
-- v1: namespaced `multi_agent_v1.*`, with `fork_context: bool`.
-- v2: `spawn_agent`, `send_message`, `followup_task`, `wait_agent`, `list_agents`, `close_agent`, with optional namespace override and `fork_turns`.
+- `local/subagents/AGENTS.md`
+- `local/subagents/README.md`
+- `local/subagents/delegation-interface.md`
+- `local/subagents/spawn-context-lifecycle.md`
+- `local/subagents/runtime-architecture.md`
+- `local/subagents/communication-and-results.md`
+- `local/subagents/state-and-client-projection.md`
+- `local/subagents/hooks-and-integrations.md`
+- `local/subagents/realtime-background-agent-handoff.md`
+- `local/subagents/proof-and-readiness.md`
 
-The context modes are an important doc seam:
-
-- Fresh session: v2 `fork_turns = "none"` or v1 `fork_context = false`. The child inherits effective config/runtime policy, but not parent thread history.
-- Full context fork: v2 default/`fork_turns = "all"` or v1 `fork_context = true`. The child forks parent rollout history and must inherit parent role/model/reasoning.
-- Partial context fork: v2 positive `fork_turns = N`. The child gets recent turns and can still use role/model/reasoning overrides.
-
-Runtime architecture centers on:
-
-- `AgentControl`: spawn, fork, resume, send input, send inter-agent communication, close, list.
-- `AgentRegistry`: live tree, path reservation, nickname/role metadata, thread caps.
-- `SessionSource::SubAgent(ThreadSpawn)`: durable identity for thread-spawn agents.
-- `InterAgentCommunication` + `InputQueue`: mailbox-style delivery between agents.
-- `thread_spawn_edges`: persisted open/closed parent-child graph.
-
-Realtime `background_agent` handoff is related but architecturally different: it routes a `<realtime_delegation>` envelope into the main session rather than creating a thread-spawn subagent. I would document it as an adapter or appendix, not as the owner of subagent behavior.
-
-**Recommended Doc Set**
-
-I would create a local feature area, probably under `local/subagents/`, not `docs/`.
-
-- `AGENTS.md`: authority order, scope, terminology, exclusions.
-- `README.md`: reader routing by question, not behavior ownership.
-- `delegation-interface.md`: model-facing tools, v1/v2 differences, tool exposure config, usage hints, task names, paths.
-- `spawn-context-lifecycle.md`: fresh/full/partial context, inherited config/runtime policy, override rules, spawn/resume/close lifecycle.
-- `runtime-architecture.md`: `AgentControl`, `AgentRegistry`, thread manager, source metadata, fork mechanics.
-- `communication-and-results.md`: `send_message`, `followup_task`, mailbox behavior, wait semantics, completion forwarding, `<subagents>` context.
-- `state-and-client-projection.md`: thread edges, thread metadata, app-server filters/events, TUI navigation/rendering.
-- `hooks-and-integrations.md`: `SubagentStart`, `SubagentStop`, normal hook context, internal subagent exclusions.
-- `realtime-background-agent-handoff.md`: optional sibling adapter doc for voice/realtime handoff.
-- `proof-and-readiness.md`: test anchors, snapshot expectations, cold-reader checklist.
-
-**Best Next Slice**
-
-The next useful pass should create only the skeleton and routing docs: `local/subagents/AGENTS.md`, `README.md`, and empty section headers for the seam docs. After that, fill the core thread-spawn docs first: delegation Interface, spawn/context lifecycle, and runtime architecture.
+Best next slice: create only the skeleton and routing docs first. Fill the core
+thread-spawn docs later, starting with delegation interface, spawn/context
+lifecycle, and runtime architecture.
 
 ## User - 2026-07-19 06:46:27
 
@@ -70,18 +89,21 @@ Yep, let's start with the skeleton for sure
 
 ## Assistant - 2026-07-19 06:49:17
 
-Created the subagents docs skeleton under [local/subagents](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents).
+Created the subagents docs skeleton under `local/subagents`.
 
-Added:
+Compressed change summary:
 
-- [AGENTS.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents/AGENTS.md): authority order, scope, writing rules, stop conditions.
-- [README.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents/README.md): reader routing and terrain anchors.
-- [CONTEXT.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents/CONTEXT.md): glossary-only skeleton.
-- Seam docs for delegation, spawn/context lifecycle, runtime architecture, communication/results, state/client projection, hooks/integrations, realtime handoff, and proof/readiness.
+- Added `AGENTS.md`, `README.md`, and `CONTEXT.md`.
+- Added seam docs for delegation, spawn/context lifecycle, runtime
+  architecture, communication/results, state/client projection,
+  hooks/integrations, realtime handoff, and proof/readiness.
+- Kept behavior docs skeletal with a standard navigation header, ownership
+  boundaries, terrain anchors, and TODO fill sections.
+- Kept realtime `background_agent` as a sibling adapter doc rather than folding
+  it into thread-spawn subagents.
 
-I kept the behavior docs skeletal: each starts with the standard `## Navigation Header`, names what it owns and does not own, lists terrain anchors, and leaves `TODO` fill sections for later passes. Realtime `background_agent` handoff is separated as a sibling adapter doc rather than folded into thread-spawn subagents.
-
-Validation: no Rust tests were run because this was docs-only. I checked the new files for routing/header consistency, trailing whitespace, and non-ASCII. The new `local/subagents/` directory is currently untracked.
+Validation was docs-only: no Rust tests; checked routing/header consistency,
+trailing whitespace, and non-ASCII.
 
 ## User - 2026-07-19 07:22:35
 
@@ -93,105 +115,52 @@ Using `task-alignment` and `codebase-design` for this as a planning-only answer.
 
 ## Direction Lock
 
-- Request: describe how to populate the subagents docs comprehensively across multiple tractable passes.
-- Authority: `local/how-we-document.md` and the new `local/subagents/` skeleton.
-- Terrain: already sampled subagent tool specs, runtime, protocol, state, app-server, hooks, TUI, and realtime handoff paths.
-- Code-shape temptation: fill docs in source-file order or turn the README into a giant architecture narrative.
-- Locked direction: populate by ownership seam, with each slice producing one or two owning docs plus cross-doc ownership checks.
-- Exclusions: no doc edits in this response, no attempt to solve every open behavior question now.
+- Request: describe how to populate the subagents docs comprehensively across
+  multiple tractable passes.
+- Authority: `local/how-we-document.md` and the new `local/subagents/`
+  skeleton.
+- Terrain: already sampled subagent tool specs, runtime, protocol, state,
+  app-server, hooks, TUI, and realtime handoff paths.
+- Code-shape temptation: fill docs in source-file order or turn the README into
+  a giant architecture narrative.
+- Locked direction: populate by ownership seam, with each slice producing one
+  or two owning docs plus cross-doc ownership checks.
+- Exclusions: no doc edits in this response, no attempt to solve every open
+  behavior question now.
 
-The right unit of work is not “document a file.” It is “document one seam until a future agent can use that doc without repo archaeology.”
+Core idea: the unit of work should be "document one seam until a future agent
+can use that doc without repo archaeology," not "document a file."
 
-I’d break it down like this:
+Compressed proposed pass structure:
 
-1. **Prep Pass: Concept Ledger And Scope Decisions**
+1. Prep pass: create a concept ledger and scope decisions in a temporary
+   `local/subagents-work/` area.
+2. Core trio pass: fill `delegation-interface.md`,
+   `spawn-context-lifecycle.md`, and `runtime-architecture.md` together because
+   they constrain each other.
+3. Communication pass: fill `communication-and-results.md`, covering
+   `send_message`, `followup_task`, mailbox delivery, `wait_agent`, completion
+   forwarding, and model-visible subagent state.
+4. State and projection pass: fill `state-and-client-projection.md`, separating
+   durable thread state from app-server and TUI presentation.
+5. Hooks and realtime pass: fill `hooks-and-integrations.md` and decide the
+   depth of `realtime-background-agent-handoff.md`.
+6. Proof and hardening pass: fill `proof-and-readiness.md`, then harden
+   `README.md`, `AGENTS.md`, and `CONTEXT.md`.
 
-   Create a temporary working note outside the live reader path, probably `local/subagents-work/`, that maps discovered facts to owning docs. This is where source archaeology belongs while drafting.
+Working rhythm for each slice:
 
-   Main decisions:
-   - Is realtime `background_agent` just an adapter doc, or part of broader delegation authority?
-   - Which behavior is v2 canonical versus v1 compatibility?
-   - Which internal subagent variants are explicitly out of scope?
-   - Which rules are intended local authority versus merely current upstream terrain?
+- Read the owning doc skeleton and terrain anchors.
+- Extract durable facts into temporary notes.
+- Sort facts into owned-here, pointer-only, and conflict/open.
+- Draft concise core rules and negative rules.
+- Update cross-doc pointers only where needed.
+- Check for duplicated ownership.
+- Move proof expectations to `proof-and-readiness.md` unless local to the seam.
 
-2. **Core Trio Pass: Agent Interface, Spawn Lifecycle, Runtime Architecture**
-
-   Fill these together because they constrain each other:
-
-   - `delegation-interface.md`
-   - `spawn-context-lifecycle.md`
-   - `runtime-architecture.md`
-
-   This pass should establish the main model:
-   - tools are the agent-facing Interface;
-   - `AgentControl`/`AgentRegistry` are the deep runtime Modules;
-   - fresh/full/partial context modes are lifecycle authority;
-   - handlers and clients are mostly Adapters.
-
-   Definition of done: a reader can explain how an agent asks for subagents, what context the child gets, what can be overridden, and which Module owns execution.
-
-3. **Communication Pass: Messaging, Waiting, Results**
-
-   Fill `communication-and-results.md`.
-
-   This should cover:
-   - `send_message` versus `followup_task`;
-   - mailbox delivery;
-   - when communication starts a turn;
-   - what `wait_agent` promises and does not promise;
-   - how child completion reaches the parent;
-   - how model context gets subagent notifications or `<subagents>` state.
-
-   Definition of done: a reader can predict whether a message triggers work, whether wait returns content, and how final child output is surfaced.
-
-4. **State And Projection Pass**
-
-   Fill `state-and-client-projection.md`.
-
-   This should cover:
-   - `thread_spawn_edges`;
-   - open/closed edge state;
-   - direct children versus descendants;
-   - resume and archive behavior;
-   - thread metadata for source/path/nickname/role;
-   - app-server event/thread projection;
-   - TUI picker/history/navigation as downstream presentation.
-
-   Definition of done: a reader can distinguish durable state ownership from client projection and avoid treating TUI/app-server rendering as behavior authority.
-
-5. **Hooks And Realtime Pass**
-
-   Fill `hooks-and-integrations.md`, then decide how much to fill in `realtime-background-agent-handoff.md`.
-
-   Hooks should cover only thread-spawn exposure: `SubagentStart`, `SubagentStop`, normal hook context, and internal subagent exclusions.
-
-   Realtime should stay explicit about non-equivalence: it is delegation terrain, but it routes a realtime handoff into a main session turn rather than creating a thread-spawn subagent.
-
-6. **Proof And Hardening Pass**
-
-   Fill `proof-and-readiness.md`, then harden `README.md`, `AGENTS.md`, and `CONTEXT.md`.
-
-   This pass should:
-   - map tests to owning docs;
-   - identify missing proof;
-   - remove stale TODOs;
-   - make glossary terms short again;
-   - ensure README routes rather than decides;
-   - run a cold-reader check.
-
-   Definition of done: a fresh agent can answer what each doc owns, where proof lives, what is out of scope, and what should stop implementation.
-
-For each population slice, I’d use the same working rhythm:
-
-1. Read the owning doc skeleton and its terrain anchors only.
-2. Extract durable behavior facts into a temporary note.
-3. Sort facts into “owned here,” “pointer only,” and “conflict/open.”
-4. Draft the owning doc with a concise core rule and negative rules.
-5. Update only necessary cross-doc pointers.
-6. Check for duplicated ownership.
-7. Move proof expectations to `proof-and-readiness.md` unless they are local to the seam.
-
-The first real fill pass should be the **Core Trio Pass**. Until those three docs are authoritative, the downstream docs will be forced to invent terms or repeat unstable explanations.
+The first real fill pass should be the Core Trio Pass. Until those three docs
+are authoritative, downstream docs would need to invent or repeat unstable
+terms.
 
 ## User - 2026-07-19 07:25:12
 
@@ -199,7 +168,8 @@ Yep, I really like this - I like the subagents-work dir idea a lot as well, that
 
 ## Assistant - 2026-07-19 07:25:49
 
-Yes. I’d record this as a temporary executable work packet, separate from the live docs:
+The assistant proposed a temporary executable work packet, separate from the
+live docs:
 
 ```text
 local/subagents-work/
@@ -217,102 +187,22 @@ local/subagents-work/
     05-proof-hardening.md
 ```
 
-The live docs stay in `local/subagents/`. The work dir is operational scaffolding: useful while filling the docs, disposable once the docs stand on their own.
+Compressed rationale:
 
-The most important file is `tasks.md`. It should be the executable queue:
+- `local/subagents/` remains the live documentation area.
+- `local/subagents-work/` is operational scaffolding and should remain
+  disposable once the docs stand on their own.
+- `tasks.md` is the executable queue.
+- Each `slices/*.md` file is an agent-ready brief, not prose notes.
+- `concept-ledger.md` captures extracted facts before they become authority.
+- `open-decisions.md` prevents agents from smoothing over scope questions.
 
-```markdown
-# Subagents Documentation Population Tasks
+The proposed durable pattern: `tasks.md` says what remains, each slice says how
+to execute one bounded pass, the ledger holds extracted facts, and open
+decisions hold blockers.
 
-## Status
-
-- [ ] 00 Scope ledger
-- [ ] 01 Core trio
-- [ ] 02 Communication and results
-- [ ] 03 State and client projection
-- [ ] 04 Hooks and realtime
-- [ ] 05 Proof and hardening
-
-## Rules
-
-- Edit live docs only in `local/subagents/`.
-- Use `local/subagents-work/` for temporary extraction, ledgers, and decisions.
-- Do not treat work-dir notes as authority.
-- Every slice must end with ownership checks and updated open decisions.
-```
-
-Each slice file should be a small agent-ready brief, not prose notes. Shape:
-
-```markdown
-# 01 Core Trio
-
-## Goal
-
-Fill the first authoritative pass for:
-- `local/subagents/delegation-interface.md`
-- `local/subagents/spawn-context-lifecycle.md`
-- `local/subagents/runtime-architecture.md`
-
-## Authority
-
-- Root `AGENTS.md`
-- `local/how-we-document.md`
-- `local/subagents/AGENTS.md`
-- Existing skeleton docs in `local/subagents/`
-
-## Terrain
-
-- `codex-rs/core/src/tools/handlers/multi_agents_spec.rs`
-- `codex-rs/core/src/tools/handlers/multi_agents_common.rs`
-- `codex-rs/core/src/tools/handlers/multi_agents_v2/`
-- `codex-rs/core/src/tools/handlers/multi_agents/`
-- `codex-rs/core/src/agent/control.rs`
-- `codex-rs/core/src/agent/registry.rs`
-
-## Work Steps
-
-1. Read the three target docs and their terrain anchors.
-2. Extract durable facts into `concept-ledger.md`.
-3. Sort facts into owned-here, pointer-only, conflict/open.
-4. Draft concise core rules for each target doc.
-5. Fill owned behavior and negative rules.
-6. Update cross-doc pointers only where needed.
-7. Move proof-only facts to `proof-and-readiness.md` notes or leave them in the ledger.
-8. Run ownership and freshness checks.
-
-## Definition Of Done
-
-- A reader can explain the model-facing Interface.
-- A reader can explain fresh, full-history, and partial-history spawn modes.
-- A reader can identify `AgentControl` and `AgentRegistry` as the core runtime Modules.
-- No durable rule is owned by more than one doc.
-- Any unresolved behavior is recorded in `open-decisions.md`.
-```
-
-`concept-ledger.md` is the working scratchpad for extracted facts:
-
-```markdown
-| Concept | Fact | Source terrain | Owning doc | Status |
-| --- | --- | --- | --- | --- |
-| Full-history fork | Rejects role/model/reasoning overrides | `spawn.rs` | `spawn-context-lifecycle.md` | ready |
-| v2 wait | Does not return final content | `wait.rs` | `communication-and-results.md` | ready |
-```
-
-`open-decisions.md` should stay small and sharp:
-
-```markdown
-# Open Decisions
-
-## Realtime Scope
-
-- Question: Is realtime `background_agent` part of subagents authority or only a sibling adapter doc?
-- Default: sibling adapter doc.
-- Blocks: comprehensive realtime doc prose, not thread-spawn docs.
-```
-
-The durable pattern is: `tasks.md` says what remains, each `slices/*.md` says how to execute one bounded pass, `concept-ledger.md` captures extracted facts before they become authority, and `open-decisions.md` prevents agents from smoothing over scope questions.
-
-The next concrete step would be to create just this work packet, still without populating the behavior docs.
+Next concrete step: create the work packet without yet populating behavior
+docs.
 
 ## User - 2026-07-19 07:33:30
 
@@ -320,20 +210,23 @@ Yep, this is perfect for me - go ahead and make it so
 
 ## Assistant - 2026-07-19 07:36:18
 
-Created the actionable work packet under [local/subagents-work](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work).
+Created the actionable work packet under `local/subagents-work`.
 
-It includes:
+Compressed change summary:
 
-- [README.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/README.md): how to use the work packet and keep it non-authoritative.
-- [tasks.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/tasks.md): executable queue for the six slices.
-- [concept-ledger.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/concept-ledger.md): temporary fact extraction table with starter rows.
-- [open-decisions.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/open-decisions.md): realtime scope, v1 posture, result semantics, and client projection decisions.
-- [slice-template.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/slice-template.md): reusable brief shape.
-- [slices/](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/slices): six executable slice briefs from scope ledger through proof hardening.
+- Added `README.md` to explain use order and non-authoritative posture.
+- Added `tasks.md` as the executable queue for six slices.
+- Added `concept-ledger.md` as the temporary fact extraction table.
+- Added `open-decisions.md` for realtime scope, v1 posture, result semantics,
+  and client projection decisions.
+- Added `slice-template.md`.
+- Added six initial slice briefs under `local/subagents-work/slices/`.
 
-I kept the work packet explicitly separate from live authority: it repeatedly points future agents back to `local/subagents/` for actual docs, and treats the work dir as temporary operational scaffolding.
+The work packet repeatedly points future agents back to `local/subagents/` for
+actual docs and treats the work dir as temporary scaffolding.
 
-Validation: docs-only, so no Rust tests run. I checked for trailing whitespace, non-ASCII, `git diff --check`, and terminology self-matches. The new `local/subagents-work/` directory is untracked, alongside the previously added `local/subagents/` directory.
+Validation was docs-only: no Rust tests; checked trailing whitespace,
+non-ASCII, `git diff --check`, and terminology self-matches.
 
 ## User - 2026-07-19 07:47:45
 
@@ -341,34 +234,35 @@ This is a really strong structure and process for a durable documentation produc
 
 ## Assistant - 2026-07-19 07:48:12
 
-I think your concern is right, and it is not over-engineering if it is constrained.
+The assistant agreed with the concern, but recommended constraining it. The
+preferred framing was not "escape hatch," but **Slice Decomposition Checkpoint**
+or **Subslice Protocol**.
 
-I would not call it an “escape hatch” in the docs. I’d call it a **Slice Decomposition Checkpoint** or **Subslice Protocol**. The framing matters: it is not permission to bail out of a hard slice. It is permission to stop pretending a slice is executable when terrain proves it is too large or underspecified.
-
-The rule I’d use:
+Key rule:
 
 > A slice may be decomposed only after the agent has sampled the target docs and terrain enough to explain why the original slice cannot be completed coherently in one pass.
 
-That keeps it evidence-based.
-
 Good triggers:
 
-- The slice owns more than one real seam and filling them together would blur ownership.
+- The slice owns more than one real seam and filling them together would blur
+  ownership.
 - The terrain needed for the slice is much larger than expected.
-- The slice reveals unresolved decisions that block different parts independently.
+- The slice reveals unresolved decisions that block different parts
+  independently.
 - The agent can draft one part confidently but would have to hand-wave another.
 - The proof surface spans multiple systems and needs its own pass.
-- The slice would force a long temporary ledger that is itself becoming hard to reason about.
+- The slice would force a long temporary ledger that is itself becoming hard to
+  reason about.
 
 Bad triggers:
 
-- “This is complicated.”
-- “I have not read enough yet.”
-- “I prefer smaller files.”
-- “The source tree has many files, so each file should get a subslice.”
-- “I want to avoid making ownership decisions.”
+- "This is complicated."
+- "I have not read enough yet."
+- "I prefer smaller files."
+- "The source tree has many files, so each file should get a subslice."
+- "I want to avoid making ownership decisions."
 
-The shape I’d use:
+Compressed proposed shape:
 
 ```text
 local/subagents-work/
@@ -381,33 +275,14 @@ local/subagents-work/
       01z-consolidation.md
 ```
 
-The parent slice remains the owner of the work. The subslices are just execution batches. The important final batch is `01z-consolidation.md`, because decomposition creates drift pressure. It should check that the three docs still agree, duplicate rules were removed, and the parent slice definition of done is actually satisfied.
+Important decision: the parent slice remains the owner. Subslice docs are
+execution batches only. The final `z` consolidation subslice checks that the
+parent definition of done is actually satisfied.
 
-I’d add a short protocol like this to the work packet:
-
-```markdown
-## Subslice Protocol
-
-If a slice is too large or underspecified to complete in one pass, pause and
-decompose it before drafting broad live prose.
-
-A decomposition must include:
-
-- the concrete reason the parent slice is not feasible as written;
-- the target live docs affected;
-- the proposed subslices;
-- what each subslice owns;
-- what each subslice must not decide;
-- the consolidation subslice that returns to the parent definition of done.
-
-Do not decompose by source-file list. Decompose by ownership seam, reader job,
-or blocking decision.
-
-Do not mark the parent slice complete until its consolidation subslice confirms
-that the parent definition of done is satisfied.
-```
-
-That gives future agents a real pressure-release valve without blessing process sprawl. It also matches the whole documentation philosophy here: temporary scaffolding is allowed, but it has to route back to durable authority and eventually disappear from the normal reader path.
+The protocol should require a concrete reason, affected docs, proposed
+subslices, each subslice's ownership and non-ownership, and a consolidation
+subslice. Decomposition should happen by ownership seam, reader job, or
+blocking decision, not by source-file list.
 
 ## User - 2026-07-19 07:51:14
 
@@ -415,19 +290,24 @@ Yup, I think this sounds perfect to me. And after you have this written, maybe w
 
 ## Assistant - 2026-07-19 07:53:15
 
-Integrated the subslice process into [local/subagents-work](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work).
+Integrated the subslice process into `local/subagents-work`.
 
-What changed:
+Compressed change summary:
 
-- Added a **Slice Decomposition Checkpoint** to [README.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/README.md).
-- Added a **Subslice Protocol** to [tasks.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/tasks.md).
-- Updated [slice-template.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/slice-template.md) so future slices include decomposition criteria.
+- Added Slice Decomposition Checkpoint guidance to `README.md`.
+- Added Subslice Protocol guidance to `tasks.md`.
+- Updated `slice-template.md` with decomposition criteria.
 - Added conditional decomposition guidance to each existing slice brief.
-- Updated [concept-ledger.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/concept-ledger.md) and [open-decisions.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/open-decisions.md) so subslices reuse the shared ledger/decision tracker instead of creating parallel process artifacts.
+- Updated `concept-ledger.md` and `open-decisions.md` so subslices reuse shared
+  trackers instead of creating parallel process artifacts.
 
-I also tree-walked the work packet after writing it and tightened the language so subslices are clearly not created upfront. The rule is now: decompose only after terrain sampling proves the parent slice is not feasible as written, and the parent slice cannot be checked off until a consolidation subslice satisfies the original definition of done.
+The tree walk tightened the language so subslices are not created upfront.
+Current rule: decompose only after terrain sampling proves the parent slice is
+not feasible as written, and do not mark the parent complete until a
+consolidation subslice satisfies the original definition of done.
 
-Validation: docs-only, so no Rust tests run. I checked for trailing whitespace, non-ASCII, `git diff --check`, and unwanted terminology/process phrasing.
+Validation was docs-only: no Rust tests; checked trailing whitespace,
+non-ASCII, `git diff --check`, and unwanted terminology/process phrasing.
 
 ## User - 2026-07-19 07:57:08
 
@@ -441,122 +321,121 @@ Really wonderful work here. I went ahead and committed your subagents and subage
 
 ## Direction Lock
 
-- Request: assess whether subagents documentation population is a good long-running `/goal` objective and how to add a slim cursor without creating process sprawl.
-- Authority: `task-alignment`, `local/how-we-document.md`, `local/subagents/AGENTS.md`, and `local/subagents-work/`.
-- Terrain: `tasks.md` already owns the queue; `README.md` owns process posture; `concept-ledger.md` and `open-decisions.md` own temporary extraction and blockers.
-- Code-shape temptation: turn the cursor into a running log or second authority surface.
-- Locked direction: yes, this is a good `/goal` candidate if the goal is terminally defined by the readiness gate, and the cursor is overwrite-only state, not history.
-- Exclusions: do not create a goal unless explicitly asked; do not duplicate ledger or decision tracking in the cursor.
+- Request: assess whether subagents documentation population is a good
+  long-running `/goal` objective and how to add a slim cursor without creating
+  process sprawl.
+- Authority: `task-alignment`, `local/how-we-document.md`,
+  `local/subagents/AGENTS.md`, and `local/subagents-work/`.
+- Terrain: `tasks.md` already owns the queue; `README.md` owns process posture;
+  `concept-ledger.md` and `open-decisions.md` own temporary extraction and
+  blockers.
+- Code-shape temptation: turn the cursor into a running log or second authority
+  surface.
+- Locked direction: yes, this is a good `/goal` candidate if the goal is
+  terminally defined by the readiness gate, and the cursor is overwrite-only
+  state, not history.
+- Exclusions: do not create a goal unless explicitly asked; do not duplicate
+  ledger or decision tracking in the cursor.
 
-Yes, I think this is an appropriate long-running `/goal` task. The reason is that it has a real terminal condition: the `local/subagents/` docs pass the final readiness gate in `local/subagents-work/tasks.md`. It is large, but not open-ended.
+The assistant said this is an appropriate long-running `/goal` task because it
+has a real terminal condition: the `local/subagents/` docs pass the final
+readiness gate in `local/subagents-work/tasks.md`.
 
-The goal objective should be narrow and operational:
+Initial short objective:
 
 ```text
 Populate the thread-spawn subagents feature-area docs in local/subagents using local/subagents-work until tasks.md reaches the final readiness gate. Keep work-dir notes non-authoritative, use task-alignment Direction Lock for each slice or subslice, and update the slim cursor without maintaining a running progress log.
 ```
 
-I would add the slim cursor at the top of `local/subagents-work/tasks.md`, not as a new file. That keeps the queue and current execution state together.
+The proposed slim cursor should live at the top of
+`local/subagents-work/tasks.md`, not as a new file. It should be an overwrite-only
+active pointer, with fields for current slice, current subslice, target docs,
+next action, blockers, and handoff note.
 
-Shape:
-
-```markdown
-## Execution Cursor
-
-Temporary section. Remove during `05 Proof and hardening`.
-
-- Current slice: `00 Scope ledger`
-- Current subslice: none
-- Current target docs: `local/subagents/AGENTS.md`, `README.md`, `CONTEXT.md`
-- Next action: sample target docs and expand `concept-ledger.md`
-- Blockers: none
-- Handoff note: none
-```
-
-Rules for the cursor:
+Cursor rules:
 
 - Overwrite it; do not append history.
-- Keep it under roughly 8 lines.
+- Keep it short.
 - Do not record facts there; facts go in `concept-ledger.md`.
 - Do not record decisions there; decisions go in `open-decisions.md`.
-- Do not record proof matrices there; proof goes in `proof-and-readiness.md`.
-- Do not mark a parent slice done unless its definition of done is satisfied, including consolidation when decomposed.
+- Remove it during `05 Proof and hardening`.
 
-For agent orientation, I’d make the first instruction of a `/goal` continuation:
+Recommended continuation instruction:
 
 ```text
 Use task-alignment. Read local/subagents-work/README.md, tasks.md, open-decisions.md, concept-ledger.md, and the current slice from the Execution Cursor. Treat local/subagents-work as operational scaffolding, not authority. Before editing live docs, emit a Direction Lock for the current slice or subslice.
 ```
 
-That gives compactions a stable recovery point without turning the chat transcript into the source of truth. It also matches the structure already committed: `tasks.md` is the queue, the cursor is only the current pointer, and every durable behavior still has to land in one owning doc under `local/subagents/`.
-
 ## User - 2026-07-19 08:10:59
 
-So, I think the added details can definitely go in tasks, but I really think it's powerful when the cursor is a tiny section, and we make sure this tasks doc can't really grow much beyond what we start with to avoid the sort of natural tendancy to create a task log dumping ground. I think the way you have the cursor now could even just turn into a big long log - where when we're deep in execution the tasks doc become difficult and anxiety inducing for the agent to read; I think this verbosity comes from a good place but functionally it eventually stops being a useful grounder and can become more of a retracing liability
+I am completely on board with the idea of an overwrite only cursor; but I think it might be good to not make it that verbose? Like instead of all these fields, maybe literally like:
+
+```markdown
+## Cursor
+
+- Current:
+- Next:
+- Stop:
+```
+
+Sort of like a small register that can be updated atomically; if we need more detail, the slice/task files can own it. Thoughts?
 
 ## Assistant - 2026-07-19 08:11:13
 
-I agree with the correction. The cursor should be a **register**, not a note surface.
+The assistant agreed and preferred the smaller register shape.
 
-I’d make it even smaller than what I suggested:
-
-```markdown
-## Cursor
-
-- Current: `00 Scope ledger`
-- Next: Expand `concept-ledger.md` for scope concepts.
-- Stop: none
-```
-
-That’s it. No target docs, no handoff note, no “current subslice” unless one exists. If blocked:
+Final cursor shape:
 
 ```markdown
 ## Cursor
 
-- Current: `01 Core trio`
-- Next: Resolve v1 compatibility posture.
-- Stop: `open-decisions.md#v1-compatibility-posture`
+- Current:
+- Next:
+- Stop:
 ```
 
-The important rule is: **the cursor may point, but it may not explain**.
+Rationale:
 
-I’d add a short guardrail to `tasks.md`:
+- `Current` names active work.
+- `Next` names the immediate handoff target.
+- `Stop` names blockers or the reason to pause.
 
-```markdown
-## Cursor Rules
+This keeps the cursor atomic and prevents it from becoming a second ledger.
+More detail belongs in slice docs, `concept-ledger.md`, or
+`open-decisions.md`.
 
-- Keep `Cursor` to three bullets: `Current`, `Next`, and `Stop`.
-- Overwrite it; never append history.
-- Do not record facts, decisions, proof, summaries, or progress notes here.
-- Put facts in `concept-ledger.md`.
-- Put decisions and blockers in `open-decisions.md`.
-- Put completed-state checkboxes only in `Queue`.
-- Remove `Cursor` during `05 Proof and hardening`.
-```
+Suggested cursor rules:
 
-That avoids the failure mode you’re naming. The task doc stays a small orientation surface: current pointer, stable queue, rules, final readiness gate. Anything that makes the reader retrace prior work belongs somewhere else, or nowhere.
+- Overwrite the cursor; do not append history.
+- Keep each field to one concise bullet.
+- If a field needs more detail, move that detail to the relevant slice,
+  `concept-ledger.md`, or `open-decisions.md`.
+- Remove the cursor during `05 Proof and hardening`.
 
 ## User - 2026-07-19 08:11:46
 
-Yep, exactly. This works for me
+Yes, go ahead and add that please
 
 ## Assistant - 2026-07-19 08:12:15
 
-Added the tiny cursor to [tasks.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/tasks.md).
+Added the tiny cursor to `local/subagents-work/tasks.md`.
 
-It is intentionally just:
+Added shape:
 
 ```markdown
 ## Cursor
 
-- Current: `00 Scope ledger`
-- Next: Expand `concept-ledger.md` for scope concepts.
-- Stop: none
+- Current: `00 Scope ledger`; sample authority and terrain enough to unblock later slices.
+- Next: Update `concept-ledger.md` and `open-decisions.md`; move to `01 Core trio` once scope is usable.
+- Stop: If the scope boundary or realtime relationship conflicts with `local/subagents/AGENTS.md`.
 ```
 
-I also added `Cursor Rules` directly below it so future updates keep it as a register, not a log: overwrite only, three bullets only, facts go to `concept-ledger.md`, blockers/decisions go to `open-decisions.md`, and the cursor gets removed during `05 Proof and hardening`.
+Also added cursor rules directly below it: overwrite only, three bullets only,
+facts go to `concept-ledger.md`, blockers/decisions go to `open-decisions.md`,
+and the cursor gets removed during `05 Proof and hardening`.
 
-Validation: docs-only, so no Rust tests. I checked trailing whitespace, non-ASCII, and `git diff --check`; only Git’s normal LF-to-CRLF warning appeared.
+Validation was docs-only: no Rust tests; checked trailing whitespace,
+non-ASCII, and `git diff --check`.
 
 ## User - 2026-07-19 08:13:05
 
@@ -566,13 +445,19 @@ Yep, really like this - thank you. And last little critique here - I've loved ev
 
 Added the `task-alignment` callout in the work packet.
 
-Changed:
+Compressed change summary:
 
-- [README.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/README.md): use order and operating rules now say each slice/subslice should use `task-alignment` and emit a Direction Lock before editing live docs.
-- [tasks.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/tasks.md): global rules now include the same requirement.
-- [slice-template.md](C:/Users/cullendudas/Documents/GitHub/codex-pinned/local/subagents-work/slice-template.md): future slices include a Direction Lock step before fact extraction and drafting.
+- `README.md`: use order and operating rules now say each slice/subslice should
+  use `task-alignment` and emit a Direction Lock before editing live docs.
+- `tasks.md`: global rules now include the same requirement.
+- `slice-template.md`: future slices include a Direction Lock step before fact
+  extraction and drafting.
 
-Kept it intentionally light: no new big process section, no repeated boilerplate in each existing slice. Docs-only, so no Rust tests run. Checks passed for whitespace, non-ASCII, and `git diff --check`; Git only emitted the existing LF-to-CRLF warning.
+The callout stayed intentionally light: no large new process section and no
+repeated boilerplate in each existing slice.
+
+Validation was docs-only: no Rust tests; checked whitespace, non-ASCII, and
+`git diff --check`.
 
 ## User - 2026-07-19 08:14:47
 
@@ -580,19 +465,28 @@ Okay! And would you have any interest in doing this documentation population, or
 
 ## Assistant - 2026-07-19 08:14:59
 
-I’d do it. I think the best setup is not “fresh agent instead of me,” but “I do the first population passes, then a fresh agent does cold-reader validation.”
+The assistant recommended doing the first population passes in the current
+thread, then using a fresh agent for cold-reader validation.
 
-Reason: I already have the intent, terrain, and process shape in working memory, so I’m well placed to execute `00 Scope ledger` and likely `01 Core trio` without rediscovering the rationale. A fresh agent is most valuable once the docs are supposed to stand on their own, because then their lack of conversation context becomes a feature.
+Reasoning:
 
-My recommended sequence:
+- The current assistant already had the intent, terrain, and process shape in
+  working memory.
+- That made it well placed to execute `00 Scope ledger` and likely
+  `01 Core trio` without rediscovering rationale.
+- A fresh agent becomes most useful once the docs are supposed to stand on
+  their own, because missing conversation context becomes a validation asset.
 
-1. I start with `00 Scope ledger`.
-2. I update the tiny cursor, ledger, and open decisions.
-3. I begin `01 Core trio`, decomposing only if the terrain proves it.
+Recommended sequence:
+
+1. Start with `00 Scope ledger`.
+2. Update the tiny cursor, ledger, and open decisions.
+3. Begin `01 Core trio`, decomposing only if terrain proves it.
 4. After `01` or `02`, send a fresh agent in as a cold-reader/process check.
 5. Use a fresh agent again near `05 Proof and hardening`.
 
-This is also a good long-running `/goal` candidate, but I would only create that when you explicitly ask. The first concrete execution prompt would be something like: “Start the subagents documentation population goal at `00 Scope ledger`; use `task-alignment`, keep the cursor tiny, and follow `local/subagents-work/tasks.md`.”
+The assistant noted this was also a good long-running `/goal` candidate, but
+should only be created if explicitly requested.
 
 ## User - 2026-07-19 08:16:34
 
@@ -600,29 +494,29 @@ I think you'd want the goal to be a bit more detailed so you don't get stuck on 
 
 ## Assistant - 2026-07-19 08:16:47
 
-Yes. The goal should be more explicit than my first version. It should prime three things:
+The assistant agreed that the goal should prime three things:
 
 1. This is a multi-context objective.
 2. Work should advance through tractable slices, not stall on perfecting `00`.
-3. Subslice decomposition is allowed when evidence shows the parent slice is too large.
+3. Subslice decomposition is allowed when evidence shows the parent slice is
+   too large.
 
-I’d use this as the goal objective:
+Final candidate goal objective:
 
 ```text
 Populate the thread-spawn subagents feature-area documentation in local/subagents by executing local/subagents-work/tasks.md across tractable slices and, when needed, evidence-driven subslices. This is not expected to complete in one context window. Use task-alignment for each slice or subslice and emit a Direction Lock before editing live docs. Keep local/subagents-work non-authoritative: update only the tiny tasks.md Cursor, concept-ledger.md, open-decisions.md, and slice task state as needed. Do not turn tasks.md into a progress log. Use the Slice Decomposition Checkpoint when terrain sampling proves a parent slice is too large or underspecified, and require consolidation before marking that parent complete. Advance toward the final readiness gate in tasks.md, not exhaustive source archaeology.
 ```
 
-And I’d pair it with this kickoff instruction:
+Kickoff instruction:
 
 ```text
 Start at the current Cursor in local/subagents-work/tasks.md. Read local/subagents-work/README.md, tasks.md, concept-ledger.md, open-decisions.md, and the current slice brief. For 00 Scope ledger, do only enough scope and ledger work to unblock the later slices; do not try to fully document behavior there. Update the Cursor as Current/Next/Stop only.
 ```
 
-The “not exhaustive source archaeology” phrase matters. It gives the agent permission to move from `00` to `01` once the ledger is useful enough, instead of trying to pre-discover the whole universe before drafting any live docs.
-
-## User - 2026-07-19 08:18:14
-
-Yep, I really like that. I approve of that being the goal with one tweak, just making sure that it's explicit to use the tasks and particularly cursor; if the work turns into sub-slicing, then let's ensure that's noted as the current / "Next: " in the cursor?
+Key phrase called out by the assistant: "not exhaustive source archaeology."
+That phrase gives the agent permission to move from `00` to `01` once the
+ledger is useful enough instead of trying to pre-discover everything before
+drafting live docs.
 
 ## User - 2026-07-19 08:18:55
 
@@ -630,5 +524,8 @@ Yep, I really like that. I approve of that being the goal with one tweak, just m
 
 ## Assistant - 2026-07-19 08:19:02
 
-I’ll create the long-running goal with that tweak baked in: `tasks.md` is the execution queue, the tiny `Cursor` is the active pointer, and any move into subslicing should be reflected in `Current`/`Next` rather than explained as a log.
+The assistant accepted the tweak: `tasks.md` is the execution queue, the tiny
+`Cursor` is the active pointer, and any move into subslicing should be reflected
+in `Current`/`Next` rather than explained as a log.
 
+This is the final visible pre-goal handoff point in the transcript.

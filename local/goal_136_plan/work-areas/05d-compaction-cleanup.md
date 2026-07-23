@@ -2,7 +2,10 @@
 
 This pass converts local, remote, and remote-v2 compaction cleanup to the
 shared classifier and removes pre-shaper concrete Goal carry from compaction
-replacement history.
+replacement history. Compaction is a support surface: it may filter pure
+cleanup artifacts and pass committed carry metadata to request-local repair
+when prior work provides that metadata, but it must not deliver Goal steering
+or recover Goal state from rendered text.
 
 ## Direction Lock
 
@@ -16,11 +19,15 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
-- `local/goal_research/goal-authority-repair-classifier-integration.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-projection-reconstruction-and-raw-history.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/how-we-test.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/02-direct-split-readiness-check.md`
 - `local/goal_136_plan/work-areas/03-history-key-and-idle-continuation-appendage-map.md`
 - `local/goal_136_plan/work-areas/05-repair-classifiers-and-projections-surface-map.md`
@@ -35,6 +42,8 @@ Terrain:
   carry reinsertion
 - `compact_remote.rs::should_keep_compacted_history_item(...)` filters old
   Goal context and is reused by `compact_remote_v2.rs`
+- `session/input_queue.rs` and `state/turn.rs` still expose current-turn
+  concrete Goal carry as `ResponseInputItem` terrain
 
 Code-shape temptation:
 
@@ -42,6 +51,8 @@ Code-shape temptation:
   Goal-looking input
 - make compaction synthesize Goal steering, evidence, or watermarks after
   filtering artifacts
+- treat compaction summaries, raw notifications, classifier matches, or
+  rendered Goal artifacts as reconstruction evidence
 
 Locked direction:
 
@@ -49,23 +60,29 @@ Locked direction:
 - compaction never carries pre-shaper concrete Goal input as authority
 - any needed Goal preservation uses committed carry metadata as request-local
   repair context through `core/src/goal_cadence/`
+- if committed carry metadata is not available, fix dependency ordering rather
+  than keeping concrete carry as a WA05 continuation state
 
 Exclusions:
 
 - no request-input shaper implementation
 - no durable Goal mutation
 - no recorded request evidence carrier
+- no pending intent or Continuation watermark synthesis
 - no rollout reconstruction conversion
 
 ## Authority Docs Read
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-final-request-input-and-commit.md`
-- `local/goal_research/goal-authority-model-visible-history-key.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
-- `local/goal_research/goal-authority-repair-classifier-integration.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-cadence-contract.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-projection-reconstruction-and-raw-history.md`
+- `local/goal_research/goal-idle-history-lifecycle.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/how-we-test.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 
 ## Code Terrain Read
 
@@ -81,7 +98,9 @@ Exclusions:
 
 Make compaction cleanup use strict artifact classification and stop preserving
 active Goal authority by copying concrete pre-shaper input into replacement
-history.
+history. Pure Goal cleanup must not itself change the model-visible history key;
+only replacement summaries that affect eligible model-visible progress may do
+that under the idle/history lifecycle contract.
 
 ## Exact Files To Edit
 
@@ -117,12 +136,26 @@ history.
   request-input shaper. Do not insert a prebuilt Goal item in compaction.
 - Stop and fix dependency ordering if WA02/WA03 committed carry metadata does
   not exist. Do not keep concrete carry as WA05 continuation state.
-- Do not synthesize `GoalRequestEvidence`, Continuation watermark updates, or
-  pending cadence intent from compaction cleanup.
+- Do not synthesize active Goal steering, pending Initial/ObjectiveUpdated/
+  BudgetLimit intent, Continuation watermark updates, committed carry, or
+  `GoalRequestEvidence` from compaction cleanup.
+- Do not recover current objective text, durable facts, budget facts, pending
+  intent, or watermarks from rendered Goal artifacts, rollout trace payloads,
+  raw notifications, classifier matches, projection output, or compaction
+  summaries.
 
 ## Tests And Checks
 
-Add or update focused tests:
+Use `local/how-we-test.md` and the cleanup triage doc. This pass should burn
+down tests that defend concrete pre-shaper Goal carry, rendered-text recovery,
+or compaction-created Goal authority after those code paths are removed. Delete
+bad fake-shim tests with no replacement by default. Keep or add focused
+compaction boundary coverage only where a current cleanup contract remains and
+no existing helper-level boundary validates it. Use diff inspection for
+docs/test-deletion-only work.
+
+Only keep or add focused boundary cases when they protect a real current
+compaction cleanup contract and are not already covered:
 
 - `collect_user_messages(...)` filters pure current and pure legacy Goal items
 - `collect_user_messages(...)` preserves mixed marker-like user prose
@@ -138,7 +171,7 @@ Add or update focused tests:
   state
 
 Prefer unit tests around compaction helpers. Use integration request-shape
-coverage only when helper-level tests cannot prove the behavior.
+coverage only when helper-level tests cannot validate the behavior.
 
 ## Branch Continuation State
 

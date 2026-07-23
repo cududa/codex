@@ -26,7 +26,8 @@ Authority:
 - `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
 - `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/how-we-test.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 
 Route context:
 
@@ -133,7 +134,7 @@ Exclusions:
   prompts from response items; plain user response items are ignored.
 - Current tests still assert local-only `<goal_context>`, `GoalContextRole`,
   raw hiding, and concrete carry behavior named by
-  `goal-test-deletion-map.md`.
+  the cleanup triage doc.
 
 ### Upstream Terrain Findings
 
@@ -195,7 +196,7 @@ Tests:
 - source validation accepts `goal` and rejects malformed sources
 - rendered source-tagged text roundtrips as pure internal context
 - malformed or mixed text is not parsed as pure internal context
-- helper output alone does not consume intent, advance watermarks, or prove
+- helper output alone does not consume intent, advance watermarks, or validate
   authority
 
 Implementation pass boundary pressure:
@@ -328,7 +329,8 @@ What must wait:
 
 Tests:
 
-- delete local-only fake-context tests named by `goal-test-deletion-map.md`
+- delete local-only fake-context tests named by the cleanup triage doc by
+  default
 - add pure-current and pure-legacy contextual parsing tests
 - add mixed marker-like hook/user text tests proving mixed text is preserved
 
@@ -437,7 +439,7 @@ Owner files/modules:
 - `codex-rs/core/src/compact_remote.rs`
 - `codex-rs/core/src/compact_remote_v2.rs`
 - `codex-rs/core/src/compact_tests.rs`
-- focused compact integration tests only if unit surfaces cannot prove the
+- focused compact integration tests only if unit surfaces cannot validate the
   behavior
 
 Current callsites and old shim behavior:
@@ -565,13 +567,15 @@ Replacement classifier/projection behavior:
 What must wait:
 
 - no WA02/WA03/WA04 dependency is needed to restore raw-stream behavior, but
-  replacement tests may be easiest after current/legacy fixture helpers exist
+  any retained raw-emits boundary coverage may be easiest after current/legacy
+  fixture helpers exist
 - broader raw contract changes would require a separate authority update
 
 Tests:
 
-- replace the old raw-hiding test with raw-emits tests for legacy, current, and mixed
-  Goal-looking items
+- delete the old raw-hiding test by default; keep raw-emits coverage for
+  legacy, current, and mixed Goal-looking items only if the current raw
+  contract would otherwise be unvalidated
 - assert `RawResponseItemCompletedNotification.item` equality
 - keep hook prompt raw behavior unchanged
 
@@ -624,8 +628,10 @@ What must wait:
 
 Tests:
 
-- replace local-only Goal-context replay test with pure current, pure legacy,
-  non-hook mixed/plain response-item replay-baseline, and hook prompt coverage
+- delete the local-only Goal-context replay test by default; keep pure current,
+  pure legacy, non-hook mixed/plain response-item replay-baseline, or hook
+  prompt coverage only where a current materialized-history contract would
+  otherwise be unvalidated
 - add preview or summary route coverage for mixed marker-like prose only if
   those app-server routes expose materialized `parse_turn_item(...)` output
 - if structured evidence exists, test it is not materialized as conversation
@@ -647,7 +653,7 @@ Owner files/modules:
 - `codex-rs/core/src/session/rollout_reconstruction_tests.rs`
 - `codex-rs/app-server/src/bespoke_event_handling.rs` tests
 - `codex-rs/app-server-protocol/src/protocol/thread_history.rs` tests
-- old active-steering tests named by `goal-test-deletion-map.md`
+- old active-steering tests named by the cleanup triage doc
 
 Current callsites and old shim behavior:
 
@@ -657,22 +663,23 @@ Current callsites and old shim behavior:
 
 Replacement classifier/projection behavior:
 
-- classifier tests prove classification and purity only
-- projection/history tests prove user-visible hiding/preservation only
-- compaction/reconstruction tests prove cleanup and no rendered-text recovery
-- raw tests prove raw streams emit actual items unchanged
+- classifier tests validate classification and purity only
+- projection/history tests validate user-visible hiding/preservation only
+- compaction/reconstruction tests validate cleanup and no rendered-text
+  recovery
+- raw tests validate raw streams emit actual items unchanged
 - final request-input authority tests stay in WA02/WA04/WA06 and inspect
   captured `/responses` input or request-input shaper output
 
 What must wait:
 
-- WA00/WA02/WA04 may own deletion or rewrite of active-steering tests outside
-  the cleanup/projection surface
+- WA00/WA02/WA04 may own deletion or rare retained-boundary adaptation of
+  active-steering tests outside the cleanup/projection surface
 - WA06 owns final global stale-symbol and acceptance audit
 
 Tests:
 
-- delete local-only fake-shim tests listed by `goal-test-deletion-map.md`
+- delete local-only fake-shim tests listed by the cleanup triage doc by default
 - do not turn every active steering test into a classifier test
 - reject helper output, classifier matches, raw notifications, ordinary rollout
   response items, rollout trace payloads, and rendered Goal text as substitutes
@@ -680,8 +687,10 @@ Tests:
 
 Implementation pass boundary pressure:
 
-- final WA05 test pass should consolidate tests after consumer conversions,
-  but each consumer pass should add focused tests for behavior it changes
+- final WA05 test pass should burn down fake-shim tests after consumer
+  conversions; each consumer pass should keep or add only the smallest focused
+  boundary test for changed current behavior when no existing boundary already
+  validates it
 
 ## Coupling Summary
 
@@ -721,7 +730,7 @@ use this map to name:
 - which pass updates app-server materialized projection/thread-history tests
 - which tests are classifier/projection cleanup tests and which final-payload
   authority tests remain outside WA05
-- which old active-shim tests are WA05 rewrite work versus WA06 final cleanup
+- which old active-shim tests are WA05 deletion work versus WA06 final cleanup
 
 Do not proceed to WA05 implementation pass docs if the split would make
 classifier output, projection hiding, raw notifications, ordinary rollout
@@ -739,7 +748,7 @@ git diff --check -- local\goal_research local\goal_136_plan
 Stale architecture scan:
 
 ```powershell
-rg -n 'developer-role internal-context|internal-context ResponseItem|core/src/goal_cadence\.rs|\bfinalizer\b|structured proof|authority proof|GoalRequestEvidence.*authority|rendered Goal text.*evidence|classifier.*authority' local\goal_136_plan\work-areas\05*.md
+rg -n 'developer-role internal-context|internal-context ResponseItem|core/src/goal_cadence\.rs|\bfinalizer\b|structured substitute|authority substitute|GoalRequestEvidence.*authority|rendered Goal text.*evidence|classifier.*authority' local\goal_136_plan\work-areas\05*.md
 ```
 
 Remaining hits are valid only when naming rejected terrain or explicitly

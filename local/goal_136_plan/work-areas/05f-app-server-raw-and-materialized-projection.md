@@ -1,7 +1,9 @@
 # WA05f: App-Server Raw And Materialized Projection
 
 This pass removes the app-server raw overlay and updates app-server
-materialized/thread-history projection behavior.
+materialized/thread-history projection behavior. Raw response item
+notifications remain raw even when typed/materialized projection hides pure
+Goal artifacts.
 
 ## Direction Lock
 
@@ -13,11 +15,13 @@ Request:
 
 Authority:
 
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
-- `local/goal_research/goal-authority-repair-classifier-integration.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-projection-reconstruction-and-raw-history.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/how-we-test.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/work-areas/05-repair-classifiers-and-projections-surface-map.md`
 
 Terrain:
@@ -29,6 +33,8 @@ Terrain:
   notifications directly without this local overlay
 - `thread_history.rs` has a local test that ignores Goal context response
   items during rollout replay
+- preview and summary projection routes consume `codex_core::parse_turn_item(...)`
+  where those routes materialize typed user-visible content
 
 Code-shape temptation:
 
@@ -36,6 +42,7 @@ Code-shape temptation:
   artifacts
 - introduce app-server-specific marker parsing to avoid depending on core
   projection behavior
+- treat raw notification emission or suppression as active Goal authority
 
 Locked direction:
 
@@ -43,21 +50,26 @@ Locked direction:
 - typed/materialized projection may hide pure artifacts through core
   projection or exact replay rules
 - `GoalRequestEvidence` remains metadata and is not raw conversation content
+- app-server does not duplicate Goal artifact classification
 
 Exclusions:
 
 - no core classifier implementation
 - no final request-input authority tests
 - no app-server Goal product API redesign
+- no evidence materialization as prose, hook prompt, raw item, or typed thread
+  item
 
 ## Authority Docs Read
 
 - `local/goal_research/AGENTS.md`
-- `local/goal_research/goal-authority-grounding-truth.md`
-- `local/goal_research/goal-authority-recorded-request-evidence.md`
-- `local/goal_research/goal-authority-repair-classifier-integration.md`
-- `local/goal_research/goal-authority-fake-shim-removal-map.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/goal_research/goal-authority-behavior.md`
+- `local/goal_research/goal-final-request-input.md`
+- `local/goal_research/goal-request-repair-and-artifact-classification.md`
+- `local/goal_research/goal-projection-reconstruction-and-raw-history.md`
+- `local/goal_research/goal-recorded-request-evidence.md`
+- `local/how-we-test.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 
 ## Code Terrain Read
 
@@ -72,7 +84,9 @@ Exclusions:
 ## Pass Goal
 
 Remove local app-server raw hiding and align materialized thread history with
-the shared classifier/projection rules.
+the shared classifier/projection rules. Raw behavior is deletion of the local
+fork overlay; materialized behavior relies on core projection semantics or
+exact rollout replay rules.
 
 ## Exact Files To Edit
 
@@ -115,7 +129,16 @@ the shared classifier/projection rules.
 
 ## Tests And Checks
 
-Add or update focused app-server tests:
+Use `local/how-we-test.md` and the cleanup triage doc. This pass should burn
+down tests that defend the app-server raw hiding overlay or app-server-local
+Goal marker parsing after those code paths are removed. Delete the old
+raw-hiding test with no replacement by default. Keep or add focused raw-emits
+or materialized-projection coverage only if a real current app-server contract
+would otherwise have no useful boundary validation. Do not add app-server tests
+merely to show the old suppression test disappeared.
+
+Only keep or add focused boundary cases when they protect a real current
+app-server raw/materialized contract and are not already covered:
 
 - legacy Goal context raw item emits
   `RawResponseItemCompletedNotification`
@@ -132,9 +155,10 @@ Add or update focused app-server tests:
   app-server preview/summary routes that actually materialize
   `parse_turn_item(...)` output
 
-Delete or rewrite the old raw-hiding test named by
-`goal-test-deletion-map.md`; do not keep the old raw overlay behind a renamed
-helper.
+Delete the old raw-hiding test named by the cleanup triage doc unless it is the
+only practical home for a current raw-emits boundary assertion. Do not keep the
+old raw overlay behind a renamed helper. For docs/test-deletion-only work, diff
+inspection is valid validation.
 
 ## Branch Continuation State
 

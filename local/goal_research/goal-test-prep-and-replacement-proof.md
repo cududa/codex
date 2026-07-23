@@ -1,50 +1,68 @@
-# Goal Test Prep And Replacement Proof
+# Goal Test Cleanup And Validation Triage
 
 ## Navigation Header
 
-This successor doc is the test-prep and replacement-proof contract for the
-Goal authority rewrite. It answers which local tests are reset, deleted,
-retained, replaced, or snapshotted, and which proof layer must verify each
-replacement invariant.
+This successor doc is the cleanup and validation triage contract for the Goal
+authority rewrite. The filename is legacy; this document is not a mandate to
+create replacement tests for every deleted test.
 
-- Role: canonical test prep, upstream baseline, replacement matrix, snapshot,
-  and final acceptance proof index.
-- Owns: local-only overlay deletion; upstream baseline restoration;
-  replacement proof matrix; extension baseline caveat; snapshot handling;
-  final acceptance proof layers; and stale-symbol audit gates as review gates.
-- Does not own: behavior contracts, cadence semantics, durable storage
-  design, final request-input shaping, idle/history scheduling, evidence
-  persistence, classifier/projection semantics, extension lifecycle,
-  implementation architecture, product redesign, module names, migration
-  names, test filenames for new replacement tests, or readiness/handoff
-  status.
-- Primary pointers: behavior and seam successors own the rules being proved;
-  this doc owns proof posture, baseline reset, replacement coverage, snapshots,
-  stale-symbol audits, and acceptance proof layers.
-- Fidelity note: the prep target is not fewer Goal tests. It is removal of
-  false compatibility pressure while preserving upstream product baseline and
-  adding replacement tests from the corrected authority contracts.
+- Role: canonical cleanup triage, upstream baseline, boundary-coverage index,
+  snapshot handling, and final validation-layer guide.
+- Validation posture: inherit `local/how-we-test.md`; spend local tests only on
+  durable-contract signal, and use diff inspection for docs/test-deletion
+  cleanup.
+- Owns: local-only overlay deletion; upstream baseline restoration; old
+  artifact/test-family classification; cleanup validation decisions;
+  extension baseline caveat; snapshot handling; final validation layers; and
+  stale-symbol audit routing as review gates.
+- Does not own: behavior contracts, cadence semantics, durable storage design,
+  final request-input shaping, idle/history scheduling, evidence persistence,
+  classifier/projection semantics, extension lifecycle, implementation
+  architecture, product redesign, module names, migration names, test filenames
+  for future focused coverage, readiness/handoff status, or Rust changes.
+- Primary pointers: behavior and seam successors own the rules being exercised;
+  this doc owns which old tests are deleted, which baseline tests remain, and
+  which validation layer is appropriate only when a durable contract still
+  needs coverage. Work-area docs are execution terrain; they do not supersede
+  the successor authority spine.
+- Fidelity note: the prep target is removal of false compatibility pressure.
+  Deleting bad tests often requires no replacement. Compatibility exists to
+  parse, classify, and clean up old chats with failed-shape artifacts; it must
+  not preserve those artifacts as active authority.
 
-## Core Rule
+## Cleanup Rule
 
 Test prep removes tests that defend the broken local Goal steering overlay,
-restores upstream Goal product behavior to the selected baseline, and then
-adds replacement tests that prove the successor authority contracts.
+restores upstream Goal product behavior to the selected baseline, and keeps or
+adds focused boundary coverage only when a real durable contract remains.
+Existing fake-shim implementation and test shape is terrain for identifying
+cruft, not behavior authority.
 
-Tests are proof obligations. They do not define Goal behavior, product
-behavior, architecture, cadence, durable state, final request input, evidence,
-cleanup, extension reachability, or readiness. If a test expectation conflicts
-with a behavior or seam successor, the successor controls and the test must be
-changed.
+The active-authority machine model comes from `goal-final-request-input.md`:
+the finalized logical `Vec<ResponseItem>` that becomes `Prompt.input` must
+contain exactly one selected current Goal item as an outer
+`ResponseItem::Message` whose role is `developer`. The shorthand
+`<developer>` mental model is not a harness concept, wrapper format, or
+compatibility target.
 
-For this prep route, the upstream baseline is:
+Do not add tests whose only purpose is showing that old fake-shim tests were
+removed. Avoid "proof" framing when it implies exhaustive, ceremonial, or
+one-for-one coverage. Prefer concrete validation language: cleanup validation,
+decision matrix, boundary coverage, baseline restoration, and diff inspection.
+
+Tests are not Goal behavior authority. If a test expectation conflicts with a
+behavior or seam successor, the successor controls and the test must be changed
+or deleted.
+
+For this cleanup route, the upstream baseline is:
 
 ```text
 rust-v0.136.0
 ```
 
-Budget and usage are upstream Goal facts, not local experiments. The
-replacement profile must keep these facts visible:
+Budget and usage are upstream Goal facts, not local experiments. Keep these
+facts visible in baseline or future focused coverage when the owning behavior
+still needs them:
 
 ```text
 token_budget
@@ -53,6 +71,36 @@ time_used_seconds
 UsageLimited
 BudgetLimited
 ```
+
+## Decision Matrix
+
+Use this matrix for every old artifact or test family.
+
+| Decision | Use When | Validation |
+| --- | --- | --- |
+| Delete with no replacement | The test defends fake context, local shim transport, helper output, request metadata, pre-finalizer carry, rendered artifact text, rollout residue, raw suppression, classifier matches, projection hiddenness by itself, user-role Goal steering, or implementation sequence. | Diff inspection. |
+| Merge into existing boundary coverage | Another clearer test already exercises the same durable contract. | Keep the clearer boundary test and delete the overlap. |
+| Keep or add one focused boundary test | A durable contract remains unprotected after cleanup. | Prefer the cheapest boundary that observes the contract. |
+| Defer to later owner | The contract belongs to a later behavior, evidence, extension, app-server, or UI slice. | Leave this doc as classification, not a new test backlog. |
+
+Local test time is scarce. Prefer cheap boundary tests over full-flow tests.
+Keep at most one representative expensive flow per behavior family. Merge
+overlapping tests when one clearer test covers the same durable contract.
+
+Diff inspection is valid validation for docs-only edits, test deletion only,
+and low-risk cleanup. Do not run Rust tests merely because old tests were
+deleted.
+
+Final `/responses`, durable state, or Created-event checks are representative
+boundary coverage when they protect a real contract. They are not exhaustive
+replacement scaffolding for every removed fake-shim test.
+
+Old tests around helper output, fake shims, `<goal_context>` authority,
+user-role Goal steering, projection hiddenness, rendered text, rollout
+artifacts, raw notifications, request metadata, pre-finalizer carry,
+classifier matches, or `history_version()` are classified primarily as
+delete/no replacement unless a successor identifies a real durable contract
+that remains.
 
 ## Prep Sequence
 
@@ -64,42 +112,19 @@ Before implementing the active Goal authority rewrite:
    active steering, local raw suppression, configured steering role, or local
    overlay behavior.
 3. Keep upstream Goal product tests active as the baseline profile.
-4. Add replacement tests from the behavior and seam successors after the
-   replacement implementation shape exists.
+4. Add or keep focused boundary coverage only when the corrected behavior
+   contracts require it and no clearer existing test covers the same contract.
 
 Do not keep a local test merely because current code passes it. Do not delete
 an upstream Goal behavior test merely because current local code would fail it
 after active fake-shim removal. Use file-specific diffs against
 `rust-v0.136.0`; do not blindly reset unrelated work in upstream test files.
 
-Replacement tests must prove behavior through the correct proof layer:
-
-- final `/responses` payload or equivalent final request-input capture for
-  active authority and role
-- durable state tests for facts, pending intent, exact-key consumption, and
-  state-owned Continuation suppression records
-- Created-event commit tests for pending-intent consumption, committed carry,
-  Continuation suppression advancement, and evidence emission when in scope
-- idle/history tests for wake ordering, pending-work precedence, synthetic
-  metadata, model-visible history keys, and suppression comparison
-- classifier, projection, raw, compaction, reconstruction, rollback, and fork
-  tests for cleanup support behavior
-- structured recorded request evidence tests when replay, audit, or
-  reconstruction evidence is in scope
-- extension/app-server tests for durable mutation outcomes, metadata-only
-  wake/recheck, reachability, and the selected extension proof route
-
-Do not accept helper output, classifier output, projection hiddenness, raw
-notification output, ordinary rollout items, rollout trace payloads, rendered
-Goal text, request metadata, reservations, or pre-finalizer carry as
-substitutes for final payload assertions or structured recorded request
-evidence.
-
 ## Delete Local-Only Fake Context Tests
 
 Delete these local-only tests during prep. They defend `<goal_context>`,
 `GoalContext`, `GoalContextRole`, fake hidden provenance, or Goal-specific
-raw/event suppression.
+raw/event suppression. Their default classification is delete/no replacement.
 
 - `codex-rs/core/src/context/contextual_user_message_tests.rs`
   - `detects_goal_context_fragment`
@@ -120,18 +145,20 @@ raw/event suppression.
     or equivalent Goal-specific raw-stream filtering assertion if present
 
 After deletion, any remaining legacy `<goal_context>` coverage must be limited
-to old artifact cleanup or typed/materialized projection hiding. It must not
-defend active Goal steering.
+to old artifact cleanup or typed/materialized projection hiding, and only when
+that boundary is still a real contract. It must not defend active Goal
+steering.
 
-Keep or adapt raw-emits coverage only when it proves the desired raw contract:
+Keep or adapt raw-emits coverage only when it validates the desired raw contract:
 raw response item notifications remain raw for legacy artifacts, current
-internal-context items, and mixed prose. That coverage is not fake-shim
-preservation when it rejects local raw suppression.
+internal-context items, and mixed prose. Delete coverage that exists only to
+preserve Goal-specific raw suppression.
 
 ## Delete Local-Only Core Overlay Tests
 
 Delete these local-only tests during prep. They encode behavior that the
-successor contracts replace.
+successor contracts either reject or should cover at a cleaner boundary. Their
+default classification is delete/no replacement.
 
 - `codex-rs/core/src/session/tests.rs`
   - `resumed_active_goal_emits_initial_steering_independent_of_resumed_metric`
@@ -140,7 +167,8 @@ successor contracts replace.
 - `codex-rs/core/src/goals.rs`
   - `goal_steering_message_uses_configured_role_for_all_kinds`
 
-Replacement coverage comes from the owning successors:
+Only keep or add focused boundary coverage if an owning successor still needs
+one of these durable contracts and no clearer test already covers it:
 
 - resume hydration without fabricated Initial
 - pending durable cadence intent surviving unavailable or rejected same-turn
@@ -148,8 +176,9 @@ Replacement coverage comes from the owning successors:
 - upstream objective-limit behavior from the command/validation baseline
 - active Goal role compatibility unable to make final payload steering
   user-role
-- no replacement test accepting active `<goal_context>` or pre-shaper concrete
-  Goal input as authority
+
+Do not add any test that accepts active `<goal_context>` or pre-shaper concrete
+Goal input as authority.
 
 ## Delete Local-Only App-Server Steering Overlay
 
@@ -158,8 +187,13 @@ Delete this local-only test during prep:
 - `codex-rs/app-server/tests/suite/v2/thread_resume.rs`
   - `thread_goal_set_active_schedules_developer_role_goal_steering`
 
-It pins the old marker transport and scheduling shape. Replace it later with
-final model request-input coverage that proves:
+It pins the old marker transport and scheduling shape. Do not replace it with a
+test whose only purpose is old-marker absence.
+
+If later final model request-input coverage is still missing, add or merge one
+focused boundary test that captures the finalized logical `Vec<ResponseItem>`
+before `Prompt.input`, or final `/responses` input only when it represents that
+same logical input, and checks the real active-authority contract:
 
 - exactly one current Goal steering item is present
 - its outer role is `developer`
@@ -169,7 +203,8 @@ final model request-input coverage that proves:
 
 ## Delete Local-Only TUI Overlay Tests
 
-Delete these local-only tests during prep. They are not upstream baseline:
+Delete these local-only tests during prep. They are not upstream baseline and
+should not survive merely as evidence that the old overlay was removed.
 
 - `codex-rs/tui/src/chatwidget/tests/goal_validation.rs`
   - `goal_slash_command_uses_configured_objective_limit`
@@ -181,10 +216,10 @@ Delete these local-only tests during prep. They are not upstream baseline:
   - `ctrl_c_with_queued_message_advances_queue_while_goal_remains_active`
   - `paused_idle_ctrl_c_requests_quit_without_goal_mutation`
 
-These behaviors are not rejected as product behavior. They are removed from
-the prep suite because they are local overlay tests. Add replacement tests
-later from the corrected command, pause/resume, queue, and interruption
-contracts.
+These product behaviors are not rejected here. Defer any re-addition to the
+corrected command, pause/resume, queue, and interruption contracts. When they
+return, prefer one clear state-machine or UI boundary test per behavior family
+instead of recreating the old overlay suite.
 
 ## Revert Steering-Role Config Overlay
 
@@ -195,10 +230,10 @@ Remove local config tests and assertions for `GoalSteeringRole`.
   - remove `[goals] steering_role = "user"` assertions
   - remove mixed `objective_max_chars` plus `steering_role` assertions
 
-Replacement tests must not preserve user-role active Goal steering.
-Objective-limit tests must have no steering-role configuration dependency.
-Compatibility deserialization, if any, must be proven unable to affect active
-Goal steering role.
+Default classification is delete/no replacement. Objective-limit tests must
+have no steering-role configuration dependency. Compatibility deserialization,
+if any, needs at most one focused boundary check showing it cannot affect the
+active Goal steering role.
 
 ## Revert Existing Test Files To Upstream Baseline
 
@@ -217,10 +252,13 @@ tests from these files, and do not reset unrelated work.
 - `codex-rs/tui/src/app/thread_goal_actions.rs`
 - `codex-rs/ext/goal/tests/goal_extension_backend.rs`
 
+Validate this class of cleanup by inspecting the diff unless module wiring,
+imports, or generated artifacts changed enough to introduce real compile risk.
+
 ## Upstream Baseline Tests That Remain Active
 
 These tests are upstream baseline and remain active after prep. Their internals
-may later adapt to replacement helpers or assertion style, but their product
+may later adapt to corrected helpers or assertion style, but their product
 behavior is not deleted by the authority rewrite.
 
 Core Goal runtime/tool behavior:
@@ -302,18 +340,22 @@ old extension tests keep `GoalContext`, `GoalContextRole`, active
 `<goal_context>`, user-role active steering, or pre-finalizer concrete Goal
 input alive.
 
-## Replacement Proof Matrix
+## Boundary Coverage Triage
 
-Replacement tests are added after the implementation shape exists. They are
-not optional debate items and they are not behavior owners. Each cluster below
-points to the successor that owns the behavior being proved.
+The clusters below are not a mandatory replacement-test backlog. Use them to
+decide whether a durable contract still needs coverage after cleanup. Prefer
+existing boundary tests first, merge overlaps, and keep at most one
+representative expensive flow per behavior family.
 
 ### Final Model Request Input
 
 Owned by `goal-authority-behavior.md` and `goal-final-request-input.md`, with
 cadence kind selection from `goal-cadence-contract.md`.
 
-Replacement coverage must prove:
+Use the finalized logical `Vec<ResponseItem>` before `Prompt.input`, or final
+`/responses` payload capture only when it represents that same logical input,
+when active authority and role are the durable contract. Representative checks
+may cover these cases when no clearer test already does:
 
 - Initial steering is exactly one current outer developer-role Goal item.
 - ObjectiveUpdated steering is exactly one current outer developer-role Goal
@@ -322,12 +364,11 @@ Replacement coverage must prove:
   rendered from persisted budget/status state.
 - Automatic Continuation steering is exactly one current outer developer-role
   Goal item and is launched only by the idle predicate.
-- No replacement steering test requires active `<goal_context>`.
+- No active steering test requires active `<goal_context>`.
 - No user-role Goal steering item is emitted.
-- App-server-origin Goal create or objective-update scenarios prove captured
-  final `/responses` input contains exactly one current outer developer-role
-  Goal item, no active `<goal_context>` item, and no user-role active Goal
-  item.
+- App-server-origin Goal create or objective-update scenarios capture final
+  `/responses` input through one representative boundary when that path lacks
+  equivalent shared-shaper coverage.
 - Compatibility steering-role config, if still parseable, cannot make active
   Goal steering user-role.
 
@@ -337,15 +378,15 @@ Owned by `goal-durable-state-and-pending-intent.md`, with commit timing from
 `goal-final-request-input.md` and cadence ranking from
 `goal-cadence-contract.md`.
 
-Replacement coverage must prove:
+Use durable state tests when the contract is facts, pending intent,
+exact-key consumption, or state-owned Continuation suppression records.
+Representative checks may cover:
 
 - creating an active Goal persists pending Initial intent
 - Initial intent is consumed only when final model request input contains the
   matching developer-role item
-- ObjectiveUpdated intent remains pending when same-turn metadata is
-  unavailable or rejected
-- BudgetLimit intent remains pending when same-turn metadata is unavailable
-  or rejected
+- ObjectiveUpdated or BudgetLimit intent remains pending when same-turn
+  metadata is unavailable or rejected
 - BudgetLimit supersedes older Initial or ObjectiveUpdated intent for the same
   Goal only under the durable/final supersedence rules
 - exact-key consumption matches thread, Goal, kind, and facts version
@@ -355,23 +396,27 @@ Replacement coverage must prove:
 ### Resume And Idle Lifecycle
 
 Owned by `goal-idle-history-lifecycle.md`, with state reload from
-`goal-durable-state-and-pending-intent.md` and final payload proof from
+`goal-durable-state-and-pending-intent.md` and final payload coverage from
 `goal-final-request-input.md`.
 
-Replacement coverage must prove:
+Use one focused unit or integration boundary per lifecycle contract. Avoid
+recreating full session flows for every old transcript artifact. Candidate
+contracts include:
 
 - resume reloads durable Goal facts and pending intent
 - resume does not create Initial merely because a durable active Goal exists
 - already-consumed Initial is not re-emitted after resume
-- pending non-Goal queued work runs before Goal-owned synthetic turns
-- trigger-turn mailbox work runs before Goal-owned synthetic turns
+- pending non-Goal queued work or trigger-turn mailbox work runs before
+  Goal-owned synthetic turns
 - pending Initial, ObjectiveUpdated, or BudgetLimit delivery from idle is not
   automatic Continuation
+- synthetic metadata is validated at the idle/history boundary when the
+  lifecycle contract depends on it
 - automatic Continuation launches only when no active turn, no pending
   non-Goal work, and no pending non-Continuation intent exist
-- automatic Continuation does not repeat for unchanged Goal, model-visible
-  history key, and durable facts version
-- a new non-Continuation model-visible history change permits a later
+- automatic Continuation does not repeat for unchanged Goal,
+  model-visible history key, and durable facts version
+- a new non-Continuation model-visible history change can permit a later
   automatic Continuation when all lifecycle requirements still hold
 - stale reservations or stale Goal-owned synthetic requests clear before
   submission without model send, pending-intent consumption, suppression
@@ -381,7 +426,9 @@ Replacement coverage must prove:
 
 Owned by `goal-idle-history-lifecycle.md` and its history-key section.
 
-Replacement coverage must prove:
+Delete tests that exist only to assert `ContextManager::history_version()` or
+helper output. If a durable suppression contract still needs coverage, prefer
+a cheap boundary around the selected model-visible key:
 
 - `ContextManager::history_version()` or an equivalent rewrite counter is not
   used as the sole Continuation key
@@ -404,7 +451,9 @@ Owned by `goal-request-repair-and-artifact-classification.md` and
 `goal-projection-reconstruction-and-raw-history.md`, with active final-input
 effects owned by `goal-final-request-input.md`.
 
-Replacement coverage must prove:
+Default old classifier, projection-hiddenness, raw-notification, rollout, and
+rendered-text tests to delete/no replacement. Keep only boundary coverage that
+protects a current cleanup contract, for example:
 
 - request-local repair can restore missing developer-role Goal authority at a
   seam without creating a new cadence event
@@ -421,7 +470,7 @@ Replacement coverage must prove:
 - raw response item notifications are not specially suppressed for Goal
   context
 - typed/materialized projection hides only pure current internal-context and
-  pure legacy artifacts
+  pure legacy artifacts when that hiding is still a durable API contract
 - compaction does not reinsert or preserve pre-shaper concrete Goal input as
   authority
 - reconstruction filters pure artifacts without recovering Goal facts,
@@ -434,7 +483,11 @@ Owned by `goal-recorded-request-evidence.md`, with finalized-input identity
 from `goal-final-request-input.md` and suppression reconstruction boundaries
 from `goal-idle-history-lifecycle.md`.
 
-Replacement coverage must prove:
+Use Created-event checks only when evidence or commit timing is the durable
+contract. Do not accept classifier matches, raw notifications, request
+metadata, reservations, pre-finalizer carry, ordinary rollout items, rollout
+trace payloads, or rendered Goal text as evidence substitutes. Representative
+evidence coverage may check:
 
 - structured Goal request evidence is appended only after
   `ResponseEvent::Created`
@@ -448,20 +501,24 @@ Replacement coverage must prove:
   accepted as structured Goal commit evidence
 - replay pairs evidence with a surviving model-visible Goal item by index and
   fingerprint before treating it as committed evidence
-- resume, rollback, fork, and compaction use structured evidence only as
-  replay evidence and never parse rendered Goal text for Goal facts or
-  Continuation suppression
-- classifier matches, raw notifications, ordinary rollout items, rollout trace
-  payloads, and rendered Goal text are not accepted as evidence substitutes
+- resume, rollback, fork, and compaction use structured evidence only as replay
+  evidence and never parse rendered Goal text for Goal facts or Continuation
+  suppression
 - evidence append failure is observable and cannot silently weaken live
   pending-intent or Continuation suppression correctness
 
 ### Extension And App-Server Paths
 
 Owned by `goal-extension-lifecycle-and-reachability.md`, with final payload
-proof owned by `goal-final-request-input.md`.
+coverage owned by `goal-final-request-input.md`.
 
-Replacement coverage must prove:
+Extension/app-server validation should focus on durable mutation outcomes,
+metadata-only wake/recheck, reachability, and one selected final-payload route.
+Do not keep extension tests that preserve `GoalContext`, `GoalContextRole`,
+active `<goal_context>`, user-role active internal context, or pre-finalizer
+concrete `ResponseItem`/`ResponseInputItem` values as active authority.
+
+Representative coverage may check:
 
 - extension-origin `create_goal` remains a valid mutation path when no Goal
   exists and writes durable active Goal facts plus pending Initial intent
@@ -478,12 +535,12 @@ Replacement coverage must prove:
 - configuration compatibility cannot make active Goal steering user-role
 - extension-related final payload coverage uses either true extension-origin
   integration through a real core request path with mock Responses, or paired
-  coverage where extension tests prove durable pending intent, accounting,
-  events, and metadata request outcomes while app-server/core tests prove the
+  coverage where extension tests validate durable pending intent, accounting,
+  events, and metadata request outcomes while app-server/core tests cover the
   shared request shaper from equivalent pending intent
 - paired coverage is identified as paired coverage, not end-to-end
   extension-origin payload coverage
-- true extension-origin final payload proof, when selected, shows the same
+- true extension-origin final payload coverage, when selected, shows the same
   exact outer developer-role current Goal item shape required of core-origin
   steering
 
@@ -493,7 +550,7 @@ Local overlay tests removed during prep may return only from corrected product
 or command/state-machine contracts, not from the broken active steering
 overlay.
 
-Replacement coverage may re-add:
+Future coverage may re-add:
 
 - Ctrl+C during an active turn interrupts without mutating Goal state
 - Ctrl+C with queued input preserves predictable queue behavior
@@ -501,25 +558,34 @@ Replacement coverage may re-add:
 - local configured objective-limit behavior only from a specific replacement
   command/config contract
 
-## Final Acceptance Proof Layers
+Prefer one clear boundary test per behavior family.
+
+## Final Acceptance Validation Layers
 
 WA06 cleanup routing is owned by `goal-readiness-and-execution-handoff.md`.
-This doc owns only the proof layers and stale-symbol audit posture that final
-acceptance uses.
+This doc owns only the validation layers and stale-symbol audit posture that
+final acceptance uses.
 
-Final acceptance proof must use the correct layer for each invariant:
+Use the correct layer for each invariant:
 
-- final `/responses` payload tests for active Goal authority and role
+- finalized logical `Vec<ResponseItem>` tests before `Prompt.input`, or final
+  `/responses` payload tests that capture the same logical input, for active
+  Goal authority and role
 - durable state tests for facts, pending intent, exact-key consumption, and
   Continuation suppression records
 - Created-event commit tests for pending-intent consumption, committed carry,
   suppression advancement, and evidence emission when evidence is in scope
+- idle/history tests for wake ordering, pending-work precedence, synthetic
+  metadata, model-visible history keys, and suppression comparison
 - projection/raw tests for typed hiding and raw emission boundaries
 - compaction/reconstruction tests for cleanup without concrete carry or
   rendered-text recovery
 - extension/app-server tests for durable mutation outcomes and metadata-only
-  wake/recheck, plus final payload proof through the selected true-extension
-  or paired shared-shaper route
+  wake/recheck, plus final payload coverage through the selected
+  true-extension or paired shared-shaper route
+
+These layers guide representative coverage. They do not require a replacement
+test for every deleted local-only test.
 
 Final stale-symbol audits are review gates, not architecture. Run them after
 implementation and classify every match under the cleanup routing owned by
@@ -539,17 +605,19 @@ During prep:
 During replacement implementation:
 
 - update snapshots only when user-visible output intentionally changes
-- add new snapshots for replacement UI behavior introduced by the rewrite
+- add snapshots only for new UI behavior introduced by the rewrite and only
+  when the repo's snapshot rules require them
 
 Root snapshot-test requirements still apply for any Rust/UI change. This doc
-only records the Goal-specific prep and replacement posture.
+only records the Goal-specific cleanup and validation posture.
 
 ## Primary Pointers
 
 - Behavior, cadence, durable-state, final-input, idle/history, evidence,
   cleanup, projection/raw, and extension successors own the behavior being
-  tested. This doc indexes proof coverage for those owners.
+  tested. This doc indexes cleanup and representative validation coverage for
+  those owners.
 - `goal-readiness-and-execution-handoff.md` owns readiness and handoff posture;
-  this doc owns proof preparation and acceptance layers only.
-- Tests are proof, not authority. If a test conflicts with an owning successor,
-  the test changes.
+  this doc owns test cleanup and validation triage only.
+- Tests are not authority. If a test conflicts with an owning successor, the
+  test changes or is deleted.

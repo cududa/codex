@@ -41,7 +41,8 @@ Authority:
 - `local/goal_research/goal-authority-model-visible-history-key.md`
 - `local/goal_research/goal-authority-recorded-request-evidence.md`
 - `local/goal_research/goal-authority-repair-classifier-integration.md`
-- `local/goal_research/goal-test-deletion-map.md`
+- `local/how-we-test.md`
+- `local/goal_research/goal-test-prep-and-replacement-proof.md`
 - `local/goal_136_plan/AGENTS.md`
 - `local/goal_136_plan/work-areas/AGENTS.md`
 - `local/goal_136_plan/work-areas/goal-work-area-coordination-note.md`
@@ -156,8 +157,9 @@ Locked direction:
 - keep `GoalRequestEvidence` as structured Created-event commit metadata only;
   projection, classifier, compaction, reconstruction, and raw-notification
   helpers must not emit it as conversation prose or treat it as authority
-- replace old marker-preservation tests with classifier/projection tests and
-  final request-input cleanup tests
+- delete old marker-preservation and fake-shim tests by default after the
+  removed code paths are gone; keep or add focused boundary tests only when a
+  real current contract would otherwise be unvalidated
 
 Exclusions:
 
@@ -519,13 +521,15 @@ Required behavior:
 - mixed content remains ordinary or invalid for hook prompt parsing according
   to existing non-Goal hook rules
 
-Delete or rewrite local-only tests named by `goal-test-deletion-map.md`:
+Delete local-only tests named by the cleanup triage doc by default:
 
 - `detects_goal_context_fragment`
 - `goal_context_response_input_item_uses_explicit_steering_role`
 
-Replacement tests should assert classifier behavior directly, not keep
-`GoalContext` as a contextual user fragment.
+Keep a replacement assertion only if the new classifier/contextual boundary
+would otherwise be unvalidated. Any retained assertion must target classifier
+or contextual behavior directly, not keep `GoalContext` as a contextual user
+fragment.
 
 ### 5. Convert Event Mapping And Typed Projection
 
@@ -550,13 +554,14 @@ Required behavior:
   content for rollback/reference-context invalidation
 - non-Goal internal-context source values are not classified as Goal
 
-Replace local-only tests:
+Delete local-only tests by default:
 
 - `goal_context_does_not_parse_as_visible_turn_item`
 - `developer_goal_context_is_contextual_without_invalidating_by_itself`
 - `mixed_developer_goal_context_remains_non_contextual`
 
-Add tests with names like:
+Only keep or add boundary tests like these when no existing boundary validates
+the current contract:
 
 - `goal_artifact_projection_hides_pure_current_goal_internal_context`
 - `goal_artifact_projection_hides_pure_legacy_goal_context`
@@ -590,12 +595,13 @@ Required behavior:
 - mixed developer messages continue to clear `reference_context_item` when
   trimmed because they contain persistent developer content
 
-Replace local-only tests:
+Delete local-only tests by default:
 
 - `drop_last_n_user_turns_trims_developer_goal_context_above_rolled_back_turn`
 - `user_goal_context_is_not_a_user_turn_boundary`
 
-Add tests with names like:
+Only keep or add boundary tests like these when no existing boundary validates
+the current contract:
 
 - `goal_artifact_user_current_internal_context_is_not_user_turn_boundary`
 - `goal_artifact_legacy_context_is_not_user_turn_boundary`
@@ -655,7 +661,8 @@ both local and remote compaction in this Work Area because prior Work Areas have
 established committed carry metadata yet, stop and fix the dependency ordering. Do
 not keep concrete carry as a Work Area 05 continuation state.
 
-Add focused tests:
+Only keep or add focused compaction boundary tests if the current compaction
+contract would otherwise be unvalidated:
 
 - `goal_artifact_collect_user_messages_filters_pure_current_and_legacy`
 - `goal_artifact_collect_user_messages_preserves_mixed_marker_like_user_text`
@@ -698,7 +705,8 @@ Required behavior:
   classifier matches, and rendered Goal text are not structured committed Goal
   request evidence and must not be used to invent repair metadata
 
-Add tests:
+Only keep or add boundary tests if the current reconstruction contract would
+otherwise be unvalidated:
 
 - `goal_artifact_reconstruction_filters_pure_current_and_legacy`
 - `goal_artifact_reconstruction_preserves_mixed_marker_like_messages`
@@ -838,14 +846,24 @@ The classifier must make these cases unambiguous:
 The classifier must not expose durable Goal facts. It must not take a
 `ThreadGoal` snapshot. Durable matching belongs to `core/src/goal_cadence/`.
 
-## Focused Tests
+## Test Cleanup Triage
 
-### Core Classifier Tests
+Use `local/how-we-test.md` and the cleanup triage doc. WA05 validation starts
+from deleting old tests that defend fake context, local shim transport,
+helper output, request metadata, pre-finalizer carry, rendered artifact text,
+rollout residue, raw suppression, classifier matches, projection hiddenness by
+itself, user-role Goal steering, or implementation sequence. Do not create a
+replacement-test backlog.
 
-Add tests near the classifier implementation, for example in
-`codex-rs/core/src/goal_artifacts.rs`.
+Keep or add focused boundary coverage only when a real current contract remains
+and no existing boundary already validates it. The lists below are candidate
+boundaries, not mandatory replacement tests.
 
-Required tests:
+### Core Classifier Boundary Candidates
+
+Candidate location: `codex-rs/core/src/goal_artifacts.rs`.
+
+Candidate boundary cases:
 
 - `goal_artifact_classifies_pure_current_goal_internal_context`
 - `goal_artifact_classifies_user_role_current_goal_as_cleanup_only`
@@ -860,15 +878,15 @@ Required tests:
 Use `pretty_assertions::assert_eq` and prefer equality over field-by-field
 assertions where possible.
 
-### Request-Input Cleanup Tests
+### Request-Input Cleanup Boundary Candidates
 
-Add or update tests in:
+Candidate locations:
 
 - `codex-rs/core/tests/suite/goal_authority.rs`
 - `codex-rs/core/src/session/tests.rs` only when a unit-level seam is more
   practical
 
-Required tests:
+Candidate boundary cases:
 
 - `goal_authority_cleanup_uses_classifier_for_legacy_and_current_artifacts`
 - `goal_authority_cleanup_preserves_mixed_marker_like_prose`
@@ -879,16 +897,16 @@ Required tests:
 Assertions must inspect final `/responses` input or request-input shaper output,
 not generic classifier output alone.
 
-### Projection And History Tests
+### Projection And History Boundary Candidates
 
-Add or update tests in:
+Candidate locations:
 
 - `codex-rs/core/src/event_mapping_tests.rs`
 - `codex-rs/core/src/context/contextual_user_message_tests.rs`
 - `codex-rs/core/src/context_manager/history_tests.rs`
 - `codex-rs/app-server-protocol/src/protocol/thread_history.rs`
 
-Required tests:
+Candidate boundary cases:
 
 - pure current Goal internal-context item is hidden from typed projection
 - pure legacy `<goal_context>` artifact is hidden from typed projection
@@ -899,15 +917,15 @@ Required tests:
   artifacts as user-visible items
 - hook prompt replay remains unchanged
 
-### Compaction And Reconstruction Tests
+### Compaction And Reconstruction Boundary Candidates
 
-Add or update tests in:
+Candidate locations:
 
 - `codex-rs/core/src/compact_tests.rs`
 - `codex-rs/core/src/session/rollout_reconstruction_tests.rs`
 - focused compact/resume integration tests only when necessary
 
-Required tests:
+Candidate boundary cases:
 
 - compact user-message collection filters pure current and legacy Goal items
 - compact user-message collection preserves mixed marker-like prose
@@ -921,13 +939,13 @@ Required tests:
   structured committed Goal request evidence
 - mid-turn compaction no longer reinjects pre-shaper concrete Goal input
 
-### Raw Notification Tests
+### Raw Notification Boundary Candidates
 
-Add or update tests in:
+Candidate location:
 
 - `codex-rs/app-server/src/bespoke_event_handling.rs`
 
-Required tests:
+Candidate boundary cases:
 
 - pure legacy Goal context emits
   `RawResponseItemCompletedNotification`
